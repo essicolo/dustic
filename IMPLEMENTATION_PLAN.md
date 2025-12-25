@@ -7,7 +7,7 @@
 
 A Spotify-like music player that streams audio directly from Internet Archive collections. Built with SvelteKit, featuring smart rule-based autoplay and modern streaming UI.
 
-**Core Principle**: No AI, no backend - pure client-side app with localStorage persistence.
+**Core Principle**: No AI, no backend - pure client-side app with **user-controlled data export/import** (no silent persistence).
 
 ---
 
@@ -17,7 +17,7 @@ A Spotify-like music player that streams audio directly from Internet Archive co
 - **Styling**: TailwindCSS + DaisyUI (streaming service aesthetics)
 - **State Management**: Svelte stores
 - **Data Source**: Internet Archive API (archive.org)
-- **Storage**: Browser localStorage
+- **Storage**: User-controlled JSON export/import (no silent persistence)
 - **Audio**: HTML5 Audio API
 - **Deployment**: Vercel/Netlify (static)
 
@@ -46,10 +46,14 @@ dustic/
 │   │   │   ├── Queue/
 │   │   │   │   ├── QueuePanel.svelte        # Upcoming tracks
 │   │   │   │   └── QueueItem.svelte         # Single queue entry
-│   │   │   └── Sidebar/
-│   │   │       ├── Navigation.svelte        # Main nav
-│   │   │       ├── PlaylistList.svelte      # User playlists
-│   │   │       └── RecentlyPlayed.svelte    # History
+│   │   │   ├── Sidebar/
+│   │   │   │   ├── Navigation.svelte        # Main nav
+│   │   │   │   ├── PlaylistList.svelte      # User playlists
+│   │   │   │   ├── RecentlyPlayed.svelte    # History
+│   │   │   │   └── ProfileManager.svelte    # Download/upload buttons
+│   │   │   └── Settings/
+│   │   │       ├── AutoplayRuleEditor.svelte # Rule config UI
+│   │   │       └── CollectionFilters.svelte  # Collection preferences
 │   │   ├── stores/
 │   │   │   ├── player.ts                    # Player state & controls
 │   │   │   ├── queue.ts                     # Queue management
@@ -60,7 +64,7 @@ dustic/
 │   │   │   ├── internetArchive.ts           # API client
 │   │   │   ├── autoplay.ts                  # Smart next track logic
 │   │   │   ├── metadata.ts                  # Metadata parsing
-│   │   │   └── storage.ts                   # localStorage wrapper
+│   │   │   └── storage.ts                   # JSON export/import service
 │   │   └── utils/
 │   │       ├── formatTime.ts                # Duration formatting
 │   │       ├── parseMetadata.ts             # IA metadata normalization
@@ -79,7 +83,11 @@ dustic/
 │   │   │   ├── favorites/+page.svelte       # Liked tracks
 │   │   │   └── playlists/
 │   │   │       └── [id]/+page.svelte        # Playlist detail
-│   │   └── history/+page.svelte             # Recently played
+│   │   ├── history/+page.svelte             # Recently played
+│   │   ├── trending/+page.svelte            # Most downloaded (IA metrics)
+│   │   └── settings/
+│   │       ├── +page.svelte                 # Settings overview
+│   │       └── autoplay/+page.svelte        # Autoplay rules editor
 │   └── app.html                             # HTML template
 ├── static/
 │   └── favicon.png
@@ -111,10 +119,16 @@ https://archive.org/download/{identifier}/{filename}
 ```
 
 ### Target Collections
+**ALL Internet Archive audio collections**, including:
 - `etree` - Live Music Archive (concerts, live performances)
 - `audio_music` - General music collection
 - `78rpm` - Historical 78 RPM recordings
 - `opensource_audio` - Open source audio
+- `librivoxaudio` - Audiobooks
+- `radioprograms` - Old time radio
+- `audio_podcast` - Podcasts
+- `audio_tech` - Technical/educational audio
+- And any other collection containing audio formats
 
 ### Metadata Fields
 - `identifier` - Unique ID
@@ -161,32 +175,60 @@ interface PlayerState {
 
 ### 2. Smart Autoplay Rules (`lib/services/autoplay.ts`)
 
-**Rule Hierarchy** (when queue is empty):
-
-1. **Same Album** - Next track from current album
-2. **Same Artist** - Random track by same artist
-3. **Same Collection** - Random from same IA collection
-4. **Similar Genre** - Match subject tags
-5. **Same Decade** - Match date ranges
-6. **Random Discovery** - Random popular track
+**USER-CONFIGURABLE RULES** - Users can enable/disable, adjust weights, and reorder priority:
 
 ```typescript
-async function getNextTrack(currentTrack: Track): Promise<Track> {
-  // Try rules in order, return first match
-  const strategies = [
-    findNextInAlbum,
-    findSameArtist,
-    findSameCollection,
-    findSimilarGenre,
-    findSameDecade,
-    findRandom
-  ]
-
-  for (const strategy of strategies) {
-    const track = await strategy(currentTrack)
-    if (track) return track
-  }
+interface AutoplayRule {
+  id: string
+  name: string
+  enabled: boolean
+  weight: number  // 0-100, relative probability
+  strategy: (track: Track) => Promise<Track | null>
 }
+
+const DEFAULT_RULES: AutoplayRule[] = [
+  { id: 'same-album', name: 'Same Album', enabled: true, weight: 60, strategy: findNextInAlbum },
+  { id: 'same-artist', name: 'Same Artist', enabled: true, weight: 30, strategy: findSameArtist },
+  { id: 'similar-genre', name: 'Similar Genre', enabled: true, weight: 8, strategy: findSimilarGenre },
+  { id: 'same-collection', name: 'Same Collection', enabled: false, weight: 0, strategy: findSameCollection },
+  { id: 'same-decade', name: 'Same Decade', enabled: false, weight: 0, strategy: findSameDecade },
+  { id: 'random', name: 'Random Discovery', enabled: true, weight: 2, strategy: findRandom }
+]
+
+async function getNextTrack(currentTrack: Track, userRules: AutoplayRule[]): Promise<Track> {
+  // Use weighted random selection from enabled rules
+  const enabledRules = userRules.filter(r => r.enabled && r.weight > 0)
+  const totalWeight = enabledRules.reduce((sum, r) => sum + r.weight, 0)
+
+  // Try rules based on weighted probability
+  let random = Math.random() * totalWeight
+  for (const rule of enabledRules) {
+    random -= rule.weight
+    if (random <= 0) {
+      const track = await rule.strategy(currentTrack)
+      if (track) return track
+    }
+  }
+
+  // Fallback to pure random if all strategies fail
+  return findRandom()
+}
+```
+
+**Settings UI** - Drag-to-reorder, sliders for weights, toggle enable/disable:
+```
+┌─────────────────────────────────────┐
+│ Autoplay Rules (drag to reorder)   │
+├─────────────────────────────────────┤
+│ ☑ Same Album          [▓▓▓▓▓▓░░] 60%│ ≡
+│ ☑ Same Artist         [▓▓▓░░░░░] 30%│ ≡
+│ ☑ Similar Genre       [▓░░░░░░░]  8%│ ≡
+│ ☐ Same Collection     [░░░░░░░░]  0%│ ≡
+│ ☐ Same Decade         [░░░░░░░░]  0%│ ≡
+│ ☑ Random Discovery    [░░░░░░░░]  2%│ ≡
+├─────────────────────────────────────┤
+│ [Save as Preset] [Reset to Default]│
+└─────────────────────────────────────┘
 ```
 
 ### 3. Queue Management (`lib/stores/queue.ts`)
@@ -239,33 +281,83 @@ async function getStreamUrl(identifier: string, filename: string): Promise<strin
 - Pagination (50 results per page)
 - Debounced input (300ms)
 
-### 5. Library & Persistence (`lib/stores/library.ts`)
+### 5. Library & User Data Management (`lib/stores/library.ts`)
 
-**LocalStorage Schema:**
+**User Profile JSON Schema** (exported/imported by user):
 ```typescript
-{
-  favorites: string[]              // Track identifiers
+interface UserProfile {
+  version: string               // Schema version for compatibility
+  exported: number              // Timestamp
+  favorites: string[]           // Track identifiers
   playlists: {
     [id: string]: {
       name: string
       tracks: string[]
-      created: timestamp
-      updated: timestamp
+      created: number
+      updated: number
     }
   }
   history: {
     trackId: string
-    playedAt: timestamp
-  }[]  // Max 100 entries
+    playedAt: number
+  }[]                           // Last 100
+  autoplayRules: AutoplayRule[] // Custom rule configuration
+  settings: {
+    volume: number
+    repeat: 'off' | 'one' | 'all'
+    defaultCollection?: string
+  }
 }
 ```
 
 **Features:**
-- Add/remove favorites
-- Create/edit/delete playlists
+- **Download Profile** button → saves `dustic-profile.json`
+- **Upload Profile** button → loads from file
+- **beforeunload warning** → "You have unsaved changes. Download your profile before leaving?"
+- **Dirty state tracking** → Show indicator when changes exist
+- Add/remove favorites (marks dirty)
+- Create/edit/delete playlists (marks dirty)
 - Drag-and-drop reordering
-- Recently played (last 100)
-- Export/import as JSON
+- Recently played tracking
+- Auto-expire old history (>100 entries)
+
+**Implementation:**
+```typescript
+let isDirty = false
+
+function markDirty() {
+  isDirty = true
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (isDirty) {
+    e.preventDefault()
+    e.returnValue = 'You have unsaved changes. Download your profile before leaving?'
+  }
+})
+
+function exportProfile() {
+  const profile = { /* build profile */ }
+  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `dustic-profile-${Date.now()}.json`
+  a.click()
+  isDirty = false
+}
+
+function importProfile(file: File) {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const profile = JSON.parse(e.target.result)
+    // Validate and load profile
+    loadProfile(profile)
+    isDirty = false
+  }
+  reader.readAsText(file)
+}
+```
 
 ---
 
@@ -278,13 +370,14 @@ async function getStreamUrl(identifier: string, filename: string): Promise<strin
 │ [Sidebar]              [Main Content]           │
 │                                                  │
 │ 🏠 Home                Search: ___________      │
-│ 🔍 Search                                        │
+│ 🔍 Search              🔔 Unsaved Changes       │
 │ 📚 Library             [Content Area]           │
-│                        - Album Grid              │
-│ ─────────              - Track Lists             │
-│ Playlists:             - Item Details            │
-│ • Favorites                                      │
-│ • My Mix                                         │
+│ ⚙️  Settings            - Album Grid             │
+│                        - Track Lists             │
+│ ─────────              - Item Details            │
+│ Playlists:                                       │
+│ • Favorites            [↓ Download Profile]     │
+│ • My Mix               [↑ Upload Profile]       │
 │                                                  │
 ├─────────────────────────────────────────────────┤
 │ [Now Playing Bar - Fixed Bottom]                │
@@ -352,17 +445,22 @@ async function getStreamUrl(identifier: string, filename: string): Promise<strin
 
 ### Phase 4: Smart Autoplay (Week 4)
 - [ ] Autoplay service implementation
-- [ ] Rule-based next track logic
+- [ ] User-configurable rules system
+- [ ] Weighted random rule selection
 - [ ] Same artist/album detection
 - [ ] Genre/tag matching
-- [ ] Fallback to random
+- [ ] Settings UI (drag-to-reorder, sliders)
+- [ ] Rule presets (Focus, Discovery modes)
 - [ ] Preloading optimization
 
 ### Phase 5: Library Features (Week 5)
-- [ ] LocalStorage service
-- [ ] Favorites system
-- [ ] Playlist creation/editing
+- [ ] JSON export/import service
+- [ ] Favorites system (marks dirty)
+- [ ] Playlist creation/editing (marks dirty)
 - [ ] Recently played tracking
+- [ ] Profile download/upload UI
+- [ ] beforeunload warning implementation
+- [ ] Dirty state indicator
 - [ ] Library page UI
 - [ ] Drag-and-drop reordering
 
@@ -396,12 +494,15 @@ async function getStreamUrl(identifier: string, filename: string): Promise<strin
 - ✅ Volume & seek controls
 - ✅ Basic playlists
 
-**Nice to Have:**
-- 📋 Recently played
-- 📋 Browse collections
-- 📋 Shuffle/repeat modes
-- 📋 Drag-and-drop queue reorder
-- 📋 Export/import library
+**Must Have (All Features):**
+- ✅ Recently played
+- ✅ Browse collections (by most downloaded, recent uploads)
+- ✅ Shuffle/repeat modes
+- ✅ Drag-and-drop queue reorder
+- ✅ Export/import user profile
+- ✅ Configurable autoplay rules
+- ✅ Unsaved changes warning
+- ✅ Trending/popular (using IA download metrics)
 
 **Future Enhancements:**
 - 🔮 Lyrics display (if available in metadata)
@@ -506,25 +607,36 @@ interface HistoryEntry {
 
 ## 🔧 Configuration
 
-### Internet Archive Collections Priority
+### Internet Archive Collections
+**Search ALL audio collections** - no priority filtering. Users can filter by collection in search UI.
+
+Common collections shown as quick filters:
 ```typescript
-const COLLECTIONS = [
-  { id: 'etree', name: 'Live Music Archive', priority: 1 },
-  { id: 'audio_music', name: 'Music Collection', priority: 2 },
-  { id: '78rpm', name: '78 RPM Recordings', priority: 3 },
-  { id: 'opensource_audio', name: 'Open Audio', priority: 4 }
+const POPULAR_COLLECTIONS = [
+  { id: 'etree', name: 'Live Music Archive', icon: '🎸' },
+  { id: 'audio_music', name: 'Music', icon: '🎵' },
+  { id: '78rpm', name: '78 RPM', icon: '📻' },
+  { id: 'librivoxaudio', name: 'Audiobooks', icon: '📚' },
+  { id: 'radioprograms', name: 'Radio Programs', icon: '📡' },
+  { id: 'audio_podcast', name: 'Podcasts', icon: '🎙️' }
 ]
 ```
 
-### Autoplay Rules Configuration
+### Default Autoplay Rules
 ```typescript
-const AUTOPLAY_CONFIG = {
-  sameAlbumWeight: 0.6,      // 60% chance to stay in album
-  sameArtistWeight: 0.3,     // 30% chance same artist
-  similarGenreWeight: 0.08,  // 8% similar genre
-  randomWeight: 0.02,        // 2% random discovery
+const DEFAULT_AUTOPLAY_RULES = [
+  { id: 'same-album', name: 'Same Album', enabled: true, weight: 60 },
+  { id: 'same-artist', name: 'Same Artist', enabled: true, weight: 30 },
+  { id: 'similar-genre', name: 'Similar Genre', enabled: true, weight: 8 },
+  { id: 'same-collection', name: 'Same Collection', enabled: false, weight: 0 },
+  { id: 'same-decade', name: 'Same Decade', enabled: false, weight: 0 },
+  { id: 'random', name: 'Random Discovery', enabled: true, weight: 2 }
+]
+
+const CONFIG = {
   maxHistorySize: 100,
-  maxQueueSize: 500
+  maxQueueSize: 500,
+  profileVersion: '1.0.0'
 }
 ```
 
@@ -533,12 +645,15 @@ const AUTOPLAY_CONFIG = {
 ## 🧪 Testing Strategy
 
 **Manual Testing:**
-- Search various queries
+- Search various queries (music, audiobooks, podcasts)
+- Search ALL collections vs. filtered
 - Play full albums
-- Test autoplay transitions
+- Test autoplay with different rule configurations
 - Queue manipulation
-- LocalStorage persistence
+- Profile export/import
+- beforeunload warning (close tab with changes)
 - Mobile responsiveness
+- Trending/popular pages (IA download metrics)
 
 **Edge Cases:**
 - No search results
@@ -547,6 +662,9 @@ const AUTOPLAY_CONFIG = {
 - Empty queue autoplay
 - Corrupt metadata
 - Very long track names
+- Corrupt profile JSON on import
+- Profile with missing fields (old version)
+- Unsaved changes on page close
 
 **Performance:**
 - Lighthouse audit (target: 90+)
@@ -571,11 +689,13 @@ const AUTOPLAY_CONFIG = {
 - Creator field sometimes missing or in description
 - Collection field is array, can be in multiple
 
-**LocalStorage Limits:**
-- ~5-10MB total (varies by browser)
-- Store only IDs, not full track objects
-- Compress if needed (JSON.stringify → LZ-string)
-- Clear old history entries periodically
+**User Profile Management:**
+- NO silent localStorage - user explicitly downloads profile JSON
+- Profile includes: favorites, playlists, history, autoplay rules, settings
+- Warn on page close if unsaved changes exist
+- Show dirty state indicator in UI
+- Profile versioning for future compatibility
+- Old history auto-expired at 100 entries to keep file size reasonable
 
 ---
 

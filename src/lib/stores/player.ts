@@ -3,6 +3,7 @@
 import { writable, derived, get } from 'svelte/store';
 import type { Track } from '$lib/types';
 import { queue } from './queue';
+import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { getTrack } from '$lib/services/internetArchive';
 

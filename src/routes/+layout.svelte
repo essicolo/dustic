@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
+	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import { page } from '$app/stores';
 
@@ -74,6 +75,9 @@
 					⚙️ Settings
 				</a>
 			</nav>
+
+			<!-- Profile Manager -->
+			<ProfileManager />
 		</aside>
 
 		<!-- Main content -->

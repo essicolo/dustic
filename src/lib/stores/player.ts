@@ -3,6 +3,8 @@
 import { writable, derived, get } from 'svelte/store';
 import type { Track } from '$lib/types';
 import { queue } from './queue';
+import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
+import { getTrack } from '$lib/services/internetArchive';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -65,16 +67,17 @@ function createPlayerStore() {
 				}));
 			});
 
-			element.addEventListener('ended', () => {
+			element.addEventListener('ended', async () => {
 				const state = get({ subscribe });
 				if (state.repeat === 'one') {
 					element.currentTime = 0;
 					element.play();
 				} else if (state.repeat === 'all' || queue.getNextTrack()) {
-					// Auto-play next track
+					// Auto-play next track from queue
 					this.next();
 				} else {
-					update((s) => ({ ...s, isPlaying: false }));
+					// Queue is empty - use autoplay
+					await this.autoplayNext();
 				}
 			});
 
@@ -164,10 +167,41 @@ function createPlayerStore() {
 		},
 
 		// Skip to next track
-		next() {
+		async next() {
 			const nextTrack = queue.next();
 			if (nextTrack) {
 				this.play(nextTrack);
+			} else {
+				// Queue empty, try autoplay
+				await this.autoplayNext();
+			}
+		},
+
+		// Get next track via autoplay
+		async autoplayNext() {
+			const state = get({ subscribe });
+			const currentTrack = state.currentTrack;
+
+			update((s) => ({ ...s, isLoading: true }));
+
+			try {
+				const nextTrackMeta = await getAutoplayTrack(currentTrack);
+				if (nextTrackMeta) {
+					// Fetch full track data
+					const track = await getTrack(nextTrackMeta.identifier);
+					if (track) {
+						queue.addToEnd(track);
+						const addedTrack = queue.next();
+						if (addedTrack) {
+							this.play(addedTrack);
+						}
+					}
+				} else {
+					update((s) => ({ ...s, isLoading: false, isPlaying: false }));
+				}
+			} catch (e) {
+				console.error('Autoplay failed:', e);
+				update((s) => ({ ...s, isLoading: false, isPlaying: false }));
 			}
 		},
 

@@ -2,6 +2,7 @@
 
 import { writable, derived, get } from 'svelte/store';
 import type { Track } from '$lib/types';
+import { queue } from './queue';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -69,8 +70,10 @@ function createPlayerStore() {
 				if (state.repeat === 'one') {
 					element.currentTime = 0;
 					element.play();
+				} else if (state.repeat === 'all' || queue.getNextTrack()) {
+					// Auto-play next track
+					this.next();
 				} else {
-					// TODO: Trigger next track in queue
 					update((s) => ({ ...s, isPlaying: false }));
 				}
 			});
@@ -156,17 +159,48 @@ function createPlayerStore() {
 
 		// Toggle shuffle
 		toggleShuffle() {
+			queue.toggleShuffle();
 			update((state) => ({ ...state, shuffle: !state.shuffle }));
 		},
 
-		// Skip to next track (will be implemented with queue)
+		// Skip to next track
 		next() {
-			console.log('Next track - TODO: implement with queue');
+			const nextTrack = queue.next();
+			if (nextTrack) {
+				this.play(nextTrack);
+			}
 		},
 
-		// Skip to previous track (will be implemented with queue)
+		// Skip to previous track
 		previous() {
-			console.log('Previous track - TODO: implement with queue');
+			const state = get({ subscribe });
+
+			// If we're more than 3 seconds in, restart current track
+			if (state.currentTime > 3) {
+				this.seek(0);
+				return;
+			}
+
+			// Otherwise go to previous track
+			const prevTrack = queue.previous();
+			if (prevTrack) {
+				this.play(prevTrack);
+			}
+		},
+
+		// Play a track and add to queue if not already there
+		playNow(track: Track, addToQueue: boolean = true) {
+			if (addToQueue) {
+				const currentTrack = queue.getCurrentTrack();
+				if (!currentTrack || currentTrack.identifier !== track.identifier) {
+					queue.addNext(track);
+					const nextTrack = queue.getNextTrack();
+					if (nextTrack && nextTrack.identifier === track.identifier) {
+						queue.next();
+					}
+				}
+			}
+			this.play(track);
 		}
 	};
 }

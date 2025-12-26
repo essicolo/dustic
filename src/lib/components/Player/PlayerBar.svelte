@@ -1,12 +1,73 @@
 <script lang="ts">
 	import { player } from '$lib/stores/player';
-	import { onMount } from 'svelte';
+	import { queue } from '$lib/stores/queue';
+	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	let audioElement: HTMLAudioElement;
 
 	onMount(() => {
 		player.setAudioElement(audioElement);
+
+		// Keyboard shortcuts
+		window.addEventListener('keydown', handleKeyPress);
 	});
+
+	onDestroy(() => {
+		window.removeEventListener('keydown', handleKeyPress);
+	});
+
+	function handleKeyPress(e: KeyboardEvent) {
+		// Ignore if typing in input fields
+		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+			return;
+		}
+
+		switch (e.code) {
+			case 'Space':
+				e.preventDefault();
+				player.togglePlay();
+				break;
+			case 'ArrowLeft':
+				e.preventDefault();
+				player.seek(Math.max(0, $player.currentTime - 5));
+				break;
+			case 'ArrowRight':
+				e.preventDefault();
+				player.seek(Math.min($player.duration, $player.currentTime + 5));
+				break;
+			case 'KeyN':
+				if (e.ctrlKey || e.metaKey) {
+					e.preventDefault();
+					player.next();
+				}
+				break;
+			case 'KeyP':
+				if (e.ctrlKey || e.metaKey) {
+					e.preventDefault();
+					player.previous();
+				}
+				break;
+			case 'KeyM':
+				if (e.ctrlKey || e.metaKey) {
+					e.preventDefault();
+					player.setVolume($player.volume > 0 ? 0 : 0.7);
+				}
+				break;
+			case 'ArrowUp':
+				if (e.shiftKey) {
+					e.preventDefault();
+					player.setVolume(Math.min(1, $player.volume + 0.1));
+				}
+				break;
+			case 'ArrowDown':
+				if (e.shiftKey) {
+					e.preventDefault();
+					player.setVolume(Math.max(0, $player.volume - 0.1));
+				}
+				break;
+		}
+	}
 
 	function formatTime(seconds: number): string {
 		if (!isFinite(seconds)) return '0:00';
@@ -118,16 +179,33 @@
 		</div>
 	</div>
 
-	<!-- Volume Control -->
-	<div class="flex-shrink-0 w-32 flex items-center gap-2">
-		<span>🔊</span>
-		<input
-			type="range"
-			min="0"
-			max="100"
-			value={$player.volume * 100}
-			on:input={(e) => player.setVolume(parseFloat((e.target as HTMLInputElement).value) / 100)}
-			class="range range-xs flex-1"
-		/>
+	<!-- Volume & Queue -->
+	<div class="flex-shrink-0 flex items-center gap-4">
+		<!-- Volume Control -->
+		<div class="w-32 flex items-center gap-2">
+			<button
+				on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
+				class="btn btn-ghost btn-sm"
+			>
+				{#if $player.volume === 0}
+					🔇
+				{:else if $player.volume < 0.5}
+					🔉
+				{:else}
+					🔊
+				{/if}
+			</button>
+			<input
+				type="range"
+				min="0"
+				max="100"
+				value={$player.volume * 100}
+				on:input={(e) => player.setVolume(parseFloat((e.target as HTMLInputElement).value) / 100)}
+				class="range range-xs flex-1"
+			/>
+		</div>
+
+		<!-- Queue Button -->
+		<QueuePanel />
 	</div>
 </div>

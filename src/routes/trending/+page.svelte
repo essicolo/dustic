@@ -100,7 +100,7 @@
 		<h2 class="text-3xl font-bold">Trending & Popular</h2>
 		{#if results.length > 0}
 			<button on:click={playAll} class="btn btn-primary btn-sm">
-				▶️ Play All
+				Play All
 			</button>
 		{/if}
 	</div>
@@ -160,9 +160,9 @@
 							/>
 						{:else}
 							<div
-								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3"
+								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3 text-4xl text-base-content/30"
 							>
-								<span class="text-6xl">🎵</span>
+								♪
 							</div>
 						{/if}
 
@@ -187,9 +187,9 @@
 								{#if loadingTrack === item.identifier}
 									<span class="loading loading-spinner loading-xs"></span>
 								{:else if isCurrentTrack(item.identifier)}
-									▶️ Playing
+									Playing
 								{:else}
-									▶️ Play
+									Play
 								{/if}
 							</button>
 							<button
@@ -198,7 +198,7 @@
 								disabled={loadingTrack === item.identifier}
 								title="Add to queue"
 							>
-								➕
+								+
 							</button>
 						</div>
 					</div>
@@ -207,8 +207,7 @@
 		</div>
 	{:else}
 		<div class="text-center py-20 text-base-content/50">
-			<div class="text-6xl mb-4">📊</div>
-			<p>No trending tracks found</p>
+			<p class="text-lg">No trending tracks found</p>
 		</div>
 	{/if}
 </div>

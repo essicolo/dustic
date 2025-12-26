@@ -9,17 +9,22 @@ export default {
 		themes: [
 			{
 				dustic: {
-					primary: '#a855f7',
-					secondary: '#818cf8',
-					accent: '#c084fc',
-					neutral: '#1e293b',
-					'base-100': '#0f172a',
-					'base-200': '#1e293b',
-					'base-300': '#334155',
-					info: '#3b82f6',
-					success: '#10b981',
-					warning: '#f59e0b',
-					error: '#ef4444'
+					primary: '#000000',
+					'primary-content': '#ffffff',
+					secondary: '#404040',
+					'secondary-content': '#ffffff',
+					accent: '#1a1a1a',
+					'accent-content': '#ffffff',
+					neutral: '#262626',
+					'neutral-content': '#e5e5e5',
+					'base-100': '#ffffff',
+					'base-200': '#f5f5f5',
+					'base-300': '#e5e5e5',
+					'base-content': '#000000',
+					info: '#525252',
+					success: '#404040',
+					warning: '#737373',
+					error: '#171717'
 				}
 			}
 		]

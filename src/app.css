@@ -4,4 +4,26 @@
 
 body {
 	@apply bg-base-100 text-base-content;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+		'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Minimalist scrollbar */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	@apply bg-base-100;
+}
+
+::-webkit-scrollbar-thumb {
+	@apply bg-base-300 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	@apply bg-neutral;
 }

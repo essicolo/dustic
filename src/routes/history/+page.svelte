@@ -86,7 +86,7 @@
 
 <div class="p-8">
 	<div class="flex items-center justify-between mb-6">
-		<h2 class="text-3xl font-bold">🕒 Recently Played</h2>
+		<h2 class="text-3xl font-bold">Recently Played</h2>
 		{#if validTracks.length > 0}
 			<button on:click={clearHistory} class="btn btn-ghost btn-sm">
 				Clear History
@@ -100,8 +100,7 @@
 		</div>
 	{:else if validTracks.length === 0}
 		<div class="text-center py-20 text-base-content/50">
-			<div class="text-6xl mb-4">🕒</div>
-			<p>No history yet</p>
+			<p class="text-lg">No history yet</p>
 			<p class="text-sm mt-2">Tracks you play will appear here</p>
 		</div>
 	{:else}
@@ -115,21 +114,19 @@
 				>
 					<div class="card-body p-4">
 						<div class="flex items-center gap-3">
-							<button
-								on:click={() => playTrack(track.identifier)}
-								class="btn btn-circle btn-sm"
-								class:btn-primary={!isCurrentTrack(track.identifier)}
-								class:btn-ghost={isCurrentTrack(track.identifier)}
-								disabled={loadingTrack === track.identifier}
-							>
-								{#if loadingTrack === track.identifier}
-									<span class="loading loading-spinner loading-xs"></span>
-								{:else if isCurrentTrack(track.identifier)}
-									<span class="text-primary">▶️</span>
-								{:else}
-									▶️
-								{/if}
-							</button>
+							<!-- Album Art -->
+							{#if track.thumbnailUrl}
+								<img
+									src={track.thumbnailUrl}
+									alt={track.title}
+									class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
+								/>
+							{:else}
+								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center text-xs text-base-content/30 flex-shrink-0">
+									♪
+								</div>
+							{/if}
+
 							<div class="flex-1 min-w-0">
 								<h3
 									class="font-medium truncate"
@@ -147,13 +144,30 @@
 									</p>
 								{/if}
 							</div>
-							<button
-								on:click={() => removeFromHistory(track.identifier)}
-								class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-								title="Remove from history"
-							>
-								✕
-							</button>
+							<div class="flex items-center gap-2">
+								<button
+									on:click={() => playTrack(track.identifier)}
+									class="btn btn-sm"
+									class:btn-primary={!isCurrentTrack(track.identifier)}
+									class:btn-ghost={isCurrentTrack(track.identifier)}
+									disabled={loadingTrack === track.identifier}
+								>
+									{#if loadingTrack === track.identifier}
+										<span class="loading loading-spinner loading-xs"></span>
+									{:else if isCurrentTrack(track.identifier)}
+										Playing
+									{:else}
+										Play
+									{/if}
+								</button>
+								<button
+									on:click={() => removeFromHistory(track.identifier)}
+									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+									title="Remove from history"
+								>
+									Remove
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>

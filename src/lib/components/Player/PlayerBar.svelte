@@ -101,8 +101,8 @@
 						class="w-12 h-12 rounded bg-base-200"
 					/>
 				{:else}
-					<div class="w-12 h-12 rounded bg-base-200 flex items-center justify-center">
-						🎵
+					<div class="w-12 h-12 rounded bg-base-200 flex items-center justify-center text-xs text-base-content/30">
+						♪
 					</div>
 				{/if}
 				<div class="flex-1 min-w-0">
@@ -125,12 +125,13 @@
 				on:click={() => player.toggleShuffle()}
 				class="btn btn-ghost btn-sm"
 				class:text-primary={$player.shuffle}
+				title="Shuffle"
 			>
-				🔀
+				Shuffle
 			</button>
 
-			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm">
-				⏮
+			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm" title="Previous">
+				‹‹
 			</button>
 
 			<button
@@ -141,22 +142,23 @@
 				{#if $player.isLoading}
 					<span class="loading loading-spinner"></span>
 				{:else if $player.isPlaying}
-					⏸
+					‖
 				{:else}
-					▶️
+					▸
 				{/if}
 			</button>
 
-			<button on:click={() => player.next()} class="btn btn-ghost btn-sm">
-				⏭
+			<button on:click={() => player.next()} class="btn btn-ghost btn-sm" title="Next">
+				››
 			</button>
 
 			<button
 				on:click={() => player.toggleRepeat()}
 				class="btn btn-ghost btn-sm"
 				class:text-primary={$player.repeat !== 'off'}
+				title={$player.repeat === 'one' ? 'Repeat One' : $player.repeat === 'all' ? 'Repeat All' : 'Repeat Off'}
 			>
-				{$player.repeat === 'one' ? '🔂' : '🔁'}
+				{$player.repeat === 'one' ? 'Repeat 1' : 'Repeat'}
 			</button>
 		</div>
 
@@ -185,14 +187,13 @@
 		<div class="w-32 flex items-center gap-2">
 			<button
 				on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
-				class="btn btn-ghost btn-sm"
+				class="btn btn-ghost btn-sm text-xs"
+				title="Mute/Unmute"
 			>
 				{#if $player.volume === 0}
-					🔇
-				{:else if $player.volume < 0.5}
-					🔉
+					Muted
 				{:else}
-					🔊
+					Vol
 				{/if}
 			</button>
 			<input

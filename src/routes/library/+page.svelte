@@ -37,7 +37,7 @@
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
-				<h3 class="card-title">❤️ Favorites</h3>
+				<h3 class="card-title">Favorites</h3>
 				<p class="text-base-content/70">{$library.favorites.length} tracks</p>
 			</div>
 		</a>
@@ -47,7 +47,7 @@
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
-				<h3 class="card-title">🕒 History</h3>
+				<h3 class="card-title">History</h3>
 				<p class="text-base-content/70">Recently played</p>
 			</div>
 		</a>
@@ -57,7 +57,7 @@
 			class="card bg-primary hover:bg-primary/90 transition-colors cursor-pointer text-primary-content"
 		>
 			<div class="card-body">
-				<h3 class="card-title">➕ New Playlist</h3>
+				<h3 class="card-title">New Playlist</h3>
 				<p class="opacity-90">Create a playlist</p>
 			</div>
 		</button>
@@ -106,8 +106,7 @@
 	<h3 class="text-xl font-bold mb-4">Your Playlists</h3>
 	{#if playlists.length === 0}
 		<div class="text-center py-20 text-base-content/50">
-			<div class="text-6xl mb-4">📁</div>
-			<p>No playlists yet</p>
+			<p class="text-lg">No playlists yet</p>
 			<p class="text-sm mt-2">Create your first playlist above</p>
 		</div>
 	{:else}

@@ -31,10 +31,10 @@
 </script>
 
 <!-- Queue Toggle Button -->
-<button on:click={togglePanel} class="btn btn-ghost btn-sm relative">
-	<span class="text-lg">≡</span>
+<button on:click={togglePanel} class="btn btn-ghost btn-sm relative" title="Queue">
+	Queue
 	{#if queueCount > 0}
-		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
+		<span class="badge badge-primary badge-sm">
 			{queueCount}
 		</span>
 	{/if}
@@ -62,7 +62,7 @@
 					{#if $queue.tracks.length > 0}
 						<button on:click={clearQueue} class="btn btn-ghost btn-sm">Clear</button>
 					{/if}
-					<button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle">✕</button>
+					<button on:click={togglePanel} class="btn btn-ghost btn-sm">Close</button>
 				</div>
 			</div>
 
@@ -78,8 +78,8 @@
 								class="w-12 h-12 rounded bg-base-100"
 							/>
 						{:else}
-							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center">
-								🎵
+							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center text-xs text-base-content/30">
+								♪
 							</div>
 						{/if}
 						<div class="flex-1 min-w-0">
@@ -101,8 +101,7 @@
 			<div class="flex-1 overflow-y-auto">
 				{#if upcomingTracks.length === 0}
 					<div class="p-8 text-center text-base-content/50">
-						<div class="text-4xl mb-2">🎵</div>
-						<p>Queue is empty</p>
+						<p class="text-lg">Queue is empty</p>
 						<p class="text-sm mt-1">Add tracks to keep the music playing</p>
 					</div>
 				{:else}
@@ -111,9 +110,10 @@
 							<div class="p-3 hover:bg-base-300/50 group flex items-center gap-3">
 								<button
 									on:click={() => playTrackAt($queue.currentIndex + 1 + index)}
-									class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+									title="Play"
 								>
-									▶️
+									Play
 								</button>
 
 								<div class="flex-1 min-w-0">
@@ -123,9 +123,10 @@
 
 								<button
 									on:click={() => removeTrack($queue.currentIndex + 1 + index)}
-									class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+									title="Remove"
 								>
-									✕
+									Remove
 								</button>
 							</div>
 						{/each}

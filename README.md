@@ -152,4 +152,4 @@ Report bugs or request features at: https://github.com/essicolo/dustic/issues
 
 ## License
 
-MIT
+GPL-3

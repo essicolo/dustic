@@ -56,48 +56,29 @@ npm run dev
 
 ### Automatic Deployment (Recommended)
 
-This repository is configured for automatic deployment to GitHub Pages via GitHub Actions.
+This repository includes a GitHub Actions workflow for automatic deployment.
 
 1. **Enable GitHub Pages**:
    - Go to repository Settings > Pages
    - Under "Source", select "GitHub Actions"
 
-2. **Push to main branch**:
-   - Any push to the `main` branch triggers automatic build and deployment
-   - The site will be available at `https://yourusername.github.io/dustic`
+2. **Deploy**:
+   - Merge your changes to the `main` branch
+   - The workflow runs automatically and deploys to GitHub Pages
+   - Check the "Actions" tab to monitor deployment progress
+   - Site will be available at `https://essicolo.github.io/dustic`
 
-3. **Configure base path** (if using project pages):
-   - Update `svelte.config.js`:
-     ```javascript
-     const config = {
-       kit: {
-         adapter: adapter({
-           pages: 'build',
-           assets: 'build',
-           fallback: null,
-           precompress: false,
-           strict: true
-         }),
-         paths: {
-           base: process.env.NODE_ENV === 'production' ? '/dustic' : ''
-         }
-       }
-     };
-     ```
+The workflow is pre-configured with the correct base path for project pages.
 
 ### Manual Deployment
 
-1. **Build the application**:
-```bash
-npm run build
-```
+If you prefer manual deployment:
 
-2. **Deploy the `build` directory**:
-   - Use GitHub's `gh-pages` branch
-   - Or use the `build` folder with any static hosting service
-
-3. **Using gh-pages package** (optional):
 ```bash
+# Build with base path
+BASE_PATH='/dustic' npm run build
+
+# Deploy using gh-pages
 npm install -D gh-pages
 npx gh-pages -d build
 ```

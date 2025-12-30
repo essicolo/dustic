@@ -6,6 +6,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let fileInput: HTMLInputElement;
 	let isImporting = false;
@@ -132,8 +133,9 @@
 
 	<!-- Dirty indicator -->
 	{#if isDirty}
-		<div class="alert alert-warning mb-3 text-xs p-2">
-			<span>⚠️ Unsaved changes</span>
+		<div class="alert alert-warning mb-3 text-xs p-2 flex items-center gap-1">
+			<Icon icon="solar:danger-triangle-bold" width="16" />
+			<span>Unsaved changes</span>
 		</div>
 	{/if}
 

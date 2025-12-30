@@ -5,6 +5,7 @@
 	import { getTrack } from '$lib/services/internetArchive';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
@@ -122,8 +123,8 @@
 									class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
 								/>
 							{:else}
-								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center text-xs text-base-content/30 flex-shrink-0">
-									♪
+								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
+									<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
 								</div>
 							{/if}
 

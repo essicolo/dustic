@@ -7,6 +7,7 @@
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import { batchExecute } from '$lib/utils/throttle';
 
 	let collectionId = '';
 	let collectionInfo: { name: string; icon: string } | null = null;
@@ -80,15 +81,17 @@
 	async function playAll() {
 		if (results.length === 0) return;
 
-		const tracks = await Promise.all(
-			results.slice(0, 20).map(async (item) => {
-				try {
-					return await getTrack(item.identifier);
-				} catch {
-					return null;
-				}
-			})
-		);
+		// Load tracks in batches to avoid rate limiting
+		const trackTasks = results.slice(0, 20).map((item) => async () => {
+			try {
+				return await getTrack(item.identifier);
+			} catch {
+				return null;
+			}
+		});
+
+		// Execute in batches of 3 with 500ms delay between batches
+		const tracks = await batchExecute(trackTasks, 3, 500);
 
 		const validTracks = tracks.filter((t): t is Track => t !== null);
 		if (validTracks.length > 0) {

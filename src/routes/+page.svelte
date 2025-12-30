@@ -8,6 +8,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
+	import { batchExecute } from '$lib/utils/throttle';
 
 	let selectedCollection: string = '';
 	let results: Track[] = [];
@@ -81,15 +82,17 @@
 	async function playAll() {
 		if (results.length === 0) return;
 
-		const tracks = await Promise.all(
-			results.slice(0, 20).map(async (item) => {
-				try {
-					return await getTrack(item.identifier);
-				} catch {
-					return null;
-				}
-			})
-		);
+		// Load tracks in batches to avoid rate limiting
+		const trackTasks = results.slice(0, 20).map((item) => async () => {
+			try {
+				return await getTrack(item.identifier);
+			} catch {
+				return null;
+			}
+		});
+
+		// Execute in batches of 3 with 500ms delay between batches
+		const tracks = await batchExecute(trackTasks, 3, 500);
 
 		const validTracks = tracks.filter((t): t is Track => t !== null);
 		if (validTracks.length > 0) {
@@ -204,7 +207,7 @@
 						<div class="flex items-center gap-2 mt-auto">
 							<button
 								on:click={() => playTrack(item.identifier)}
-								class="btn btn-sm flex-1"
+								class="btn btn-sm flex-1 whitespace-nowrap"
 								class:btn-primary={!isCurrentTrack(item.identifier)}
 								class:btn-ghost={isCurrentTrack(item.identifier)}
 								disabled={loadingTrack === item.identifier}
@@ -213,10 +216,10 @@
 									<span class="loading loading-spinner loading-xs"></span>
 								{:else if isCurrentTrack(item.identifier)}
 									<Icon icon="solar:pause-bold" width="18" />
-									<span class="ml-1">Playing</span>
+									<span>Playing</span>
 								{:else}
 									<Icon icon="solar:play-bold" width="18" />
-									<span class="ml-1">Play</span>
+									<span>Play</span>
 								{/if}
 							</button>
 							<button

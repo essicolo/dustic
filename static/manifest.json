@@ -3,21 +3,24 @@
   "short_name": "Dustic",
   "description": "Stream music, audiobooks, and podcasts from the Internet Archive",
   "start_url": "/dustic/",
+  "scope": "/dustic/",
   "display": "standalone",
   "background_color": "#1d232a",
   "theme_color": "#1d232a",
   "orientation": "portrait-primary",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "/dustic/logo-dustic.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/dustic/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/dustic/logo-dustic.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

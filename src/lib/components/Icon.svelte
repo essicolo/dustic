@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Icon } from '@iconify/svelte';
+	import Icon from '@iconify/svelte';
 
 	export let icon: string;
 	export let width: string | number = '1em';

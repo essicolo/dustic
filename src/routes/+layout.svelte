@@ -129,6 +129,15 @@
 				>
 					Settings
 				</a>
+				<a
+					href="{base}/about"
+					on:click={closeSidebar}
+					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class:bg-primary={currentPath === `${base}/about`}
+					class:text-primary-content={currentPath === `${base}/about`}
+				>
+					About
+				</a>
 			</nav>
 
 			<!-- Profile Manager -->

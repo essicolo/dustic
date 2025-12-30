@@ -2,6 +2,7 @@
 	import { search as searchAPI, getTrack } from '$lib/services/internetArchive';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import { library } from '$lib/stores/library';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
@@ -89,6 +90,10 @@
 
 	function isCurrentTrack(identifier: string): boolean {
 		return $currentTrack?.identifier === identifier;
+	}
+
+	function toggleFavorite(identifier: string) {
+		library.toggleFavorite(identifier);
 	}
 
 	$: if (selectedCollection !== undefined) {
@@ -194,6 +199,17 @@
 									<Icon icon="solar:play-bold" width="18" />
 									<span class="ml-1">Play</span>
 								{/if}
+							</button>
+							<button
+								on:click={() => toggleFavorite(item.identifier)}
+								class="btn btn-ghost btn-sm btn-square"
+								title={$library.favorites.includes(item.identifier) ? 'Remove from favorites' : 'Add to favorites'}
+							>
+								<Icon
+									icon={$library.favorites.includes(item.identifier) ? 'solar:heart-bold' : 'solar:heart-linear'}
+									width="18"
+									className={$library.favorites.includes(item.identifier) ? 'text-red-500' : ''}
+								/>
 							</button>
 							<button
 								on:click={() => addToQueue(item.identifier)}

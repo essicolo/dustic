@@ -140,6 +140,18 @@ export function getBestAudioFile(files: IAMetadataResponse['files']): {
 	format: string;
 	duration?: number;
 } | null {
+	const allAudioFiles = getAllAudioFiles(files);
+	return allAudioFiles.length > 0 ? allAudioFiles[0] : null;
+}
+
+/**
+ * Get all audio files from an item's file list, sorted by filename
+ */
+export function getAllAudioFiles(files: IAMetadataResponse['files']): {
+	filename: string;
+	format: string;
+	duration?: number;
+}[] {
 	// Prefer MP3 > OGG > FLAC
 	const formatPriority = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac'];
 
@@ -160,25 +172,30 @@ export function getBestAudioFile(files: IAMetadataResponse['files']): {
 
 	if (audioFiles.length === 0) {
 		console.warn('No audio files found in:', files.map(f => `${f.name} (${f.format})`));
-		return null;
+		return [];
 	}
 
-	// Sort by format priority
+	// Sort by format priority first, then by filename for chapters
 	audioFiles.sort((a, b) => {
 		const aFormat = a.format?.toLowerCase() || a.name.split('.').pop() || '';
 		const bFormat = b.format?.toLowerCase() || b.name.split('.').pop() || '';
 
 		const aPriority = formatPriority.indexOf(aFormat);
 		const bPriority = formatPriority.indexOf(bFormat);
+
+		// If same format, sort by filename (for chapters)
+		if (aPriority === bPriority) {
+			return a.name.localeCompare(b.name);
+		}
+
 		return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
 	});
 
-	const best = audioFiles[0];
-	return {
-		filename: best.name,
-		format: best.format || best.name.split('.').pop() || 'mp3',
-		duration: best.length ? parseFloat(best.length) : undefined
-	};
+	return audioFiles.map(file => ({
+		filename: file.name,
+		format: file.format || file.name.split('.').pop() || 'mp3',
+		duration: file.length ? parseFloat(file.length) : undefined
+	}));
 }
 
 /**
@@ -241,4 +258,83 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 		console.error(`Error fetching track ${identifier}:`, error);
 		return null;
 	}
+}
+
+/**
+ * Get all chapters/tracks from an item (for audiobooks with multiple files)
+ */
+export async function getAllTracks(identifier: string): Promise<Track[]> {
+	try {
+		const metadata = await getItemMetadata(identifier);
+		const audioFiles = getAllAudioFiles(metadata.files);
+
+		if (audioFiles.length === 0) {
+			console.warn(`No audio files found for ${identifier}`);
+			return [];
+		}
+
+		const tracks: Track[] = audioFiles.map((audioFile, index) => ({
+			identifier: `${identifier}#${index}`,
+			filename: audioFile.filename,
+			title: extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title),
+			artist: Array.isArray(metadata.metadata.creator)
+				? metadata.metadata.creator[0]
+				: metadata.metadata.creator || 'Unknown Artist',
+			album: metadata.metadata.title,
+			date: metadata.metadata.date,
+			duration: audioFile.duration,
+			collection: Array.isArray(metadata.metadata.collection)
+				? metadata.metadata.collection
+				: metadata.metadata.collection
+					? [metadata.metadata.collection]
+					: [],
+			genre: Array.isArray(metadata.metadata.subject)
+				? metadata.metadata.subject
+				: metadata.metadata.subject
+					? [metadata.metadata.subject]
+					: undefined,
+			format: audioFile.format,
+			streamUrl: getStreamUrl(identifier, audioFile.filename),
+			thumbnailUrl: getThumbnailUrl(identifier),
+			metadata: metadata.metadata
+		}));
+
+		return tracks;
+	} catch (error) {
+		console.error(`Error fetching tracks for ${identifier}:`, error);
+		return [];
+	}
+}
+
+/**
+ * Extract a readable chapter title from filename
+ */
+function extractChapterTitle(filename: string, chapterNumber: number, albumTitle?: string): string {
+	// Remove file extension
+	const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+
+	// Try to extract chapter/track number and title
+	// Common patterns: "01 - Title.mp3", "Chapter 1 - Title.mp3", "trackNN.mp3"
+	const patterns = [
+		/(?:chapter|ch|track|pt)[\s_-]*(\d+)[\s_-]*[-:]?[\s_-]*(.+)/i,
+		/^(\d+)[\s_-]*[-:]?[\s_-]*(.+)/,
+		/(.+?)[\s_-]*[-:]?[\s_-]*(\d+)$/
+	];
+
+	for (const pattern of patterns) {
+		const match = nameWithoutExt.match(pattern);
+		if (match && match[2]) {
+			return match[2].trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+		}
+	}
+
+	// If no pattern matches, use the filename as-is, cleaned up
+	const cleaned = nameWithoutExt.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+	// If it's just a number or very short, prefix with "Chapter"
+	if (cleaned.length < 5 || /^\d+$/.test(cleaned)) {
+		return `Chapter ${chapterNumber}`;
+	}
+
+	return cleaned;
 }

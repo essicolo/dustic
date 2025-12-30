@@ -120,6 +120,19 @@
 				>
 					Settings
 				</a>
+
+				<div class="border-t border-base-300 my-4"></div>
+
+				<a
+					href="https://github.com/sponsors/essicolo"
+					target="_blank"
+					rel="noopener noreferrer"
+					on:click={closeSidebar}
+					class="block px-4 py-2.5 rounded-lg bg-pink-600 hover:bg-pink-700 transition-all text-sm font-medium text-white flex items-center justify-center gap-2"
+				>
+					<Icon icon="solar:heart-bold" width="18" />
+					<span>Sponsor</span>
+				</a>
 				<a
 					href="{base}/about"
 					on:click={closeSidebar}

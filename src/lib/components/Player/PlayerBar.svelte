@@ -2,6 +2,7 @@
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import { onMount, onDestroy } from 'svelte';
 
 	let audioElement: HTMLAudioElement;
@@ -101,8 +102,8 @@
 						class="w-12 h-12 rounded bg-base-200"
 					/>
 				{:else}
-					<div class="w-12 h-12 rounded bg-base-200 flex items-center justify-center text-xs text-base-content/30">
-						♪
+					<div class="w-12 h-12 rounded bg-base-200 flex items-center justify-center">
+						<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
 					</div>
 				{/if}
 				<div class="flex-1 min-w-0">
@@ -120,18 +121,18 @@
 	<!-- Player Controls -->
 	<div class="flex-1 flex flex-col items-center gap-2">
 		<!-- Buttons -->
-		<div class="flex items-center gap-4">
+		<div class="flex items-center gap-2">
 			<button
 				on:click={() => player.toggleShuffle()}
-				class="btn btn-ghost btn-sm"
-				class:text-primary={$player.shuffle}
+				class="btn btn-ghost btn-sm btn-square"
+				class:bg-base-200={$player.shuffle}
 				title="Shuffle"
 			>
-				Shuffle
+				<Icon icon="solar:shuffle-bold" width="20" />
 			</button>
 
-			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm" title="Previous">
-				‹‹
+			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm btn-square" title="Previous">
+				<Icon icon="solar:skip-previous-bold" width="20" />
 			</button>
 
 			<button
@@ -142,23 +143,23 @@
 				{#if $player.isLoading}
 					<span class="loading loading-spinner"></span>
 				{:else if $player.isPlaying}
-					‖
+					<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
 				{:else}
-					▸
+					<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
 				{/if}
 			</button>
 
-			<button on:click={() => player.next()} class="btn btn-ghost btn-sm" title="Next">
-				››
+			<button on:click={() => player.next()} class="btn btn-ghost btn-sm btn-square" title="Next">
+				<Icon icon="solar:skip-next-bold" width="20" />
 			</button>
 
 			<button
 				on:click={() => player.toggleRepeat()}
-				class="btn btn-ghost btn-sm"
-				class:text-primary={$player.repeat !== 'off'}
+				class="btn btn-ghost btn-sm btn-square"
+				class:bg-base-200={$player.repeat !== 'off'}
 				title={$player.repeat === 'one' ? 'Repeat One' : $player.repeat === 'all' ? 'Repeat All' : 'Repeat Off'}
 			>
-				{$player.repeat === 'one' ? 'Repeat 1' : 'Repeat'}
+				<Icon icon={$player.repeat === 'one' ? 'solar:repeat-one-bold' : 'solar:repeat-bold'} width="20" />
 			</button>
 		</div>
 
@@ -187,13 +188,15 @@
 		<div class="w-32 flex items-center gap-2">
 			<button
 				on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
-				class="btn btn-ghost btn-sm text-xs"
+				class="btn btn-ghost btn-sm btn-square"
 				title="Mute/Unmute"
 			>
 				{#if $player.volume === 0}
-					Muted
+					<Icon icon="solar:volume-cross-bold" width="20" />
+				{:else if $player.volume < 0.5}
+					<Icon icon="solar:volume-small-bold" width="20" />
 				{:else}
-					Vol
+					<Icon icon="solar:volume-loud-bold" width="20" />
 				{/if}
 			</button>
 			<input

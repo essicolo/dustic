@@ -14,7 +14,7 @@ export const POPULAR_COLLECTIONS = [
 	{ id: 'audio_podcast', name: 'Podcasts', icon: '🎙️' }
 ];
 
-export const AUDIO_FORMATS = ['mp3', 'ogg', 'flac', 'wav', 'm4a'];
+export const AUDIO_FORMATS = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac', 'aiff', 'opus'];
 
 export const DEFAULT_AUTOPLAY_RULES = [
 	{ id: 'same-album', name: 'Same Album', enabled: true, weight: 60 },

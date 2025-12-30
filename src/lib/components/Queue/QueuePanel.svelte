@@ -55,9 +55,9 @@
 		></div>
 
 		<!-- Panel -->
-		<div class="relative w-96 bg-base-200 shadow-xl flex flex-col max-h-screen">
+		<div class="relative w-full sm:w-96 bg-base-200 shadow-xl flex flex-col" style="max-height: 100vh; max-height: 100dvh;">
 			<!-- Header -->
-			<div class="p-4 border-b border-base-content/10 flex items-center justify-between">
+			<div class="p-4 border-b border-base-content/10 flex items-center justify-between" style="padding-top: max(1rem, env(safe-area-inset-top));">
 				<h2 class="text-xl font-bold">Queue</h2>
 				<div class="flex items-center gap-2">
 					{#if $queue.tracks.length > 0}
@@ -101,7 +101,7 @@
 			<!-- Queue List -->
 			<div class="flex-1 overflow-y-auto">
 				{#if upcomingTracks.length === 0}
-					<div class="p-8 text-center text-base-content/50">
+					<div class="p-8 text-center text-base-content/50" style="padding-bottom: max(2rem, env(safe-area-inset-bottom));">
 						<p class="text-lg">Queue is empty</p>
 						<p class="text-sm mt-1">Add tracks to keep the music playing</p>
 					</div>
@@ -137,7 +137,7 @@
 
 			<!-- Footer Info -->
 			{#if $queue.tracks.length > 0}
-				<div class="p-3 border-t border-base-content/10 text-sm text-base-content/70">
+				<div class="p-3 border-t border-base-content/10 text-sm text-base-content/70" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
 					{$queue.tracks.length} track{$queue.tracks.length !== 1 ? 's' : ''} in queue
 				</div>
 			{/if}

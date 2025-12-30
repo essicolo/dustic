@@ -206,7 +206,7 @@
 		</button>
 	</div>
 
-	<div class="flex gap-6">
+	<div class="flex gap-0 md:gap-6">
 		<!-- Filters Sidebar -->
 		<aside class="w-64 flex-shrink-0 hidden md:block">
 			<div class="bg-base-200 rounded-lg p-4 sticky top-4">
@@ -352,7 +352,7 @@
 		{/if}
 
 		<!-- Results -->
-		<main class="flex-1">
+		<main class="flex-1 min-w-0">
 			{#if error}
 				<div class="alert alert-error mb-4">
 					<span>{error}</span>
@@ -408,7 +408,7 @@
 											<p class="text-xs text-base-content/50 mt-1 truncate">{item.date}</p>
 										{/if}
 									</div>
-									<div class="flex items-center gap-2 flex-shrink-0">
+									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}
 											class="btn btn-sm btn-square"
@@ -427,7 +427,7 @@
 										</button>
 										<button
 											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											disabled={loadingTrack === item.identifier}
 											title="Add to queue"
 										>
@@ -435,7 +435,7 @@
 										</button>
 										<button
 											on:click={() => handleShare(item)}
-											class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											title="Share track"
 										>
 											<Icon icon="solar:share-bold" width="18" />

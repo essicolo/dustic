@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { search as searchAPI, getTrack } from '$lib/services/internetArchive';
+	import { search as searchAPI, getTrack, getAllTracks } from '$lib/services/internetArchive';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
@@ -17,6 +17,9 @@
 	let loadingTrack: string | null = null;
 	let shareMessage = '';
 	let showShareToast = false;
+	let expandedItems: Set<string> = new Set();
+	let itemChapters: Map<string, Track[]> = new Map();
+	let loadingChapters: Set<string> = new Set();
 
 	onMount(() => {
 		loadTrending();
@@ -116,6 +119,47 @@
 		setTimeout(() => {
 			showShareToast = false;
 		}, 3000);
+	}
+
+	async function toggleExpand(identifier: string) {
+		if (expandedItems.has(identifier)) {
+			expandedItems.delete(identifier);
+			expandedItems = expandedItems;
+		} else {
+			expandedItems.add(identifier);
+			expandedItems = expandedItems;
+
+			// Load chapters if not already loaded
+			if (!itemChapters.has(identifier)) {
+				loadingChapters.add(identifier);
+				loadingChapters = loadingChapters;
+
+				try {
+					const chapters = await getAllTracks(identifier);
+					itemChapters.set(identifier, chapters);
+					itemChapters = itemChapters;
+				} catch (e) {
+					console.error('Failed to load chapters:', e);
+					error = 'Failed to load chapters';
+				} finally {
+					loadingChapters.delete(identifier);
+					loadingChapters = loadingChapters;
+				}
+			}
+		}
+	}
+
+	async function playAllChapters(identifier: string) {
+		const chapters = itemChapters.get(identifier);
+		if (chapters && chapters.length > 0) {
+			queue.setQueue(chapters, 0);
+			player.play(chapters[0]);
+		}
+	}
+
+	async function playChapter(chapter: Track) {
+		queue.addToEnd(chapter);
+		player.play(chapter);
 	}
 
 	$: if (selectedCollection !== undefined) {
@@ -248,7 +292,57 @@
 							>
 								<Icon icon="solar:share-bold" width="18" />
 							</button>
+							<button
+								on:click={() => toggleExpand(item.identifier)}
+								class="btn btn-ghost btn-sm btn-square"
+								title="Show all tracks"
+							>
+								<Icon
+									icon={expandedItems.has(item.identifier) ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+									width="18"
+								/>
+							</button>
 						</div>
+
+						<!-- Expandable Chapter List -->
+						{#if expandedItems.has(item.identifier)}
+							<div class="mt-3 pt-3 border-t border-base-300">
+								{#if loadingChapters.has(item.identifier)}
+									<div class="flex justify-center py-4">
+										<span class="loading loading-spinner loading-sm"></span>
+									</div>
+								{:else if itemChapters.has(item.identifier)}
+									{@const chapters = itemChapters.get(item.identifier) || []}
+									<div class="flex items-center justify-between mb-2">
+										<p class="text-sm font-medium">{chapters.length} track{chapters.length !== 1 ? 's' : ''}</p>
+										{#if chapters.length > 1}
+											<button
+												on:click={() => playAllChapters(item.identifier)}
+												class="btn btn-xs btn-primary"
+											>
+												Play All
+											</button>
+										{/if}
+									</div>
+									<div class="max-h-64 overflow-y-auto space-y-1">
+										{#each chapters as chapter, idx}
+											<button
+												on:click={() => playChapter(chapter)}
+												class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-base-300 transition-colors flex items-center gap-2"
+											>
+												<span class="text-base-content/50">{idx + 1}.</span>
+												<span class="flex-1 truncate">{chapter.title}</span>
+												{#if chapter.duration}
+													<span class="text-base-content/50">
+														{Math.floor(chapter.duration / 60)}:{String(Math.floor(chapter.duration % 60)).padStart(2, '0')}
+													</span>
+												{/if}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				</div>
 			{/each}

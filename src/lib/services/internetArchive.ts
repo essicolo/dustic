@@ -32,17 +32,20 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	// Build search query
 	let q = query;
 
+	// Add mediatype filter for audio
+	q += ` AND mediatype:audio`;
+
 	// Add collection filter if specified
 	if (collection.length > 0) {
 		const collectionQuery = collection.map((c) => `collection:(${c})`).join(' OR ');
 		q += ` AND (${collectionQuery})`;
 	}
 
-	// Add audio format filter
-	const formatFilter =
-		format.length > 0 ? format : AUDIO_FORMATS;
-	const formatQuery = formatFilter.map((f) => `format:(${f})`).join(' OR ');
-	q += ` AND (${formatQuery})`;
+	// Add specific format filter only if requested
+	if (format.length > 0) {
+		const formatQuery = format.map((f) => `format:(${f})`).join(' OR ');
+		q += ` AND (${formatQuery})`;
+	}
 
 	// Build URL parameters
 	const urlParams = new URLSearchParams({

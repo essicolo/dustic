@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import { library } from '$lib/stores/library';
 	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount, onDestroy } from 'svelte';
@@ -83,6 +84,13 @@
 		player.seek(time);
 	}
 
+	function toggleFavorite() {
+		if ($player.currentTrack) {
+			library.toggleFavorite($player.currentTrack.identifier);
+		}
+	}
+
+	$: isFavorite = $player.currentTrack ? library.isFavorite($player.currentTrack.identifier) : false;
 	$: $player;
 </script>
 
@@ -112,6 +120,17 @@
 						{$player.currentTrack.artist}
 					</div>
 				</div>
+				<button
+					on:click={toggleFavorite}
+					class="btn btn-ghost btn-sm btn-square"
+					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+				>
+					<Icon
+						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+						width="20"
+						className={isFavorite ? 'text-red-500' : ''}
+					/>
+				</button>
 			</div>
 		{:else}
 			<div class="text-base-content/50">No track playing</div>

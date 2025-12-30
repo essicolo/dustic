@@ -3,19 +3,41 @@
 import { writable, get } from 'svelte/store';
 import type { HistoryEntry } from '$lib/types';
 import { CONFIG } from '$lib/utils/constants';
+import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 
 export interface HistoryState {
 	entries: HistoryEntry[];
 	isDirty: boolean;
 }
 
+// Try to load from localStorage first
+const storedProfile = loadFromStorage();
 const initialState: HistoryState = {
-	entries: [],
+	entries: storedProfile?.history || [],
 	isDirty: false
 };
 
 function createHistoryStore() {
 	const { subscribe, set, update } = writable<HistoryState>(initialState);
+
+	// Helper to trigger auto-save
+	function triggerAutoSave() {
+		const state = get({ subscribe });
+		const profile = loadFromStorage() || {
+			version: '1.0.0',
+			exported: Date.now(),
+			favorites: [],
+			playlists: {},
+			history: [],
+			autoplayRules: [],
+			settings: { volume: 0.7, repeat: 'off' as const }
+		};
+
+		scheduleAutoSave({
+			...profile,
+			history: state.entries
+		});
+	}
 
 	return {
 		subscribe,
@@ -36,30 +58,40 @@ function createHistoryStore() {
 					...filtered
 				].slice(0, CONFIG.maxHistorySize);
 
-				return {
+				const newState = {
 					...state,
 					entries: newEntries,
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
 		// Clear all history
 		clear() {
-			update((state) => ({
-				...state,
-				entries: [],
-				isDirty: true
-			}));
+			update((state) => {
+				const newState = {
+					...state,
+					entries: [],
+					isDirty: true
+				};
+				triggerAutoSave();
+				return newState;
+			});
 		},
 
 		// Remove specific entry
 		remove(trackId: string) {
-			update((state) => ({
-				...state,
-				entries: state.entries.filter((e) => e.trackId !== trackId),
-				isDirty: true
-			}));
+			update((state) => {
+				const newState = {
+					...state,
+					entries: state.entries.filter((e) => e.trackId !== trackId),
+					isDirty: true
+				};
+				triggerAutoSave();
+				return newState;
+			});
 		},
 
 		// Check if track was played recently (within last hour)

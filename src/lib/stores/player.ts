@@ -104,6 +104,9 @@ function createPlayerStore() {
 				isLoading: true
 			}));
 
+			// Add to history when starting to play
+			history.addTrack(track.identifier, 0);
+
 			audioElement.src = track.streamUrl;
 			audioElement.load();
 			audioElement.play().catch((error) => {

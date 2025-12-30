@@ -5,22 +5,68 @@
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
+	import Icon from '$lib/components/Icon.svelte';
 
 	$: currentPath = $page.url.pathname;
+
+	let isSidebarOpen = false;
+
+	function toggleSidebar() {
+		isSidebarOpen = !isSidebarOpen;
+	}
+
+	function closeSidebar() {
+		isSidebarOpen = false;
+	}
 </script>
 
 <div class="min-h-screen flex flex-col">
 	<div class="flex-1 flex pb-24">
+		<!-- Mobile Header -->
+		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3">
+			<button on:click={toggleSidebar} class="btn btn-ghost btn-square">
+				<Icon icon="solar:hamburger-menu-bold" width="24" />
+			</button>
+			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
+			<h1 class="text-xl font-bold">Dustic</h1>
+		</div>
+
+		<!-- Overlay for mobile -->
+		{#if isSidebarOpen}
+			<div
+				class="lg:hidden fixed inset-0 bg-black/50 z-30"
+				on:click={closeSidebar}
+				on:keydown={(e) => e.key === 'Escape' && closeSidebar()}
+				role="button"
+				tabindex="0"
+				aria-label="Close sidebar"
+			></div>
+		{/if}
+
 		<!-- Sidebar -->
-		<aside class="w-64 bg-base-200 p-4 overflow-y-auto border-r border-base-300">
-			<div class="mb-8">
-				<h1 class="text-2xl font-bold tracking-tight">Dustic</h1>
-				<p class="text-xs text-base-content/50 mt-1">Archive Audio Player</p>
+		<aside
+			class="w-64 bg-base-200 p-4 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out"
+			class:translate-x-0={isSidebarOpen}
+			class:-translate-x-full={!isSidebarOpen}
+			class:lg:translate-x-0={true}
+		>
+			<div class="mb-8 flex items-center justify-between">
+				<div class="flex items-center gap-3">
+					<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-10 w-auto" />
+					<div>
+						<h1 class="text-2xl font-bold tracking-tight">Dustic</h1>
+						<p class="text-xs text-base-content/50 mt-1">Archive Audio Player</p>
+					</div>
+				</div>
+				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-square lg:hidden">
+					<Icon icon="solar:close-circle-bold" width="20" />
+				</button>
 			</div>
 
 			<nav class="space-y-1 mb-4">
 				<a
 					href="{base}/"
+					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/` || currentPath === base}
 					class:text-primary-content={currentPath === `${base}/` || currentPath === base}
@@ -29,19 +75,12 @@
 				</a>
 				<a
 					href="{base}/search"
+					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/search`}
 					class:text-primary-content={currentPath === `${base}/search`}
 				>
 					Search
-				</a>
-				<a
-					href="{base}/trending"
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === `${base}/trending`}
-					class:text-primary-content={currentPath === `${base}/trending`}
-				>
-					Trending
 				</a>
 
 				<div class="border-t border-base-300 my-4"></div>
@@ -52,6 +91,7 @@
 				{#each POPULAR_COLLECTIONS as collection}
 					<a
 						href="{base}/collection/{collection.id}"
+						on:click={closeSidebar}
 						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
 						class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
 						class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
@@ -64,6 +104,7 @@
 
 				<a
 					href="{base}/library"
+					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath.startsWith(`${base}/library`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/library`)}
@@ -72,6 +113,7 @@
 				</a>
 				<a
 					href="{base}/history"
+					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/history`}
 					class:text-primary-content={currentPath === `${base}/history`}
@@ -80,6 +122,7 @@
 				</a>
 				<a
 					href="{base}/settings"
+					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
@@ -103,7 +146,7 @@
 		</aside>
 
 		<!-- Main content -->
-		<main class="flex-1 overflow-y-auto bg-base-100">
+		<main class="flex-1 overflow-y-auto bg-base-100 pt-16 lg:pt-0 lg:ml-0">
 			<slot />
 		</main>
 	</div>

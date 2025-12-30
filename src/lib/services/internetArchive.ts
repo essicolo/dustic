@@ -176,9 +176,11 @@ export function getBestAudioFile(files: IAMetadataResponse['files']): {
 
 /**
  * Build stream URL for a file
+ * Note: We don't encode the filename because Internet Archive handles special characters
  */
 export function getStreamUrl(identifier: string, filename: string): string {
-	return `${IA_DOWNLOAD_URL}/${identifier}/${encodeURIComponent(filename)}`;
+	// Don't use encodeURIComponent on the filename - IA expects it as-is
+	return `${IA_DOWNLOAD_URL}/${identifier}/${filename}`;
 }
 
 /**

@@ -106,19 +106,10 @@
 					href="{base}/library"
 					on:click={closeSidebar}
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath.startsWith(`${base}/library`)}
-					class:text-primary-content={currentPath.startsWith(`${base}/library`)}
+					class:bg-primary={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
+					class:text-primary-content={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 				>
 					Library
-				</a>
-				<a
-					href="{base}/history"
-					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === `${base}/history`}
-					class:text-primary-content={currentPath === `${base}/history`}
-				>
-					History
 				</a>
 				<a
 					href="{base}/settings"

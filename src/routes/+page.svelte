@@ -3,6 +3,7 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import type { Track } from '$lib/types';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let searchQuery = '';
 	let isSearching = false;
@@ -83,7 +84,8 @@
 				{#if isSearching}
 					<span class="loading loading-spinner"></span>
 				{:else}
-					🔍 Search
+					<Icon icon="solar:magnifer-bold" width="18" />
+					<span class="ml-1">Search</span>
 				{/if}
 			</button>
 		</div>
@@ -114,9 +116,9 @@
 									{#if loadingTrack === item.identifier}
 										<span class="loading loading-spinner loading-xs"></span>
 									{:else if isCurrentTrack(item.identifier)}
-										<span class="text-primary">▶️</span>
+										<Icon icon="solar:pause-bold" width="18" />
 									{:else}
-										▶️
+										<Icon icon="solar:play-bold" width="18" />
 									{/if}
 								</button>
 								<div class="flex-1 min-w-0">
@@ -131,11 +133,11 @@
 								<div class="flex items-center gap-2">
 									<button
 										on:click={() => addToQueue(item.identifier)}
-										class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+										class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
 										disabled={loadingTrack === item.identifier}
 										title="Add to queue"
 									>
-										➕
+										<Icon icon="solar:add-circle-bold" width="18" />
 									</button>
 									<div class="text-xs text-base-content/50 w-12 text-right">
 										{item.format?.toUpperCase()}

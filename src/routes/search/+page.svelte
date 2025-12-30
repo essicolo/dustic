@@ -201,7 +201,7 @@
 									class="checkbox checkbox-sm checkbox-primary"
 								/>
 								<span class="text-sm">
-									{collection.icon} {collection.name}
+									{collection.name}
 								</span>
 							</label>
 						{/each}

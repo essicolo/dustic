@@ -6,6 +6,7 @@
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let collectionId = '';
 	let collectionInfo: { name: string; icon: string } | null = null;
@@ -124,10 +125,9 @@
 <div class="p-8">
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h2 class="text-3xl font-bold flex items-center gap-2">
+			<h2 class="text-3xl font-bold">
 				{#if collectionInfo}
-					<span>{collectionInfo.icon}</span>
-					<span>{collectionInfo.name}</span>
+					{collectionInfo.name}
 				{/if}
 			</h2>
 			{#if totalResults > 0}
@@ -199,8 +199,8 @@
 									class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
 								/>
 							{:else}
-								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center text-xs text-base-content/30 flex-shrink-0">
-									♪
+								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
+									<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
 								</div>
 							{/if}
 
@@ -234,11 +234,11 @@
 								</button>
 								<button
 									on:click={() => addToQueue(item.identifier)}
-									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+									class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
 									disabled={loadingTrack === item.identifier}
 									title="Add to queue"
 								>
-									+
+									<Icon icon="solar:add-circle-bold" width="18" />
 								</button>
 								<div class="text-xs text-base-content/50 w-12 text-right">
 									{item.format?.toUpperCase()}

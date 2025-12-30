@@ -96,6 +96,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 					: undefined,
 			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
 			streamUrl: '', // Will be populated when playing
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
 			metadata: doc
 		}));
 

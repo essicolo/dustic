@@ -215,9 +215,12 @@
 				<h2 class="text-xl font-bold mb-4">Tracks</h2>
 				<div class="space-y-1">
 					{#each tracks as track, index}
-						<button
+						<div
 							on:click={() => playTrack(track, index)}
-							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group"
+							on:keydown={(e) => e.key === 'Enter' && playTrack(track, index)}
+							role="button"
+							tabindex="0"
+							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group cursor-pointer"
 							class:bg-base-300={isCurrentTrack(track.identifier)}
 							class:text-primary={isCurrentTrack(track.identifier)}
 						>
@@ -261,7 +264,7 @@
 									<Icon icon="solar:share-bold" width="18" />
 								</button>
 							</div>
-						</button>
+						</div>
 					{/each}
 				</div>
 			</div>

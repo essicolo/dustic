@@ -16,7 +16,7 @@
 	let loadingTrack: string | null = null;
 	let currentPage = 1;
 	let totalResults = 0;
-	let sortBy: 'relevance' | 'date' | 'downloads' = 'downloads';
+	let sortBy: 'downloads' | 'date' | 'title' = 'downloads';
 
 	$: collectionId = $page.params.id || '';
 	$: collectionInfo =
@@ -162,11 +162,11 @@
 				Newest
 			</button>
 			<button
-				on:click={() => (sortBy = 'relevance')}
+				on:click={() => (sortBy = 'title')}
 				class="btn btn-sm"
-				class:btn-active={sortBy === 'relevance'}
+				class:btn-active={sortBy === 'title'}
 			>
-				Relevance
+				A-Z
 			</button>
 		</div>
 	</div>
@@ -182,7 +182,7 @@
 			<span class="loading loading-spinner loading-lg text-primary"></span>
 		</div>
 	{:else if results.length > 0}
-		<div class="space-y-2 mb-6">
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
 			{#each results as item}
 				<div
 					class="card bg-base-200 hover:bg-base-300 transition-colors group"
@@ -190,60 +190,60 @@
 					class:ring-primary={isCurrentTrack(item.identifier)}
 				>
 					<div class="card-body p-4">
-						<div class="flex items-center gap-3">
-							<!-- Album Art -->
-							{#if item.thumbnailUrl}
-								<img
-									src={item.thumbnailUrl}
-									alt={item.title}
-									class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
-								/>
-							{:else}
-								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
-									<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-								</div>
-							{/if}
+						<!-- Thumbnail -->
+						{#if item.thumbnailUrl}
+							<img
+								src={item.thumbnailUrl}
+								alt={item.title}
+								class="w-full aspect-square object-cover rounded mb-3 bg-base-300"
+							/>
+						{:else}
+							<div
+								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3"
+							>
+								<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
+							</div>
+						{/if}
 
-							<div class="flex-1 min-w-0">
-								<h3
-									class="font-medium truncate"
-									class:text-primary={isCurrentTrack(item.identifier)}
-								>
-									{item.title}
-								</h3>
-								<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-								{#if item.date}
-									<p class="text-xs text-base-content/50 mt-1">{item.date}</p>
+						<!-- Info -->
+						<h3
+							class="font-medium truncate mb-1"
+							class:text-primary={isCurrentTrack(item.identifier)}
+						>
+							{item.title}
+						</h3>
+						<p class="text-sm text-base-content/70 truncate mb-2">{item.artist}</p>
+						{#if item.date}
+							<p class="text-xs text-base-content/50 mb-3">{item.date}</p>
+						{/if}
+
+						<!-- Actions -->
+						<div class="flex items-center gap-2 mt-auto">
+							<button
+								on:click={() => playTrack(item.identifier)}
+								class="btn btn-sm flex-1"
+								class:btn-primary={!isCurrentTrack(item.identifier)}
+								class:btn-ghost={isCurrentTrack(item.identifier)}
+								disabled={loadingTrack === item.identifier}
+							>
+								{#if loadingTrack === item.identifier}
+									<span class="loading loading-spinner loading-xs"></span>
+								{:else if isCurrentTrack(item.identifier)}
+									<Icon icon="solar:pause-bold" width="18" />
+									<span class="ml-1">Playing</span>
+								{:else}
+									<Icon icon="solar:play-bold" width="18" />
+									<span class="ml-1">Play</span>
 								{/if}
-							</div>
-							<div class="flex items-center gap-2">
-								<button
-									on:click={() => playTrack(item.identifier)}
-									class="btn btn-sm"
-									class:btn-primary={!isCurrentTrack(item.identifier)}
-									class:btn-ghost={isCurrentTrack(item.identifier)}
-									disabled={loadingTrack === item.identifier}
-								>
-									{#if loadingTrack === item.identifier}
-										<span class="loading loading-spinner loading-xs"></span>
-									{:else if isCurrentTrack(item.identifier)}
-										Playing
-									{:else}
-										Play
-									{/if}
-								</button>
-								<button
-									on:click={() => addToQueue(item.identifier)}
-									class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
-									disabled={loadingTrack === item.identifier}
-									title="Add to queue"
-								>
-									<Icon icon="solar:add-circle-bold" width="18" />
-								</button>
-								<div class="text-xs text-base-content/50 w-12 text-right">
-									{item.format?.toUpperCase()}
-								</div>
-							</div>
+							</button>
+							<button
+								on:click={() => addToQueue(item.identifier)}
+								class="btn btn-ghost btn-sm btn-square"
+								disabled={loadingTrack === item.identifier}
+								title="Add to queue"
+							>
+								<Icon icon="solar:add-circle-bold" width="18" />
+							</button>
 						</div>
 					</div>
 				</div>

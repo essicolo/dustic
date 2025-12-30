@@ -22,8 +22,6 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          BASE_PATH: '/dustic'
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3

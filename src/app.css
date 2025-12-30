@@ -66,3 +66,15 @@ body {
 .safe-main-padding {
 	padding-top: calc(4rem + env(safe-area-inset-top));
 }
+
+/* Sidebar safe area padding (only on mobile when fixed) */
+.safe-sidebar {
+	padding-top: calc(1rem + env(safe-area-inset-top));
+}
+
+@media (min-width: 1024px) {
+	.safe-sidebar {
+		/* On desktop, sidebar is static so no extra padding needed */
+		padding-top: 1rem;
+	}
+}

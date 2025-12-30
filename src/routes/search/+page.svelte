@@ -385,20 +385,23 @@
 						>
 							<div class="card-body p-4">
 								<div class="flex items-center gap-3 max-w-full">
-									<!-- Album Art -->
-									{#if item.thumbnailUrl}
-										<img
-											src={item.thumbnailUrl}
-											alt={item.title}
-											class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
-										/>
-									{:else}
-										<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
-											<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-										</div>
-									{/if}
+									<!-- Album Art - Clickable -->
+									<a href="/item/{item.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
+										{#if item.thumbnailUrl}
+											<img
+												src={item.thumbnailUrl}
+												alt={item.title}
+												class="w-12 h-12 rounded object-cover bg-base-300"
+											/>
+										{:else}
+											<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
+												<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
+											</div>
+										{/if}
+									</a>
 
-									<div class="flex-1 min-w-0 overflow-hidden">
+									<!-- Info - Clickable -->
+									<a href="/item/{item.identifier}" class="flex-1 min-w-0 overflow-hidden hover:text-primary transition-colors">
 										<h3
 											class="font-medium truncate"
 											class:text-primary={isCurrentTrack(item.identifier)}
@@ -409,7 +412,7 @@
 										{#if item.date}
 											<p class="text-xs text-base-content/50 mt-1 truncate">{item.date}</p>
 										{/if}
-									</div>
+									</a>
 									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}

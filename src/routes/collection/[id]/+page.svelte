@@ -193,32 +193,36 @@
 					class:ring-primary={isCurrentTrack(item.identifier)}
 				>
 					<div class="card-body p-4">
-						<!-- Thumbnail -->
-						{#if item.thumbnailUrl}
-							<img
-								src={item.thumbnailUrl}
-								alt={item.title}
-								class="w-full aspect-square object-cover rounded mb-3 bg-base-300"
-							/>
-						{:else}
-							<div
-								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3"
-							>
-								<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-							</div>
-						{/if}
+						<!-- Thumbnail - Clickable -->
+						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity">
+							{#if item.thumbnailUrl}
+								<img
+									src={item.thumbnailUrl}
+									alt={item.title}
+									class="w-full aspect-square object-cover rounded bg-base-300"
+								/>
+							{:else}
+								<div
+									class="w-full aspect-square flex items-center justify-center bg-base-300 rounded"
+								>
+									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
+								</div>
+							{/if}
+						</a>
 
-						<!-- Info -->
-						<h3
-							class="font-medium truncate mb-1"
-							class:text-primary={isCurrentTrack(item.identifier)}
-						>
-							{item.title}
-						</h3>
-						<p class="text-sm text-base-content/70 truncate mb-2">{item.artist}</p>
-						{#if item.date}
-							<p class="text-xs text-base-content/50 mb-3">{item.date}</p>
-						{/if}
+						<!-- Info - Clickable -->
+						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-3">
+							<h3
+								class="font-medium truncate mb-1"
+								class:text-primary={isCurrentTrack(item.identifier)}
+							>
+								{item.title}
+							</h3>
+							<p class="text-sm text-base-content/70 truncate mb-2">{item.artist}</p>
+							{#if item.date}
+								<p class="text-xs text-base-content/50">{item.date}</p>
+							{/if}
+						</a>
 
 						<!-- Actions -->
 						<div class="flex items-center gap-2 mt-auto">

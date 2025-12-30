@@ -10,7 +10,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-	<div class="flex-1 flex">
+	<div class="flex-1 flex pb-24">
 		<!-- Sidebar -->
 		<aside class="w-64 bg-base-200 p-4 overflow-y-auto border-r border-base-300">
 			<div class="mb-8">
@@ -108,8 +108,8 @@
 		</main>
 	</div>
 
-	<!-- Player bar -->
-	<footer class="h-24 bg-base-200 border-t border-base-300">
+	<!-- Player bar - Fixed at bottom -->
+	<footer class="fixed bottom-0 left-0 right-0 h-24 bg-base-200 border-t border-base-300 z-40">
 		<PlayerBar />
 	</footer>
 </div>

@@ -6,6 +6,7 @@
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import { batchExecute } from '$lib/utils/throttle';
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
@@ -19,16 +20,17 @@
 		isLoading = true;
 		const favorites = $library.favorites;
 
-		// Load track data for each favorite
-		const loadedTracks = await Promise.all(
-			favorites.map(async (id) => {
-				try {
-					return await getTrack(id);
-				} catch {
-					return null;
-				}
-			})
-		);
+		// Load track data in batches to avoid rate limiting
+		const trackTasks = favorites.map((id) => async () => {
+			try {
+				return await getTrack(id);
+			} catch {
+				return null;
+			}
+		});
+
+		// Execute in batches of 3 with 500ms delay between batches
+		const loadedTracks = await batchExecute(trackTasks, 3, 500);
 
 		tracks = loadedTracks;
 		isLoading = false;

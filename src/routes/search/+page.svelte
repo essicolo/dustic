@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
+	import { batchExecute } from '$lib/utils/throttle';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -96,16 +97,17 @@
 	async function playAll() {
 		if (results.length === 0) return;
 
-		// Load first 10 tracks
-		const tracks = await Promise.all(
-			results.slice(0, 10).map(async (item) => {
-				try {
-					return await getTrack(item.identifier);
-				} catch {
-					return null;
-				}
-			})
-		);
+		// Load tracks in batches to avoid rate limiting
+		const trackTasks = results.slice(0, 20).map((item) => async () => {
+			try {
+				return await getTrack(item.identifier);
+			} catch {
+				return null;
+			}
+		});
+
+		// Execute in batches of 3 with 500ms delay between batches
+		const tracks = await batchExecute(trackTasks, 3, 500);
 
 		const validTracks = tracks.filter((t): t is Track => t !== null);
 		if (validTracks.length > 0) {

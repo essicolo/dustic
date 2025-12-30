@@ -16,6 +16,45 @@
 			</p>
 		</section>
 
+		<!-- Progressive Web App -->
+		<section class="card bg-base-200 p-6 border-l-4 border-primary">
+			<h2 class="text-xl font-semibold mb-3">Install as an App</h2>
+			<div class="space-y-3 text-base-content/80 leading-relaxed">
+				<p>
+					Dustic is a <strong>Progressive Web App (PWA)</strong>, which means you can install it
+					on your device and use it like a native app. Once installed, it works offline for your
+					saved content and provides a full-screen experience without browser UI.
+				</p>
+
+				<div class="space-y-4 mt-4">
+					<div>
+						<h3 class="font-semibold text-base-content mb-2">On iPhone/iPad:</h3>
+						<ol class="list-decimal list-inside ml-4 space-y-1">
+							<li>Open Dustic in Safari (not Chrome or other browsers)</li>
+							<li>Tap the Share button (square with arrow pointing up)</li>
+							<li>Scroll down and tap "Add to Home Screen"</li>
+							<li>Tap "Add" to confirm</li>
+						</ol>
+					</div>
+
+					<div>
+						<h3 class="font-semibold text-base-content mb-2">On Android:</h3>
+						<ol class="list-decimal list-inside ml-4 space-y-1">
+							<li>Open Dustic in Chrome</li>
+							<li>Tap the menu (three dots) in the top-right corner</li>
+							<li>Tap "Add to Home screen" or "Install app"</li>
+							<li>Tap "Install" to confirm</li>
+						</ol>
+					</div>
+				</div>
+
+				<p class="mt-4">
+					After installation, Dustic will appear on your home screen with its icon and can be
+					launched like any other app on your device.
+				</p>
+			</div>
+		</section>
+
 		<!-- Author -->
 		<section class="card bg-base-200 p-6">
 			<h2 class="text-xl font-semibold mb-3">Creator</h2>

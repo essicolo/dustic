@@ -2,6 +2,7 @@
 
 import { writable, get } from 'svelte/store';
 import type { Playlist } from '$lib/types';
+import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 
 // Simple UUID generator
 function generateId(): string {
@@ -14,14 +15,36 @@ export interface LibraryState {
 	isDirty: boolean; // Has unsaved changes
 }
 
+// Try to load from localStorage first
+const storedProfile = loadFromStorage();
 const initialState: LibraryState = {
-	favorites: [],
-	playlists: {},
+	favorites: storedProfile?.favorites || [],
+	playlists: storedProfile?.playlists || {},
 	isDirty: false
 };
 
 function createLibraryStore() {
 	const { subscribe, set, update } = writable<LibraryState>(initialState);
+
+	// Helper to trigger auto-save
+	function triggerAutoSave() {
+		const state = get({ subscribe });
+		const profile = loadFromStorage() || {
+			version: '1.0.0',
+			exported: Date.now(),
+			favorites: [],
+			playlists: {},
+			history: [],
+			autoplayRules: [],
+			settings: { volume: 0.7, repeat: 'off' as const }
+		};
+
+		scheduleAutoSave({
+			...profile,
+			favorites: state.favorites,
+			playlists: state.playlists
+		});
+	}
 
 	return {
 		subscribe,
@@ -40,13 +63,15 @@ function createLibraryStore() {
 		toggleFavorite(trackId: string) {
 			update((state) => {
 				const isFavorite = state.favorites.includes(trackId);
-				return {
+				const newState = {
 					...state,
 					favorites: isFavorite
 						? state.favorites.filter((id) => id !== trackId)
 						: [...state.favorites, trackId],
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
@@ -58,21 +83,25 @@ function createLibraryStore() {
 		// Playlists
 		createPlaylist(name: string, description?: string): string {
 			const id = generateId();
-			update((state) => ({
-				...state,
-				playlists: {
-					...state.playlists,
-					[id]: {
-						id,
-						name,
-						description,
-						tracks: [],
-						created: Date.now(),
-						updated: Date.now()
-					}
-				},
-				isDirty: true
-			}));
+			update((state) => {
+				const newState = {
+					...state,
+					playlists: {
+						...state.playlists,
+						[id]: {
+							id,
+							name,
+							description,
+							tracks: [],
+							created: Date.now(),
+							updated: Date.now()
+						}
+					},
+					isDirty: true
+				};
+				triggerAutoSave();
+				return newState;
+			});
 			return id;
 		},
 
@@ -80,7 +109,7 @@ function createLibraryStore() {
 			update((state) => {
 				if (!state.playlists[id]) return state;
 
-				return {
+				const newState = {
 					...state,
 					playlists: {
 						...state.playlists,
@@ -92,17 +121,21 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
 		deletePlaylist(id: string) {
 			update((state) => {
 				const { [id]: deleted, ...rest } = state.playlists;
-				return {
+				const newState = {
 					...state,
 					playlists: rest,
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
@@ -114,7 +147,7 @@ function createLibraryStore() {
 				// Don't add duplicates
 				if (playlist.tracks.includes(trackId)) return state;
 
-				return {
+				const newState = {
 					...state,
 					playlists: {
 						...state.playlists,
@@ -126,6 +159,8 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
@@ -134,7 +169,7 @@ function createLibraryStore() {
 				const playlist = state.playlists[playlistId];
 				if (!playlist) return state;
 
-				return {
+				const newState = {
 					...state,
 					playlists: {
 						...state.playlists,
@@ -146,6 +181,8 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 
@@ -158,7 +195,7 @@ function createLibraryStore() {
 				const [removed] = newTracks.splice(fromIndex, 1);
 				newTracks.splice(toIndex, 0, removed);
 
-				return {
+				const newState = {
 					...state,
 					playlists: {
 						...state.playlists,
@@ -170,6 +207,8 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
+				triggerAutoSave();
+				return newState;
 			});
 		},
 

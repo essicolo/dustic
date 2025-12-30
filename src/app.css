@@ -27,3 +27,31 @@ body {
 ::-webkit-scrollbar-thumb:hover {
 	@apply bg-neutral;
 }
+
+/* iOS Safe Area Support for Player Bar */
+.safe-player-bar {
+	/* Mobile: 8rem + safe area */
+	height: calc(8rem + env(safe-area-inset-bottom));
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (min-width: 768px) {
+	.safe-player-bar {
+		/* Desktop: 6rem + safe area */
+		height: calc(6rem + env(safe-area-inset-bottom));
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+}
+
+/* Content padding to account for player bar with safe area */
+.safe-content-padding {
+	/* Mobile: 8rem + safe area */
+	padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+	.safe-content-padding {
+		/* Desktop: 6rem + safe area */
+		padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+	}
+}

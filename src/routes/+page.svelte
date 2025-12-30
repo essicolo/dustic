@@ -7,12 +7,15 @@
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
+	import { shareTrack } from '$lib/utils/share';
 
 	let selectedCollection: string = '';
 	let results: Track[] = [];
 	let isLoading = false;
 	let error = '';
 	let loadingTrack: string | null = null;
+	let shareMessage = '';
+	let showShareToast = false;
 
 	onMount(() => {
 		loadTrending();
@@ -101,6 +104,15 @@
 
 	function toggleFavorite(identifier: string) {
 		library.toggleFavorite(identifier);
+	}
+
+	async function handleShare(item: Track) {
+		const result = await shareTrack(item);
+		shareMessage = result.message;
+		showShareToast = true;
+		setTimeout(() => {
+			showShareToast = false;
+		}, 3000);
 	}
 
 	$: if (selectedCollection !== undefined) {
@@ -226,6 +238,13 @@
 							>
 								<Icon icon="solar:add-circle-bold" width="18" />
 							</button>
+							<button
+								on:click={() => handleShare(item)}
+								class="btn btn-ghost btn-sm btn-square"
+								title="Share track"
+							>
+								<Icon icon="solar:share-bold" width="18" />
+							</button>
 						</div>
 					</div>
 				</div>
@@ -234,6 +253,16 @@
 	{:else}
 		<div class="text-center py-20 text-base-content/50">
 			<p class="text-lg">No trending tracks found</p>
+		</div>
+	{/if}
+
+	<!-- Share Toast -->
+	{#if showShareToast}
+		<div class="toast toast-top toast-center z-50">
+			<div class="alert alert-success">
+				<Icon icon="solar:check-circle-bold" width="20" />
+				<span>{shareMessage}</span>
+			</div>
 		</div>
 	{/if}
 </div>

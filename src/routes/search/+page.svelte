@@ -7,6 +7,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { shareTrack } from '$lib/utils/share';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -20,6 +21,8 @@
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
+	let shareMessage = '';
+	let showShareToast = false;
 
 	// Read query params on mount
 	onMount(() => {
@@ -147,6 +150,15 @@
 		return $currentTrack?.identifier === identifier;
 	}
 
+	async function handleShare(item: Track) {
+		const result = await shareTrack(item);
+		shareMessage = result.message;
+		showShareToast = true;
+		setTimeout(() => {
+			showShareToast = false;
+		}, 3000);
+	}
+
 	$: totalPages = Math.ceil(totalResults / pageSize);
 	$: {
 		// Re-search when filters change
@@ -194,7 +206,7 @@
 		</button>
 	</div>
 
-	<div class="flex gap-6">
+	<div class="flex gap-0 md:gap-6">
 		<!-- Filters Sidebar -->
 		<aside class="w-64 flex-shrink-0 hidden md:block">
 			<div class="bg-base-200 rounded-lg p-4 sticky top-4">
@@ -340,7 +352,7 @@
 		{/if}
 
 		<!-- Results -->
-		<main class="flex-1">
+		<main class="flex-1 min-w-0">
 			{#if error}
 				<div class="alert alert-error mb-4">
 					<span>{error}</span>
@@ -396,7 +408,7 @@
 											<p class="text-xs text-base-content/50 mt-1 truncate">{item.date}</p>
 										{/if}
 									</div>
-									<div class="flex items-center gap-2 flex-shrink-0">
+									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}
 											class="btn btn-sm btn-square"
@@ -415,11 +427,18 @@
 										</button>
 										<button
 											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											disabled={loadingTrack === item.identifier}
 											title="Add to queue"
 										>
 											<Icon icon="solar:add-circle-bold" width="18" />
+										</button>
+										<button
+											on:click={() => handleShare(item)}
+											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
+											title="Share track"
+										>
+											<Icon icon="solar:share-bold" width="18" />
 										</button>
 									</div>
 								</div>
@@ -467,4 +486,14 @@
 			{/if}
 		</main>
 	</div>
+
+	<!-- Share Toast -->
+	{#if showShareToast}
+		<div class="toast toast-top toast-center z-50">
+			<div class="alert alert-success">
+				<Icon icon="solar:check-circle-bold" width="20" />
+				<span>{shareMessage}</span>
+			</div>
+		</div>
+	{/if}
 </div>

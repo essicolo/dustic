@@ -232,15 +232,14 @@
 								class:btn-primary={!isCurrentTrack(item.identifier)}
 								class:btn-ghost={isCurrentTrack(item.identifier)}
 								disabled={loadingTrack === item.identifier}
+								title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
 							>
 								{#if loadingTrack === item.identifier}
 									<span class="loading loading-spinner loading-xs"></span>
 								{:else if isCurrentTrack(item.identifier)}
-									<Icon icon="solar:pause-bold" width="18" />
-									<span class="ml-1">Playing</span>
+									<Icon icon="solar:pause-bold" width="20" />
 								{:else}
-									<Icon icon="solar:play-bold" width="18" />
-									<span class="ml-1">Play</span>
+									<Icon icon="solar:play-bold" width="20" />
 								{/if}
 							</button>
 							<button

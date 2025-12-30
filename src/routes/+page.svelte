@@ -122,29 +122,32 @@
 	}
 
 	async function toggleExpand(identifier: string) {
-		if (expandedItems.has(identifier)) {
+		const wasExpanded = expandedItems.has(identifier);
+
+		if (wasExpanded) {
 			expandedItems.delete(identifier);
-			expandedItems = expandedItems;
 		} else {
 			expandedItems.add(identifier);
-			expandedItems = expandedItems;
+		}
 
-			// Load chapters if not already loaded
-			if (!itemChapters.has(identifier)) {
-				loadingChapters.add(identifier);
-				loadingChapters = loadingChapters;
+		// Trigger reactivity by creating new Set
+		expandedItems = new Set(expandedItems);
 
-				try {
-					const chapters = await getAllTracks(identifier);
-					itemChapters.set(identifier, chapters);
-					itemChapters = itemChapters;
-				} catch (e) {
-					console.error('Failed to load chapters:', e);
-					error = 'Failed to load chapters';
-				} finally {
-					loadingChapters.delete(identifier);
-					loadingChapters = loadingChapters;
-				}
+		// Load chapters if not already loaded
+		if (!wasExpanded && !itemChapters.has(identifier)) {
+			loadingChapters.add(identifier);
+			loadingChapters = new Set(loadingChapters);
+
+			try {
+				const chapters = await getAllTracks(identifier);
+				itemChapters.set(identifier, chapters);
+				itemChapters = new Map(itemChapters);
+			} catch (e) {
+				console.error('Failed to load chapters:', e);
+				error = 'Failed to load chapters';
+			} finally {
+				loadingChapters.delete(identifier);
+				loadingChapters = new Set(loadingChapters);
 			}
 		}
 	}
@@ -255,19 +258,18 @@
 						<div class="flex items-center gap-2 mt-auto">
 							<button
 								on:click={() => playTrack(item.identifier)}
-								class="btn btn-sm flex-1 whitespace-nowrap"
+								class="btn btn-sm flex-1"
 								class:btn-primary={!isCurrentTrack(item.identifier)}
 								class:btn-ghost={isCurrentTrack(item.identifier)}
 								disabled={loadingTrack === item.identifier}
+								title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
 							>
 								{#if loadingTrack === item.identifier}
 									<span class="loading loading-spinner loading-xs"></span>
 								{:else if isCurrentTrack(item.identifier)}
-									<Icon icon="solar:pause-bold" width="18" />
-									<span>Playing</span>
+									<Icon icon="solar:pause-bold" width="20" />
 								{:else}
-									<Icon icon="solar:play-bold" width="18" />
-									<span>Play</span>
+									<Icon icon="solar:play-bold" width="20" />
 								{/if}
 							</button>
 							<button

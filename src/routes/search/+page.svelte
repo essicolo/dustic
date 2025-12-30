@@ -275,7 +275,7 @@
 							class:ring-primary={isCurrentTrack(item.identifier)}
 						>
 							<div class="card-body p-4">
-								<div class="flex items-center gap-3">
+								<div class="flex items-center gap-3 max-w-full">
 									<!-- Album Art -->
 									{#if item.thumbnailUrl}
 										<img
@@ -289,7 +289,7 @@
 										</div>
 									{/if}
 
-									<div class="flex-1 min-w-0">
+									<div class="flex-1 min-w-0 overflow-hidden">
 										<h3
 											class="font-medium truncate"
 											class:text-primary={isCurrentTrack(item.identifier)}
@@ -298,10 +298,10 @@
 										</h3>
 										<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
 										{#if item.date}
-											<p class="text-xs text-base-content/50 mt-1">{item.date}</p>
+											<p class="text-xs text-base-content/50 mt-1 truncate">{item.date}</p>
 										{/if}
 									</div>
-									<div class="flex items-center gap-2">
+									<div class="flex items-center gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}
 											class="btn btn-sm btn-square"

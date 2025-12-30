@@ -4,6 +4,7 @@
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 
 	$: currentPath = $page.url.pathname;
 </script>
@@ -19,26 +20,26 @@
 
 			<nav class="space-y-1 mb-4">
 				<a
-					href="/"
+					href="{base}/"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === '/'}
-					class:text-primary-content={currentPath === '/'}
+					class:bg-primary={currentPath === `${base}/` || currentPath === base}
+					class:text-primary-content={currentPath === `${base}/` || currentPath === base}
 				>
 					Home
 				</a>
 				<a
-					href="/search"
+					href="{base}/search"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === '/search'}
-					class:text-primary-content={currentPath === '/search'}
+					class:bg-primary={currentPath === `${base}/search`}
+					class:text-primary-content={currentPath === `${base}/search`}
 				>
 					Search
 				</a>
 				<a
-					href="/trending"
+					href="{base}/trending"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === '/trending'}
-					class:text-primary-content={currentPath === '/trending'}
+					class:bg-primary={currentPath === `${base}/trending`}
+					class:text-primary-content={currentPath === `${base}/trending`}
 				>
 					Trending
 				</a>
@@ -50,10 +51,10 @@
 				</div>
 				{#each POPULAR_COLLECTIONS as collection}
 					<a
-						href="/collection/{collection.id}"
+						href="{base}/collection/{collection.id}"
 						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
-						class:bg-primary={currentPath === `/collection/${collection.id}`}
-						class:text-primary-content={currentPath === `/collection/${collection.id}`}
+						class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
+						class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
 					>
 						{collection.name}
 					</a>
@@ -62,26 +63,26 @@
 				<div class="border-t border-base-300 my-4"></div>
 
 				<a
-					href="/library"
+					href="{base}/library"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath.startsWith('/library')}
-					class:text-primary-content={currentPath.startsWith('/library')}
+					class:bg-primary={currentPath.startsWith(`${base}/library`)}
+					class:text-primary-content={currentPath.startsWith(`${base}/library`)}
 				>
 					Library
 				</a>
 				<a
-					href="/history"
+					href="{base}/history"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === '/history'}
-					class:text-primary-content={currentPath === '/history'}
+					class:bg-primary={currentPath === `${base}/history`}
+					class:text-primary-content={currentPath === `${base}/history`}
 				>
 					History
 				</a>
 				<a
-					href="/settings"
+					href="{base}/settings"
 					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath.startsWith('/settings')}
-					class:text-primary-content={currentPath.startsWith('/settings')}
+					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
+					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
 				>
 					Settings
 				</a>

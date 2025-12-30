@@ -2,6 +2,7 @@
 	import { queue } from '$lib/stores/queue';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { getTrack } from '$lib/services/internetArchive';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let isOpen = false;
 
@@ -78,8 +79,8 @@
 								class="w-12 h-12 rounded bg-base-100"
 							/>
 						{:else}
-							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center text-xs text-base-content/30">
-								♪
+							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center">
+								<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
 							</div>
 						{/if}
 						<div class="flex-1 min-w-0">

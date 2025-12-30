@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { library } from '$lib/stores/library';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let newPlaylistName = '';
 	let newPlaylistDescription = '';
@@ -15,7 +16,7 @@
 		isCreating = false;
 
 		// Navigate to new playlist
-		goto(`/library/playlists/${id}`);
+		goto(`${base}/library/playlists/${id}`);
 	}
 
 	function deletePlaylist(id: string, name: string) {
@@ -33,7 +34,7 @@
 	<!-- Quick Links -->
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
 		<a
-			href="/library/favorites"
+			href="{base}/library/favorites"
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
@@ -43,7 +44,7 @@
 		</a>
 
 		<a
-			href="/history"
+			href="{base}/history"
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
@@ -128,7 +129,7 @@
 							>
 								Delete
 							</button>
-							<a href="/library/playlists/{playlist.id}" class="btn btn-primary btn-sm">
+							<a href="{base}/library/playlists/{playlist.id}" class="btn btn-primary btn-sm">
 								Open
 							</a>
 						</div>

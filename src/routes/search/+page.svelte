@@ -7,6 +7,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { shareTrack } from '$lib/utils/share';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -20,6 +21,8 @@
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
+	let shareMessage = '';
+	let showShareToast = false;
 
 	// Read query params on mount
 	onMount(() => {
@@ -145,6 +148,15 @@
 
 	function isCurrentTrack(identifier: string): boolean {
 		return $currentTrack?.identifier === identifier;
+	}
+
+	async function handleShare(item: Track) {
+		const result = await shareTrack(item);
+		shareMessage = result.message;
+		showShareToast = true;
+		setTimeout(() => {
+			showShareToast = false;
+		}, 3000);
 	}
 
 	$: totalPages = Math.ceil(totalResults / pageSize);
@@ -421,6 +433,13 @@
 										>
 											<Icon icon="solar:add-circle-bold" width="18" />
 										</button>
+										<button
+											on:click={() => handleShare(item)}
+											class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+											title="Share track"
+										>
+											<Icon icon="solar:share-bold" width="18" />
+										</button>
 									</div>
 								</div>
 							</div>
@@ -467,4 +486,14 @@
 			{/if}
 		</main>
 	</div>
+
+	<!-- Share Toast -->
+	{#if showShareToast}
+		<div class="toast toast-top toast-center z-50">
+			<div class="alert alert-success">
+				<Icon icon="solar:check-circle-bold" width="20" />
+				<span>{shareMessage}</span>
+			</div>
+		</div>
+	{/if}
 </div>

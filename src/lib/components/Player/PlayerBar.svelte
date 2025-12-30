@@ -5,6 +5,7 @@
 	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { shareTrack } from '$lib/utils/share';
 
 	let audioElement: HTMLAudioElement;
 
@@ -90,6 +91,20 @@
 		}
 	}
 
+	let shareMessage = '';
+	let showShareToast = false;
+
+	async function handleShare() {
+		if ($player.currentTrack) {
+			const result = await shareTrack($player.currentTrack);
+			shareMessage = result.message;
+			showShareToast = true;
+			setTimeout(() => {
+				showShareToast = false;
+			}, 3000);
+		}
+	}
+
 	$: isFavorite = $player.currentTrack ? library.isFavorite($player.currentTrack.identifier) : false;
 	$: $player;
 </script>
@@ -120,22 +135,41 @@
 						{$player.currentTrack.artist}
 					</div>
 				</div>
-				<button
-					on:click={toggleFavorite}
-					class="btn btn-ghost btn-xs md:btn-sm btn-square flex-shrink-0"
-					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-				>
-					<Icon
-						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-						width="18"
-						className={isFavorite ? 'text-red-500' : ''}
-					/>
-				</button>
+				<div class="flex items-center gap-1 flex-shrink-0">
+					<button
+						on:click={toggleFavorite}
+						class="btn btn-ghost btn-xs md:btn-sm btn-square"
+						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+					>
+						<Icon
+							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+							width="18"
+							className={isFavorite ? 'text-red-500' : ''}
+						/>
+					</button>
+					<button
+						on:click={handleShare}
+						class="btn btn-ghost btn-xs md:btn-sm btn-square"
+						title="Share track"
+					>
+						<Icon icon="solar:share-bold" width="18" />
+					</button>
+				</div>
 			</div>
 		{:else}
 			<div class="text-sm text-base-content/50">No track playing</div>
 		{/if}
 	</div>
+
+	<!-- Share Toast -->
+	{#if showShareToast}
+		<div class="toast toast-top toast-center z-50">
+			<div class="alert alert-success">
+				<Icon icon="solar:check-circle-bold" width="20" />
+				<span>{shareMessage}</span>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Player Controls -->
 	<div class="flex-1 flex flex-col items-center gap-1 md:gap-2 w-full">

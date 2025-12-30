@@ -40,11 +40,14 @@
 
 	async function playTrack(identifier: string) {
 		loadingTrack = identifier;
+		error = ''; // Clear previous errors
 		try {
 			const track = await getTrack(identifier);
 			if (track) {
 				queue.setQueue([track], 0);
 				player.play(track);
+			} else {
+				error = 'This track has no playable audio files. Try another one.';
 			}
 		} catch (e) {
 			console.error('Failed to play track:', e);
@@ -56,13 +59,17 @@
 
 	async function addToQueue(identifier: string) {
 		loadingTrack = identifier;
+		error = ''; // Clear previous errors
 		try {
 			const track = await getTrack(identifier);
 			if (track) {
 				queue.addToEnd(track);
+			} else {
+				error = 'This track has no playable audio files.';
 			}
 		} catch (e) {
 			console.error('Failed to add track:', e);
+			error = 'Failed to load track.';
 		} finally {
 			loadingTrack = null;
 		}

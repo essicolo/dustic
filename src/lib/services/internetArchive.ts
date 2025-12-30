@@ -42,9 +42,15 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	}
 
 	// Add specific format filter only if requested
+	// Otherwise, ensure the item has at least one common audio format
 	if (format.length > 0) {
 		const formatQuery = format.map((f) => `format:(${f})`).join(' OR ');
 		q += ` AND (${formatQuery})`;
+	} else {
+		// Require at least one audio format to filter out metadata-only items
+		const commonFormats = ['mp3', 'ogg', 'flac', 'vbr mp3', '128kbps mp3', 'VBR', 'Ogg Vorbis'];
+		const formatFilter = commonFormats.map((f) => `format:"${f}"`).join(' OR ');
+		q += ` AND (${formatFilter})`;
 	}
 
 	// Build URL parameters
@@ -90,6 +96,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 					: undefined,
 			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
 			streamUrl: '', // Will be populated when playing
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
 			metadata: doc
 		}));
 

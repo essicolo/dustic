@@ -43,6 +43,17 @@
 			</a>
 		</section>
 
+		<!-- Content Disclaimer -->
+		<section class="card bg-base-200 p-6 border-l-4 border-info">
+			<h2 class="text-xl font-semibold mb-3">Content Disclaimer</h2>
+			<p class="text-base-content/80 leading-relaxed">
+				All content available through Dustic is served directly from the Internet Archive.
+				The creator of Dustic is not responsible for the content, accuracy, or availability
+				of any audio files or metadata provided by the Internet Archive. Questions or concerns
+				about specific content should be directed to the Internet Archive.
+			</p>
+		</section>
+
 		<!-- Privacy & Data -->
 		<section class="card bg-base-200 p-6">
 			<h2 class="text-xl font-semibold mb-3">Privacy & Data Collection</h2>

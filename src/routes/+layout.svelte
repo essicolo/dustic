@@ -21,11 +21,11 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-	<div class="flex-1 flex pb-24">
+	<div class="flex-1 flex pb-32 md:pb-24">
 		<!-- Mobile Header -->
 		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3">
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-square">
-				<Icon icon="solar:hamburger-menu-bold" width="24" />
+			<button on:click={toggleSidebar} class="btn btn-ghost btn-square btn-lg">
+				<Icon icon="solar:hamburger-menu-bold" width="32" />
 			</button>
 			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
 			<h1 class="text-xl font-bold">Dustic</h1>
@@ -152,7 +152,7 @@
 	</div>
 
 	<!-- Player bar - Fixed at bottom -->
-	<footer class="fixed bottom-0 left-0 right-0 h-24 bg-base-200 border-t border-base-300 z-40">
+	<footer class="fixed bottom-0 left-0 right-0 h-32 md:h-24 bg-base-200 border-t border-base-300 z-40">
 		<PlayerBar />
 	</footer>
 </div>

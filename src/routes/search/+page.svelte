@@ -19,6 +19,7 @@
 	let totalResults = 0;
 	let error = '';
 	let loadingTrack: string | null = null;
+	let showFilters = false;
 
 	// Read query params on mount
 	onMount(() => {
@@ -124,6 +125,10 @@
 		currentPage = 1;
 	}
 
+	function toggleFilters() {
+		showFilters = !showFilters;
+	}
+
 	function nextPage() {
 		currentPage++;
 		handleSearch();
@@ -154,12 +159,12 @@
 	}
 </script>
 
-<div class="p-8">
-	<h2 class="text-3xl font-bold mb-6">Search</h2>
+<div class="p-4 md:p-8">
+	<h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Search</h2>
 
 	<!-- Search Bar -->
-	<div class="mb-6">
-		<div class="join w-full max-w-3xl">
+	<div class="mb-4 md:mb-6">
+		<div class="join w-full">
 			<input
 				type="text"
 				bind:value={searchQuery}
@@ -171,15 +176,27 @@
 				{#if isSearching}
 					<span class="loading loading-spinner"></span>
 				{:else}
-					Search
+					<span class="hidden md:inline">Search</span>
+					<Icon icon="solar:magnifer-bold-duotone" width="20" class="md:hidden" />
 				{/if}
 			</button>
 		</div>
 	</div>
 
+	<!-- Mobile Filter Toggle -->
+	<div class="md:hidden mb-4">
+		<button on:click={toggleFilters} class="btn btn-outline btn-sm w-full">
+			<Icon icon="solar:filter-bold" width="20" />
+			<span>Filters</span>
+			{#if selectedCollections.length > 0 || sortBy !== 'relevance'}
+				<span class="badge badge-primary badge-sm">{selectedCollections.length}</span>
+			{/if}
+		</button>
+	</div>
+
 	<div class="flex gap-6">
 		<!-- Filters Sidebar -->
-		<aside class="w-64 flex-shrink-0">
+		<aside class="w-64 flex-shrink-0 hidden md:block">
 			<div class="bg-base-200 rounded-lg p-4 sticky top-4">
 				<div class="flex items-center justify-between mb-4">
 					<h3 class="font-bold">Filters</h3>
@@ -243,6 +260,84 @@
 				</div>
 			</div>
 		</aside>
+
+		<!-- Mobile Filters Modal -->
+		{#if showFilters}
+			<div class="md:hidden fixed inset-0 bg-black/50 z-50" on:click={toggleFilters} role="button" tabindex="0">
+				<div class="fixed inset-x-0 bottom-0 bg-base-200 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" on:click={(e) => e.stopPropagation()}>
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="font-bold text-lg">Filters</h3>
+						<div class="flex gap-2">
+							{#if selectedCollections.length > 0 || sortBy !== 'relevance'}
+								<button on:click={clearFilters} class="btn btn-ghost btn-xs">Clear</button>
+							{/if}
+							<button on:click={toggleFilters} class="btn btn-ghost btn-sm btn-square">
+								<Icon icon="solar:close-circle-bold" width="24" />
+							</button>
+						</div>
+					</div>
+
+					<!-- Collections -->
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2">Collections</h4>
+						<div class="space-y-2">
+							{#each POPULAR_COLLECTIONS as collection}
+								<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+									<input
+										type="checkbox"
+										checked={selectedCollections.includes(collection.id)}
+										on:change={() => toggleCollection(collection.id)}
+										class="checkbox checkbox-sm checkbox-primary"
+									/>
+									<span class="text-sm">
+										{collection.name}
+									</span>
+								</label>
+							{/each}
+						</div>
+					</div>
+
+					<!-- Sort -->
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2">Sort By</h4>
+						<div class="space-y-1">
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+								<input
+									type="radio"
+									bind:group={sortBy}
+									value="relevance"
+									class="radio radio-sm radio-primary"
+								/>
+								<span class="text-sm">Relevance</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+								<input
+									type="radio"
+									bind:group={sortBy}
+									value="downloads"
+									class="radio radio-sm radio-primary"
+								/>
+								<span class="text-sm">Most Popular</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+								<input
+									type="radio"
+									bind:group={sortBy}
+									value="date"
+									class="radio radio-sm radio-primary"
+								/>
+								<span class="text-sm">Newest</span>
+							</label>
+						</div>
+					</div>
+
+					<!-- Apply Button -->
+					<button on:click={toggleFilters} class="btn btn-primary w-full">
+						Apply Filters
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Results -->
 		<main class="flex-1">

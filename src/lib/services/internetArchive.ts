@@ -131,28 +131,42 @@ export function getBestAudioFile(files: IAMetadataResponse['files']): {
 	duration?: number;
 } | null {
 	// Prefer MP3 > OGG > FLAC
-	const formatPriority = ['mp3', 'ogg', 'flac', 'wav', 'm4a'];
+	const formatPriority = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac'];
 
-	const audioFiles = files.filter(
-		(file) =>
-			file.format && AUDIO_FORMATS.includes(file.format.toLowerCase())
-	);
+	// Filter for audio files - be more permissive
+	const audioFiles = files.filter((file) => {
+		if (!file.name || !file.format) return false;
+
+		const format = file.format.toLowerCase();
+		const name = file.name.toLowerCase();
+
+		// Check if format matches known audio formats
+		if (AUDIO_FORMATS.includes(format)) return true;
+
+		// Also check file extension as fallback
+		const ext = name.split('.').pop() || '';
+		return AUDIO_FORMATS.includes(ext);
+	});
 
 	if (audioFiles.length === 0) {
+		console.warn('No audio files found in:', files.map(f => `${f.name} (${f.format})`));
 		return null;
 	}
 
 	// Sort by format priority
 	audioFiles.sort((a, b) => {
-		const aPriority = formatPriority.indexOf(a.format.toLowerCase());
-		const bPriority = formatPriority.indexOf(b.format.toLowerCase());
+		const aFormat = a.format?.toLowerCase() || a.name.split('.').pop() || '';
+		const bFormat = b.format?.toLowerCase() || b.name.split('.').pop() || '';
+
+		const aPriority = formatPriority.indexOf(aFormat);
+		const bPriority = formatPriority.indexOf(bFormat);
 		return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
 	});
 
 	const best = audioFiles[0];
 	return {
 		filename: best.name,
-		format: best.format,
+		format: best.format || best.name.split('.').pop() || 'mp3',
 		duration: best.length ? parseFloat(best.length) : undefined
 	};
 }

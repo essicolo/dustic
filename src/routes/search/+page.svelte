@@ -4,6 +4,7 @@
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track, SearchParams } from '$lib/types';
+	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 
@@ -283,8 +284,8 @@
 											class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
 										/>
 									{:else}
-										<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center text-xs text-base-content/30 flex-shrink-0">
-											♪
+										<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
+											<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
 										</div>
 									{/if}
 
@@ -296,43 +297,35 @@
 											{item.title}
 										</h3>
 										<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-										<div class="flex items-center gap-2 text-xs text-base-content/50 mt-1">
-											{#if item.date}
-												<span>{item.date}</span>
-												<span>•</span>
-											{/if}
-											{#if item.collection && item.collection.length > 0}
-												<span>{item.collection[0]}</span>
-											{/if}
-										</div>
+										{#if item.date}
+											<p class="text-xs text-base-content/50 mt-1">{item.date}</p>
+										{/if}
 									</div>
 									<div class="flex items-center gap-2">
 										<button
 											on:click={() => playTrack(item.identifier)}
-											class="btn btn-sm"
+											class="btn btn-sm btn-square"
 											class:btn-primary={!isCurrentTrack(item.identifier)}
 											class:btn-ghost={isCurrentTrack(item.identifier)}
 											disabled={loadingTrack === item.identifier}
+											title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
 										>
 											{#if loadingTrack === item.identifier}
 												<span class="loading loading-spinner loading-xs"></span>
 											{:else if isCurrentTrack(item.identifier)}
-												Playing
+												<Icon icon="solar:pause-bold" width="18" />
 											{:else}
-												Play
+												<Icon icon="solar:play-bold" width="18" />
 											{/if}
 										</button>
 										<button
 											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-square opacity-0 group-hover:opacity-100 transition-opacity"
 											disabled={loadingTrack === item.identifier}
 											title="Add to queue"
 										>
-											+
+											<Icon icon="solar:add-circle-bold" width="18" />
 										</button>
-										<div class="text-xs text-base-content/50 w-12 text-right">
-											{item.format?.toUpperCase()}
-										</div>
 									</div>
 								</div>
 							</div>

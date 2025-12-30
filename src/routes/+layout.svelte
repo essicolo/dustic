@@ -23,7 +23,7 @@
 <div class="min-h-screen flex flex-col">
 	<div class="flex-1 flex safe-content-padding">
 		<!-- Mobile Header -->
-		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3">
+		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header">
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-square btn-lg">
 				<Icon icon="solar:hamburger-menu-bold" width="32" />
 			</button>
@@ -146,7 +146,7 @@
 		</aside>
 
 		<!-- Main content -->
-		<main class="flex-1 overflow-y-auto bg-base-100 pt-16 lg:pt-0 lg:ml-0">
+		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding lg:pt-0 lg:ml-0">
 			<slot />
 		</main>
 	</div>

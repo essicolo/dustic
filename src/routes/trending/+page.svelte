@@ -4,6 +4,7 @@
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
+	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
 
 	let selectedCollection: string = '';
@@ -160,9 +161,9 @@
 							/>
 						{:else}
 							<div
-								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3 text-4xl text-base-content/30"
+								class="w-full aspect-square flex items-center justify-center bg-base-300 rounded mb-3"
 							>
-								♪
+								<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
 							</div>
 						{/if}
 
@@ -187,9 +188,11 @@
 								{#if loadingTrack === item.identifier}
 									<span class="loading loading-spinner loading-xs"></span>
 								{:else if isCurrentTrack(item.identifier)}
-									Playing
+									<Icon icon="solar:pause-bold" width="18" />
+									<span class="ml-1">Playing</span>
 								{:else}
-									Play
+									<Icon icon="solar:play-bold" width="18" />
+									<span class="ml-1">Play</span>
 								{/if}
 							</button>
 							<button
@@ -198,7 +201,7 @@
 								disabled={loadingTrack === item.identifier}
 								title="Add to queue"
 							>
-								+
+								<Icon icon="solar:add-circle-bold" width="18" />
 							</button>
 						</div>
 					</div>

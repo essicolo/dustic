@@ -6,12 +6,12 @@ export const IA_METADATA_URL = `${IA_BASE_URL}/metadata`;
 export const IA_DOWNLOAD_URL = `${IA_BASE_URL}/download`;
 
 export const POPULAR_COLLECTIONS = [
-	{ id: 'etree', name: 'Live Music Archive', icon: '🎸' },
-	{ id: 'audio_music', name: 'Music', icon: '🎵' },
-	{ id: '78rpm', name: '78 RPM', icon: '📻' },
-	{ id: 'librivoxaudio', name: 'Audiobooks', icon: '📚' },
-	{ id: 'radioprograms', name: 'Radio Programs', icon: '📡' },
-	{ id: 'audio_podcast', name: 'Podcasts', icon: '🎙️' }
+	{ id: 'etree', name: 'Live Music Archive', icon: '' },
+	{ id: 'audio_music', name: 'Music', icon: '' },
+	{ id: '78rpm', name: '78 RPM', icon: '' },
+	{ id: 'librivoxaudio', name: 'Audiobooks', icon: '' },
+	{ id: 'radioprograms', name: 'Radio Programs', icon: '' },
+	{ id: 'audio_podcast', name: 'Podcasts', icon: '' }
 ];
 
 export const AUDIO_FORMATS = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac', 'aiff', 'opus'];

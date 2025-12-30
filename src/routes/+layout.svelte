@@ -21,7 +21,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-	<div class="flex-1 flex pb-32 md:pb-24">
+	<div class="flex-1 flex safe-content-padding">
 		<!-- Mobile Header -->
 		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3">
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-square btn-lg">
@@ -151,8 +151,8 @@
 		</main>
 	</div>
 
-	<!-- Player bar - Fixed at bottom -->
-	<footer class="fixed bottom-0 left-0 right-0 h-32 md:h-24 bg-base-200 border-t border-base-300 z-40">
+	<!-- Player bar - Fixed at bottom with iOS safe area support -->
+	<footer class="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-40 safe-player-bar">
 		<PlayerBar />
 	</footer>
 </div>

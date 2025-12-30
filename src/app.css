@@ -55,3 +55,14 @@ body {
 		padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 	}
 }
+
+/* Safe header with top safe area */
+.safe-header {
+	height: calc(4rem + env(safe-area-inset-top));
+	padding-top: env(safe-area-inset-top);
+}
+
+/* Main content padding to account for header with safe area */
+.safe-main-padding {
+	padding-top: calc(4rem + env(safe-area-inset-top));
+}

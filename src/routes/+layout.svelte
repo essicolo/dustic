@@ -23,11 +23,12 @@
 <div class="min-h-screen flex flex-col">
 	<div class="flex-1 flex pb-24">
 		<!-- Mobile Header -->
-		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4">
+		<div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3">
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-square">
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
-			<h1 class="text-xl font-bold ml-3">Dustic</h1>
+			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
+			<h1 class="text-xl font-bold">Dustic</h1>
 		</div>
 
 		<!-- Overlay for mobile -->
@@ -50,9 +51,12 @@
 			class:lg:translate-x-0={true}
 		>
 			<div class="mb-8 flex items-center justify-between">
-				<div>
-					<h1 class="text-2xl font-bold tracking-tight">Dustic</h1>
-					<p class="text-xs text-base-content/50 mt-1">Archive Audio Player</p>
+				<div class="flex items-center gap-3">
+					<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-10 w-auto" />
+					<div>
+						<h1 class="text-2xl font-bold tracking-tight">Dustic</h1>
+						<p class="text-xs text-base-content/50 mt-1">Archive Audio Player</p>
+					</div>
 				</div>
 				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-square lg:hidden">
 					<Icon icon="solar:close-circle-bold" width="20" />

@@ -172,7 +172,7 @@
 
 <div class="p-4 md:p-8">
 	<div class="flex items-center justify-between mb-6">
-		<h2 class="text-2xl md:text-3xl font-bold">Trending & Popular</h2>
+		<h2 class="text-2xl md:text-3xl font-bold">Trending</h2>
 		{#if results.length > 0}
 			<button on:click={playAll} class="btn btn-primary btn-sm">
 				Play All

@@ -62,7 +62,11 @@
 	}
 
 	function isCurrentTrack(identifier: string): boolean {
-		return $currentTrack?.identifier === identifier;
+		if (!$currentTrack) return false;
+		// Handle chapter identifiers (format: "itemId#index")
+		const currentId = $currentTrack.identifier.split('#')[0];
+		const trackId = identifier.split('#')[0];
+		return currentId === trackId;
 	}
 
 	function formatDate(timestamp: number): string {
@@ -116,19 +120,21 @@
 					<div class="card-body p-4">
 						<div class="flex items-center gap-3">
 							<!-- Album Art -->
-							{#if track.thumbnailUrl}
-								<img
-									src={track.thumbnailUrl}
-									alt={track.title}
-									class="w-12 h-12 rounded object-cover bg-base-300 flex-shrink-0"
-								/>
-							{:else}
-								<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center flex-shrink-0">
-									<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-								</div>
-							{/if}
+							<a href="/item/{track.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
+								{#if track.thumbnailUrl}
+									<img
+										src={track.thumbnailUrl}
+										alt={track.title}
+										class="w-12 h-12 rounded object-cover bg-base-300"
+									/>
+								{:else}
+									<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
+										<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
+									</div>
+								{/if}
+							</a>
 
-							<div class="flex-1 min-w-0">
+							<a href="/item/{track.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
 								<h3
 									class="font-medium truncate"
 									class:text-primary={isCurrentTrack(track.identifier)}
@@ -144,7 +150,7 @@
 										{/if}
 									</p>
 								{/if}
-							</div>
+							</a>
 							<div class="flex items-center gap-2">
 								<button
 									on:click={() => playTrack(track.identifier)}

@@ -24,8 +24,8 @@
 	<div class="flex-1 flex safe-content-padding">
 		<!-- Mobile Header -->
 		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header">
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-square btn-lg">
-				<Icon icon="solar:hamburger-menu-bold" width="32" />
+			<button on:click={toggleSidebar} class="btn btn-ghost p-3">
+				<Icon icon="solar:hamburger-menu-bold" width="28" />
 			</button>
 			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
 			<h1 class="text-xl font-bold">Dustic</h1>

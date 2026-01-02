@@ -87,7 +87,9 @@
 
 	function toggleFavorite() {
 		if ($player.currentTrack) {
-			library.toggleFavorite($player.currentTrack.identifier);
+			// Always use base item ID (without chapter #index) for favorites
+			const baseId = $player.currentTrack.identifier.split('#')[0];
+			library.toggleFavorite(baseId);
 		}
 	}
 
@@ -105,7 +107,7 @@
 		}
 	}
 
-	$: isFavorite = $player.currentTrack ? library.isFavorite($player.currentTrack.identifier) : false;
+	$: isFavorite = $player.currentTrack ? library.isFavorite($player.currentTrack.identifier.split('#')[0]) : false;
 	$: $player;
 </script>
 
@@ -118,23 +120,25 @@
 	<div class="flex-shrink-0 w-full md:w-64">
 		{#if $player.currentTrack}
 			<div class="flex items-center gap-2 md:gap-3">
-				{#if $player.currentTrack.thumbnailUrl}
-					<img
-						src={$player.currentTrack.thumbnailUrl}
-						alt={$player.currentTrack.title}
-						class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200 flex-shrink-0"
-					/>
-				{:else}
-					<div class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200 flex items-center justify-center flex-shrink-0">
-						<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
-					</div>
-				{/if}
-				<div class="flex-1 min-w-0">
+				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
+					{#if $player.currentTrack.thumbnailUrl}
+						<img
+							src={$player.currentTrack.thumbnailUrl}
+							alt={$player.currentTrack.title}
+							class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200"
+						/>
+					{:else}
+						<div class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200 flex items-center justify-center">
+							<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
+						</div>
+					{/if}
+				</a>
+				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
 					<div class="text-sm md:text-base font-medium truncate">{$player.currentTrack.title}</div>
 					<div class="text-xs md:text-sm text-base-content/70 truncate">
 						{$player.currentTrack.artist}
 					</div>
-				</div>
+				</a>
 				<div class="flex items-center gap-1 flex-shrink-0">
 					<button
 						on:click={toggleFavorite}

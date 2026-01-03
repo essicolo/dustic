@@ -131,9 +131,9 @@
 	</div>
 
 	<!-- Main row -->
-	<div class="flex items-center gap-2 md:gap-4 w-full">
+	<div class="flex items-center gap-2 md:gap-4 w-full md:justify-between">
 		<!-- Track Info -->
-		<div class="flex-shrink-0 flex-1 md:flex-initial md:w-64 min-w-0">
+		<div class="flex-shrink-0 flex-1 md:w-64 min-w-0">
 			{#if $player.currentTrack}
 				<div class="flex items-center gap-2 md:gap-3 min-w-0">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
@@ -180,7 +180,7 @@
 		</div>
 
 		<!-- Player Controls - Centered on mobile -->
-		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
+		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 md:flex-1 md:justify-center">
 			<!-- Shuffle - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleShuffle()}
@@ -225,7 +225,7 @@
 		</div>
 
 		<!-- Desktop: Volume & Queue -->
-		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4">
+		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4 md:w-64 md:justify-end">
 			<!-- Desktop favorite/share/download buttons -->
 			<div class="hidden md:flex items-center gap-1">
 				{#if $player.currentTrack}

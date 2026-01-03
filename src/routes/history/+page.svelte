@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 
 	let tracks: (Track | null)[] = [];
@@ -154,10 +155,15 @@
 
 							<a href="/item/{track.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
 								<h3
-									class="font-medium truncate"
+									class="font-medium flex items-center gap-2"
 									class:text-primary={isCurrentTrack(track.identifier)}
 								>
-									{track.title}
+									<span class="truncate">{track.title}</span>
+									{#if isCurrentTrack(track.identifier) && $player.isPlaying}
+										<span class="flex-shrink-0">
+											<PlayingIndicator size="sm" />
+										</span>
+									{/if}
 								</h3>
 								<p class="text-sm text-base-content/70 truncate">{track.artist}</p>
 								{#if entry}

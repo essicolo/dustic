@@ -6,6 +6,7 @@
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
+	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -263,10 +264,15 @@
 						<!-- Info - Clickable -->
 						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2">
 							<h3
-								class="font-medium truncate"
+								class="font-medium truncate flex items-center gap-2"
 								class:text-primary={isCurrentTrack(item.identifier)}
 							>
-								{item.title}
+								<span class="truncate">{item.title}</span>
+								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
+									<span class="flex-shrink-0">
+										<PlayingIndicator size="sm" />
+									</span>
+								{/if}
 							</h3>
 							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
 						</a>

@@ -4,6 +4,7 @@
 	import { library } from '$lib/stores/library';
 	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 
@@ -134,7 +135,14 @@
 					{/if}
 				</a>
 				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-					<div class="text-sm md:text-base font-medium truncate">{$player.currentTrack.title}</div>
+					<div class="text-sm md:text-base font-medium flex items-center gap-2">
+						<span class="truncate">{$player.currentTrack.title}</span>
+						{#if $player.isPlaying}
+							<span class="flex-shrink-0">
+								<PlayingIndicator size="sm" />
+							</span>
+						{/if}
+					</div>
 					<div class="text-xs md:text-sm text-base-content/70 truncate">
 						{$player.currentTrack.artist}
 					</div>

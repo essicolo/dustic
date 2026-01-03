@@ -281,8 +281,22 @@
 
 		<!-- Mobile Filters Modal -->
 		{#if showFilters}
-			<div class="md:hidden fixed inset-0 bg-black/50 z-50" on:click={toggleFilters} role="button" tabindex="0">
-				<div class="fixed inset-x-0 bottom-0 bg-base-200 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" on:click={(e) => e.stopPropagation()}>
+			<div
+				class="md:hidden fixed inset-0 bg-black/50 z-50"
+				on:click={toggleFilters}
+				on:keydown={(e) => e.key === 'Escape' && toggleFilters()}
+				role="button"
+				tabindex="0"
+				aria-label="Close filters"
+			>
+				<div
+					class="fixed inset-x-0 bottom-0 bg-base-200 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
+					on:click={(e) => e.stopPropagation()}
+					on:keydown={(e) => e.stopPropagation()}
+					role="dialog"
+					aria-label="Filter options"
+					tabindex="-1"
+				>
 					<div class="flex items-center justify-between mb-4">
 						<h3 class="font-bold text-lg">Filters</h3>
 						<div class="flex gap-2">

@@ -149,7 +149,7 @@
 				{/if}
 
 				<!-- Stats -->
-				<div class="flex flex-wrap gap-4 mb-6 text-sm text-base-content/70">
+				<div class="flex flex-wrap gap-4 mb-4 text-sm text-base-content/70">
 					<div class="flex items-center gap-2">
 						<Icon icon="solar:music-library-2-bold" width="16" />
 						<span>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</span>
@@ -164,7 +164,22 @@
 							<span>{itemMetadata.date}</span>
 						</div>
 					{/if}
+					{#if itemMetadata.language}
+						<div class="flex items-center gap-2">
+							<Icon icon="solar:global-bold" width="16" />
+							<span>{Array.isArray(itemMetadata.language) ? itemMetadata.language[0] : itemMetadata.language}</span>
+						</div>
+					{/if}
 				</div>
+
+				<!-- Description -->
+				{#if itemMetadata.description}
+					<div class="mb-6 text-sm text-base-content/70 max-w-2xl">
+						<p class="line-clamp-3">
+							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
+						</p>
+					</div>
+				{/if}
 
 				<!-- Actions -->
 				<div class="flex items-center gap-3">

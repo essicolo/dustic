@@ -17,6 +17,23 @@ import {
 } from '$lib/utils/constants';
 import { withCache } from '$lib/utils/cache';
 import { fetchWithRetry } from '$lib/utils/retry';
+import type { AudioQuality } from '$lib/types';
+import { browser } from '$app/environment';
+
+// Get quality preference from settings (browser only)
+function getQualityPreference(): AudioQuality {
+	if (!browser) return 'medium';
+
+	try {
+		const stored = localStorage.getItem('dustic-profile');
+		if (!stored) return 'medium';
+
+		const profile = JSON.parse(stored);
+		return profile?.settings?.audioQuality || 'medium';
+	} catch {
+		return 'medium';
+	}
+}
 
 /**
  * Search for audio items in the Internet Archive
@@ -162,27 +179,50 @@ export async function getItemMetadata(identifier: string): Promise<IAMetadataRes
 }
 
 /**
- * Get the best audio file from an item's file list
+ * Get format priority based on quality preference
  */
-export function getBestAudioFile(files: IAMetadataResponse['files']): {
+function getFormatPriority(quality: AudioQuality): string[] {
+	switch (quality) {
+		case 'lowest':
+			// Prefer smaller files: low bitrate MP3, Ogg Vorbis
+			return ['64kbps mp3', '128kbps mp3', 'ogg vorbis', 'ogg', 'vbr mp3', 'mp3', 'flac'];
+		case 'best':
+			// Prefer lossless and high quality: FLAC, high bitrate MP3
+			return ['flac', '320kbps mp3', 'vbr mp3', 'mp3', 'ogg', 'm4a'];
+		case 'medium':
+		default:
+			// Balanced: good quality MP3, Ogg
+			return ['vbr mp3', '128kbps mp3', 'mp3', 'ogg', 'flac', 'm4a', 'aac'];
+	}
+}
+
+/**
+ * Get the best audio file from an item's file list based on quality preference
+ */
+export function getBestAudioFile(
+	files: IAMetadataResponse['files'],
+	quality: AudioQuality = 'medium'
+): {
 	filename: string;
 	format: string;
 	duration?: number;
 } | null {
-	const allAudioFiles = getAllAudioFiles(files);
+	const allAudioFiles = getAllAudioFiles(files, quality);
 	return allAudioFiles.length > 0 ? allAudioFiles[0] : null;
 }
 
 /**
- * Get all audio files from an item's file list, sorted by filename
+ * Get all audio files from an item's file list, sorted by quality preference and filename
  */
-export function getAllAudioFiles(files: IAMetadataResponse['files']): {
+export function getAllAudioFiles(
+	files: IAMetadataResponse['files'],
+	quality: AudioQuality = 'medium'
+): {
 	filename: string;
 	format: string;
 	duration?: number;
 }[] {
-	// Prefer MP3 > OGG > FLAC
-	const formatPriority = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac'];
+	const formatPriority = getFormatPriority(quality);
 
 	// Filter for audio files - be more permissive
 	const audioFiles = files.filter((file) => {
@@ -250,12 +290,13 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 }
 
 /**
- * Fetch full track details including playable URL
+ * Fetch full track details including playable URL (uses current quality preference)
  */
-export async function getTrack(identifier: string): Promise<Track | null> {
+export async function getTrack(identifier: string, quality?: AudioQuality): Promise<Track | null> {
+	const qualityToUse = quality || getQualityPreference();
 	try {
 		const metadata = await getItemMetadata(identifier);
-		const audioFile = getBestAudioFile(metadata.files);
+		const audioFile = getBestAudioFile(metadata.files, qualityToUse);
 
 		if (!audioFile) {
 			console.warn(`No audio file found for ${identifier}`);
@@ -296,12 +337,13 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 }
 
 /**
- * Get all chapters/tracks from an item (for audiobooks with multiple files)
+ * Get all chapters/tracks from an item (uses current quality preference)
  */
-export async function getAllTracks(identifier: string): Promise<Track[]> {
+export async function getAllTracks(identifier: string, quality?: AudioQuality): Promise<Track[]> {
+	const qualityToUse = quality || getQualityPreference();
 	try {
 		const metadata = await getItemMetadata(identifier);
-		const audioFiles = getAllAudioFiles(metadata.files);
+		const audioFiles = getAllAudioFiles(metadata.files, qualityToUse);
 
 		if (audioFiles.length === 0) {
 			console.warn(`No audio files found for ${identifier}`);

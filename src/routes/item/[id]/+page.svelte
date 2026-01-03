@@ -4,6 +4,7 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
+	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
@@ -18,6 +19,7 @@
 	let error = '';
 	let shareMessage = '';
 	let showShareToast = false;
+	let isDownloadingAll = false;
 
 	$: itemId = $page.params.id || '';
 
@@ -99,6 +101,23 @@
 			return `${hours}h ${mins}m`;
 		}
 		return `${mins}m`;
+	}
+
+	async function downloadAll() {
+		if (tracks.length === 0) return;
+		isDownloadingAll = true;
+
+		try {
+			// Download all tracks sequentially
+			for (const track of tracks) {
+				await offline.downloadTrack(track);
+			}
+		} catch (e) {
+			console.error('Failed to download all tracks:', e);
+			error = 'Failed to download some tracks. Please try again.';
+		} finally {
+			isDownloadingAll = false;
+		}
 	}
 </script>
 
@@ -183,10 +202,24 @@
 				{/if}
 
 				<!-- Actions -->
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
 						<Icon icon="solar:play-bold" width="20" />
 						<span>Play All</span>
+					</button>
+					<button
+						on:click={downloadAll}
+						class="btn btn-outline gap-2"
+						disabled={isDownloadingAll}
+						title="Download all tracks for offline playback"
+					>
+						{#if isDownloadingAll}
+							<span class="loading loading-spinner loading-sm"></span>
+							<span>Downloading...</span>
+						{:else}
+							<Icon icon="solar:download-minimalistic-bold" width="20" />
+							<span>Download All</span>
+						{/if}
 					</button>
 					<button
 						on:click={toggleFavorite}

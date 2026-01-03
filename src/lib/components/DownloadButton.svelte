@@ -21,42 +21,39 @@
 	}
 
 	async function handleDownload() {
-		if (isOffline) return; // Already downloaded
 		if (status === 'downloading') return; // Already downloading
 
+		// If already downloaded, allow re-download without confirmation
 		await offline.downloadTrack(track);
-	}
-
-	async function handleDelete() {
-		if (confirm('Remove this track from offline storage?')) {
-			await offline.deleteTrack(track.identifier);
-		}
 	}
 </script>
 
 {#if status === 'downloading'}
-	<!-- Downloading state -->
-	<button class="btn btn-{size} btn-square relative" disabled title="Downloading... {progress}%">
-		<div class="radial-progress text-xs" style="--value:{progress}; --size:1.5rem;">
-			{progress}
+	<!-- Downloading state - subtle progress indicator -->
+	<button class="btn btn-{size} btn-circle btn-ghost relative" disabled title="Downloading... {progress}%">
+		<div class="radial-progress text-[10px]" style="--value:{progress}; --size:1.25rem; --thickness: 2px;">
+			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 12 : 14} className="text-base-content/50" />
 		</div>
 	</button>
 {:else if isOffline}
-	<!-- Downloaded state -->
-	<button
-		on:click={handleDelete}
-		class="btn btn-{size} btn-square btn-success"
-		title="Downloaded - Click to remove"
-	>
-		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} />
-	</button>
-{:else}
-	<!-- Not downloaded state -->
+	<!-- Downloaded state - subtle filled icon with small checkmark -->
 	<button
 		on:click={handleDownload}
-		class="btn btn-{size} btn-square btn-ghost"
+		class="btn btn-{size} btn-circle btn-ghost relative"
+		title="Downloaded - Click to re-download"
+	>
+		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} className="text-base-content" />
+		<div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-success rounded-full flex items-center justify-center">
+			<Icon icon="solar:check-circle-bold" width="10" className="text-success-content" />
+		</div>
+	</button>
+{:else}
+	<!-- Not downloaded state - subtle outline icon -->
+	<button
+		on:click={handleDownload}
+		class="btn btn-{size} btn-circle btn-ghost"
 		title="Download for offline"
 	>
-		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
+		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} className="text-base-content/50" />
 	</button>
 {/if}

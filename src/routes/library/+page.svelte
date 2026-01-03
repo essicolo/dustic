@@ -32,7 +32,7 @@
 	<h2 class="text-3xl font-bold mb-6">Library</h2>
 
 	<!-- Quick Links -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
 		<a
 			href="{base}/library/favorites"
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"

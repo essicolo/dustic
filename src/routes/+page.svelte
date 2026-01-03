@@ -3,9 +3,12 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
+	import { history } from '$lib/stores/history';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
+	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -20,10 +23,32 @@
 	let expandedItems: Set<string> = new Set();
 	let itemChapters: Map<string, Track[]> = new Map();
 	let loadingChapters: Set<string> = new Set();
+	let continueListening: Track[] = [];
+	let isLoadingContinue = false;
 
 	onMount(() => {
+		loadContinueListening();
 		loadTrending();
 	});
+
+	async function loadContinueListening() {
+		isLoadingContinue = true;
+		// Get recent history entries (last 10)
+		const recentEntries = $history.entries.slice(0, 10);
+
+		// Load track data for recent items
+		const trackTasks = recentEntries.map((entry) => async () => {
+			try {
+				return await getTrack(entry.trackId);
+			} catch {
+				return null;
+			}
+		});
+
+		const tracks = await batchExecute(trackTasks, 3, 500);
+		continueListening = tracks.filter((t): t is Track => t !== null);
+		isLoadingContinue = false;
+	}
 
 	async function loadTrending() {
 		isLoading = true;
@@ -105,7 +130,11 @@
 	}
 
 	function isCurrentTrack(identifier: string): boolean {
-		return $currentTrack?.identifier === identifier;
+		if (!$currentTrack) return false;
+		// Handle chapter identifiers (format: "itemId#index")
+		const currentId = $currentTrack.identifier.split('#')[0];
+		const trackId = identifier.split('#')[0];
+		return currentId === trackId;
 	}
 
 	function toggleFavorite(identifier: string) {
@@ -171,6 +200,84 @@
 </script>
 
 <div class="p-4 md:p-8">
+	<!-- Continue Listening Section -->
+	{#if continueListening.length > 0}
+		<div class="mb-8">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-xl md:text-2xl font-bold">Continue Listening</h2>
+				<a href="/history" class="btn btn-ghost btn-sm">
+					View All
+					<Icon icon="solar:arrow-right-linear" width="16" />
+				</a>
+			</div>
+
+			<!-- Horizontal scrollable carousel -->
+			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+				<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0">
+					{#each continueListening as track}
+						<div
+							class="card bg-base-200 hover:bg-base-300 transition-colors group relative w-40 md:w-auto flex-shrink-0"
+							class:ring-2={isCurrentTrack(track.identifier)}
+							class:ring-primary={isCurrentTrack(track.identifier)}
+						>
+							<div class="card-body p-3">
+								<!-- Thumbnail - Clickable -->
+								<a href="/item/{track.identifier}" class="block mb-2 hover:opacity-80 transition-opacity relative">
+									{#if track.thumbnailUrl}
+										<img
+											src={track.thumbnailUrl}
+											alt={track.title}
+											class="w-full aspect-square object-cover rounded bg-base-300"
+										/>
+									{:else}
+										<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
+											<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
+										</div>
+									{/if}
+
+									<!-- Play button overlay - show on hover -->
+									<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
+										<button
+											on:click|preventDefault|stopPropagation={() => playTrack(track.identifier)}
+											class="btn btn-circle btn-primary btn-md shadow-lg"
+											disabled={loadingTrack === track.identifier}
+											title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
+										>
+											{#if loadingTrack === track.identifier}
+												<span class="loading loading-spinner loading-sm"></span>
+											{:else if isCurrentTrack(track.identifier)}
+												<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
+											{:else}
+												<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
+											{/if}
+										</button>
+									</div>
+								</a>
+
+								<!-- Info - Clickable -->
+								<a href="/item/{track.identifier}" class="block hover:text-primary transition-colors">
+									<h3
+										class="text-sm font-medium truncate flex items-center gap-1"
+										class:text-primary={isCurrentTrack(track.identifier)}
+									>
+										<span class="truncate">{track.title}</span>
+										{#if isCurrentTrack(track.identifier) && $player.isPlaying}
+											<span class="flex-shrink-0">
+												<PlayingIndicator size="sm" />
+											</span>
+										{/if}
+									</h3>
+									<p class="text-xs text-base-content/70 truncate">{track.artist}</p>
+								</a>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Trending Section -->
 	<div class="flex items-center justify-between mb-6">
 		<h2 class="text-2xl md:text-3xl font-bold">Trending</h2>
 		{#if results.length > 0}
@@ -209,25 +316,23 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-20">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
+		<!-- Skeleton loaders -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+			{#each Array(12) as _}
+				<SkeletonCard layout="grid" />
+			{/each}
 		</div>
 	{:else if results.length > 0}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 			{#each results as item, index}
 				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group"
+					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
 					class:ring-2={isCurrentTrack(item.identifier)}
 					class:ring-primary={isCurrentTrack(item.identifier)}
 				>
-					<div class="card-body p-4">
-						<!-- Rank Badge -->
-						<div class="absolute top-2 left-2 badge badge-primary badge-sm">
-							#{index + 1}
-						</div>
-
+					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
-						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity">
+						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
 							{#if item.thumbnailUrl}
 								<img
 									src={item.thumbnailUrl}
@@ -241,73 +346,90 @@
 									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
 								</div>
 							{/if}
+
+							<!-- Play button overlay - show on hover -->
+							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
+								<button
+									on:click|preventDefault|stopPropagation={() => playTrack(item.identifier)}
+									class="btn btn-circle btn-primary btn-lg shadow-lg"
+									disabled={loadingTrack === item.identifier}
+									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
+								>
+									{#if loadingTrack === item.identifier}
+										<span class="loading loading-spinner loading-md"></span>
+									{:else if isCurrentTrack(item.identifier)}
+										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
+									{:else}
+										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
+									{/if}
+								</button>
+							</div>
 						</a>
 
 						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors">
+						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2">
 							<h3
-								class="font-medium truncate mb-1"
+								class="font-medium truncate flex items-center gap-2"
 								class:text-primary={isCurrentTrack(item.identifier)}
 							>
-								{item.title}
+								<span class="truncate">{item.title}</span>
+								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
+									<span class="flex-shrink-0">
+										<PlayingIndicator size="sm" />
+									</span>
+								{/if}
 							</h3>
-							<p class="text-sm text-base-content/70 truncate mb-2">{item.artist}</p>
+							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
 						</a>
 
-						<!-- Actions -->
-						<div class="flex items-center gap-2 mt-auto">
-							<button
-								on:click={() => playTrack(item.identifier)}
-								class="btn btn-sm flex-1"
-								class:btn-primary={!isCurrentTrack(item.identifier)}
-								class:btn-ghost={isCurrentTrack(item.identifier)}
-								disabled={loadingTrack === item.identifier}
-								title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-							>
-								{#if loadingTrack === item.identifier}
-									<span class="loading loading-spinner loading-xs"></span>
-								{:else if isCurrentTrack(item.identifier)}
-									<Icon icon="solar:pause-bold" width="20" />
-								{:else}
-									<Icon icon="solar:play-bold" width="20" />
-								{/if}
-							</button>
+						<!-- Actions - show on hover -->
+						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+							<!-- Favorite button (always visible in hover) -->
 							<button
 								on:click={() => toggleFavorite(item.identifier)}
-								class="btn btn-ghost btn-sm btn-square"
+								class="btn btn-ghost btn-sm btn-circle"
 								title={$library.favorites.includes(item.identifier) ? 'Remove from favorites' : 'Add to favorites'}
 							>
 								<Icon
 									icon={$library.favorites.includes(item.identifier) ? 'solar:heart-bold' : 'solar:heart-linear'}
-									width="18"
+									width="16"
 									className={$library.favorites.includes(item.identifier) ? 'text-red-500' : ''}
 								/>
 							</button>
-							<button
-								on:click={() => addToQueue(item.identifier)}
-								class="btn btn-ghost btn-sm btn-square"
-								disabled={loadingTrack === item.identifier}
-								title="Add to queue"
-							>
-								<Icon icon="solar:add-circle-bold" width="18" />
-							</button>
-							<button
-								on:click={() => handleShare(item)}
-								class="btn btn-ghost btn-sm btn-square"
-								title="Share track"
-							>
-								<Icon icon="solar:share-bold" width="18" />
-							</button>
-							<button
-								on:click={() => toggleExpand(item.identifier)}
-								class="btn btn-ghost btn-sm btn-square"
-								title="Show all tracks"
-							>
-								<Icon
-									icon={expandedItems.has(item.identifier) ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
-									width="18"
-								/>
-							</button>
+
+							<!-- Contextual menu -->
+							<div class="dropdown dropdown-end ml-auto">
+								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
+									<Icon icon="solar:menu-dots-bold" width="16" />
+								</button>
+								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
+									<li>
+										<button
+											on:click={() => addToQueue(item.identifier)}
+											disabled={loadingTrack === item.identifier}
+											class="flex items-center gap-2"
+										>
+											<Icon icon="solar:add-circle-linear" width="16" />
+											<span>Add to queue</span>
+										</button>
+									</li>
+									<li>
+										<button on:click={() => handleShare(item)} class="flex items-center gap-2">
+											<Icon icon="solar:share-linear" width="16" />
+											<span>Share</span>
+										</button>
+									</li>
+									<li>
+										<button on:click={() => toggleExpand(item.identifier)} class="flex items-center gap-2">
+											<Icon
+												icon={expandedItems.has(item.identifier) ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+												width="16"
+											/>
+											<span>{expandedItems.has(item.identifier) ? 'Hide' : 'Show'} all tracks</span>
+										</button>
+									</li>
+								</ul>
+							</div>
 						</div>
 
 						<!-- Expandable Chapter List -->

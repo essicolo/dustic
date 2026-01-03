@@ -4,8 +4,10 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
+	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
+	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
@@ -17,6 +19,7 @@
 	let error = '';
 	let shareMessage = '';
 	let showShareToast = false;
+	let isDownloadingAll = false;
 
 	$: itemId = $page.params.id || '';
 
@@ -76,7 +79,11 @@
 	}
 
 	function isCurrentTrack(identifier: string): boolean {
-		return $currentTrack?.identifier === identifier;
+		if (!$currentTrack) return false;
+		// Handle chapter identifiers (format: "itemId#index")
+		const currentId = $currentTrack.identifier.split('#')[0];
+		const trackId = identifier.split('#')[0];
+		return currentId === trackId;
 	}
 
 	function formatDuration(seconds?: number): string {
@@ -94,6 +101,23 @@
 			return `${hours}h ${mins}m`;
 		}
 		return `${mins}m`;
+	}
+
+	async function downloadAll() {
+		if (tracks.length === 0) return;
+		isDownloadingAll = true;
+
+		try {
+			// Download all tracks sequentially
+			for (const track of tracks) {
+				await offline.downloadTrack(track);
+			}
+		} catch (e) {
+			console.error('Failed to download all tracks:', e);
+			error = 'Failed to download some tracks. Please try again.';
+		} finally {
+			isDownloadingAll = false;
+		}
 	}
 </script>
 
@@ -145,7 +169,7 @@
 				{/if}
 
 				<!-- Stats -->
-				<div class="flex flex-wrap gap-4 mb-6 text-sm text-base-content/70">
+				<div class="flex flex-wrap gap-4 mb-4 text-sm text-base-content/70">
 					<div class="flex items-center gap-2">
 						<Icon icon="solar:music-library-2-bold" width="16" />
 						<span>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</span>
@@ -160,13 +184,42 @@
 							<span>{itemMetadata.date}</span>
 						</div>
 					{/if}
+					{#if itemMetadata.language}
+						<div class="flex items-center gap-2">
+							<Icon icon="solar:global-bold" width="16" />
+							<span>{Array.isArray(itemMetadata.language) ? itemMetadata.language[0] : itemMetadata.language}</span>
+						</div>
+					{/if}
 				</div>
 
+				<!-- Description -->
+				{#if itemMetadata.description}
+					<div class="mb-6 text-sm text-base-content/70 max-w-2xl">
+						<p class="line-clamp-3">
+							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
+						</p>
+					</div>
+				{/if}
+
 				<!-- Actions -->
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
 						<Icon icon="solar:play-bold" width="20" />
 						<span>Play All</span>
+					</button>
+					<button
+						on:click={downloadAll}
+						class="btn btn-outline gap-2"
+						disabled={isDownloadingAll}
+						title="Download all tracks for offline playback"
+					>
+						{#if isDownloadingAll}
+							<span class="loading loading-spinner loading-sm"></span>
+							<span>Downloading...</span>
+						{:else}
+							<Icon icon="solar:download-minimalistic-bold" width="20" />
+							<span>Download All</span>
+						{/if}
 					</button>
 					<button
 						on:click={toggleFavorite}
@@ -184,7 +237,7 @@
 						class="btn btn-ghost btn-circle"
 						title="Share"
 					>
-						<Icon icon="solar:share-bold" width="24" />
+						<Icon icon="solar:share-linear" width="24" />
 					</button>
 				</div>
 
@@ -249,19 +302,22 @@
 
 							<!-- Actions -->
 							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
+									<DownloadButton {track} size="sm" />
+								</div>
 								<button
 									on:click|stopPropagation={() => queue.addToEnd(track)}
-									class="btn btn-ghost btn-sm btn-square"
+									class="btn btn-ghost btn-sm btn-circle"
 									title="Add to queue"
 								>
-									<Icon icon="solar:add-circle-bold" width="18" />
+									<Icon icon="solar:add-circle-linear" width="18" />
 								</button>
 								<button
 									on:click|stopPropagation={() => handleShare(track)}
-									class="btn btn-ghost btn-sm btn-square"
+									class="btn btn-ghost btn-sm btn-circle"
 									title="Share"
 								>
-									<Icon icon="solar:share-bold" width="18" />
+									<Icon icon="solar:share-linear" width="18" />
 								</button>
 							</div>
 						</div>

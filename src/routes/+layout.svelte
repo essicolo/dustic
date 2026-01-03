@@ -6,8 +6,10 @@
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
+	import { fade } from 'svelte/transition';
 
 	$: currentPath = $page.url.pathname;
+	$: pageKey = $page.url.pathname;
 
 	let isSidebarOpen = false;
 
@@ -24,8 +26,8 @@
 	<div class="flex-1 flex safe-content-padding">
 		<!-- Mobile Header -->
 		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header">
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-square btn-lg">
-				<Icon icon="solar:hamburger-menu-bold" width="32" />
+			<button on:click={toggleSidebar} class="btn btn-ghost p-3">
+				<Icon icon="solar:hamburger-menu-bold" width="28" />
 			</button>
 			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
 			<h1 class="text-xl font-bold">Dustic</h1>
@@ -160,7 +162,11 @@
 
 		<!-- Main content -->
 		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding lg:pt-0 lg:ml-0">
-			<slot />
+			{#key pageKey}
+				<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
+					<slot />
+				</div>
+			{/key}
 		</main>
 	</div>
 

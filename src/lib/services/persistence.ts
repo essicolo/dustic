@@ -26,6 +26,11 @@ export function loadFromStorage(): UserProfile | null {
 			return null;
 		}
 
+		// Backward compatibility: add audioQuality if missing
+		if (!profile.settings.audioQuality) {
+			profile.settings.audioQuality = 'medium';
+		}
+
 		return profile;
 	} catch (error) {
 		console.error('Failed to load profile from storage:', error);

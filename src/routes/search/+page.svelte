@@ -8,7 +8,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
-	import { batchExecute } from '$lib/utils/throttle';
+	import { batchExecute, debounce } from '$lib/utils/throttle';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -17,6 +17,7 @@
 	let pageSize = 50;
 
 	let isSearching = false;
+	let isTyping = false;
 	let results: Track[] = [];
 	let totalResults = 0;
 	let error = '';
@@ -36,9 +37,15 @@
 	});
 
 	async function handleSearch() {
-		if (!searchQuery.trim()) return;
+		if (!searchQuery.trim()) {
+			results = [];
+			totalResults = 0;
+			isTyping = false;
+			return;
+		}
 
 		isSearching = true;
+		isTyping = false;
 		error = '';
 
 		const params: SearchParams = {
@@ -62,6 +69,17 @@
 		} finally {
 			isSearching = false;
 		}
+	}
+
+	// Debounced search function for search-as-you-type
+	const debouncedSearch = debounce(() => {
+		currentPage = 1; // Reset to first page on new search
+		handleSearch();
+	}, 400);
+
+	function onSearchInput() {
+		isTyping = true;
+		debouncedSearch();
 	}
 
 	async function playTrack(identifier: string) {
@@ -149,7 +167,11 @@
 	}
 
 	function isCurrentTrack(identifier: string): boolean {
-		return $currentTrack?.identifier === identifier;
+		if (!$currentTrack) return false;
+		// Handle chapter identifiers (format: "itemId#index")
+		const currentId = $currentTrack.identifier.split('#')[0];
+		const trackId = identifier.split('#')[0];
+		return currentId === trackId;
 	}
 
 	async function handleShare(item: Track) {
@@ -178,23 +200,33 @@
 
 	<!-- Search Bar -->
 	<div class="mb-4 md:mb-6">
-		<div class="join w-full">
+		<div class="relative">
 			<input
 				type="text"
 				bind:value={searchQuery}
+				on:input={onSearchInput}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search for music, audiobooks, podcasts..."
-				class="input input-bordered join-item flex-1"
+				class="input input-bordered w-full pr-12"
+				autocomplete="off"
 			/>
-			<button on:click={handleSearch} class="btn btn-primary join-item" disabled={isSearching}>
-				{#if isSearching}
-					<span class="loading loading-spinner"></span>
+			<div class="absolute right-3 top-1/2 -translate-y-1/2">
+				{#if isTyping}
+					<span class="loading loading-spinner loading-sm text-base-content/50"></span>
+				{:else if isSearching}
+					<span class="loading loading-spinner loading-sm text-primary"></span>
+				{:else if searchQuery.trim()}
+					<Icon icon="solar:magnifer-bold" width="20" className="text-base-content/50" />
 				{:else}
-					<span class="hidden md:inline">Search</span>
-					<Icon icon="solar:magnifer-bold-duotone" width="20" class="md:hidden" />
+					<Icon icon="solar:magnifer-linear" width="20" className="text-base-content/30" />
 				{/if}
-			</button>
+			</div>
 		</div>
+		{#if searchQuery.trim() && totalResults > 0}
+			<p class="text-sm text-base-content/60 mt-2">
+				Found {totalResults.toLocaleString()} results
+			</p>
+		{/if}
 	</div>
 
 	<!-- Mobile Filter Toggle -->
@@ -277,8 +309,22 @@
 
 		<!-- Mobile Filters Modal -->
 		{#if showFilters}
-			<div class="md:hidden fixed inset-0 bg-black/50 z-50" on:click={toggleFilters} role="button" tabindex="0">
-				<div class="fixed inset-x-0 bottom-0 bg-base-200 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" on:click={(e) => e.stopPropagation()}>
+			<div
+				class="md:hidden fixed inset-0 bg-black/50 z-50"
+				on:click={toggleFilters}
+				on:keydown={(e) => e.key === 'Escape' && toggleFilters()}
+				role="button"
+				tabindex="0"
+				aria-label="Close filters"
+			>
+				<div
+					class="fixed inset-x-0 bottom-0 bg-base-200 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
+					on:click={(e) => e.stopPropagation()}
+					on:keydown={(e) => e.stopPropagation()}
+					role="dialog"
+					aria-label="Filter options"
+					tabindex="-1"
+				>
 					<div class="flex items-center justify-between mb-4">
 						<h3 class="font-bold text-lg">Filters</h3>
 						<div class="flex gap-2">
@@ -416,7 +462,7 @@
 									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}
-											class="btn btn-sm btn-square"
+											class="btn btn-sm btn-circle"
 											class:btn-primary={!isCurrentTrack(item.identifier)}
 											class:btn-ghost={isCurrentTrack(item.identifier)}
 											disabled={loadingTrack === item.identifier}
@@ -432,18 +478,18 @@
 										</button>
 										<button
 											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											disabled={loadingTrack === item.identifier}
 											title="Add to queue"
 										>
-											<Icon icon="solar:add-circle-bold" width="18" />
+											<Icon icon="solar:add-circle-linear" width="18" />
 										</button>
 										<button
 											on:click={() => handleShare(item)}
-											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											title="Share track"
 										>
-											<Icon icon="solar:share-bold" width="18" />
+											<Icon icon="solar:share-linear" width="18" />
 										</button>
 									</div>
 								</div>

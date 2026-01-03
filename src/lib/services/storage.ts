@@ -78,7 +78,8 @@ export function createDefaultProfile(): UserProfile {
 		autoplayRules: DEFAULT_AUTOPLAY_RULES,
 		settings: {
 			volume: 0.7,
-			repeat: 'off'
+			repeat: 'off',
+			audioQuality: 'medium' // Default to medium quality (good balance)
 		}
 	};
 }

@@ -107,6 +107,38 @@ function createPlayerStore() {
 			// Add to history when starting to play
 			history.addTrack(track.identifier, 0);
 
+			// Update Media Session API for lock screen/notification controls
+			if ('mediaSession' in navigator) {
+				navigator.mediaSession.metadata = new MediaMetadata({
+					title: track.title,
+					artist: track.artist,
+					album: track.date || 'Internet Archive',
+					artwork: track.thumbnailUrl
+						? [
+								{
+									src: track.thumbnailUrl,
+									sizes: '512x512',
+									type: 'image/jpeg'
+								}
+							]
+						: []
+				});
+
+				// Set up action handlers for media controls
+				navigator.mediaSession.setActionHandler('play', () => this.resume());
+				navigator.mediaSession.setActionHandler('pause', () => this.pause());
+				navigator.mediaSession.setActionHandler('previoustrack', () => this.previous());
+				navigator.mediaSession.setActionHandler('nexttrack', () => this.next());
+				navigator.mediaSession.setActionHandler('seekbackward', () => {
+					const state = get({ subscribe });
+					this.seek(Math.max(0, state.currentTime - 10));
+				});
+				navigator.mediaSession.setActionHandler('seekforward', () => {
+					const state = get({ subscribe });
+					this.seek(Math.min(state.duration, state.currentTime + 10));
+				});
+			}
+
 			audioElement.src = track.streamUrl;
 			audioElement.load();
 			audioElement.play().catch((error) => {

@@ -7,6 +7,8 @@
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
 
 	let collectionId = '';
@@ -115,7 +117,11 @@
 	}
 
 	function isCurrentTrack(identifier: string): boolean {
-		return $currentTrack?.identifier === identifier;
+		if (!$currentTrack) return false;
+		// Handle chapter identifiers (format: "itemId#index")
+		const currentId = $currentTrack.identifier.split('#')[0];
+		const trackId = identifier.split('#')[0];
+		return currentId === trackId;
 	}
 
 	$: totalPages = Math.ceil(totalResults / 50);
@@ -181,20 +187,23 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-20">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
+		<!-- Skeleton loaders -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+			{#each Array(12) as _}
+				<SkeletonCard layout="grid" />
+			{/each}
 		</div>
 	{:else if results.length > 0}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
 			{#each results as item}
 				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group"
+					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
 					class:ring-2={isCurrentTrack(item.identifier)}
 					class:ring-primary={isCurrentTrack(item.identifier)}
 				>
-					<div class="card-body p-4">
+					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
-						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity">
+						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
 							{#if item.thumbnailUrl}
 								<img
 									src={item.thumbnailUrl}
@@ -208,48 +217,65 @@
 									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
 								</div>
 							{/if}
+
+							<!-- Play button overlay - show on hover -->
+							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
+								<button
+									on:click|preventDefault|stopPropagation={() => playTrack(item.identifier)}
+									class="btn btn-circle btn-primary btn-lg shadow-lg"
+									disabled={loadingTrack === item.identifier}
+									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
+								>
+									{#if loadingTrack === item.identifier}
+										<span class="loading loading-spinner loading-md"></span>
+									{:else if isCurrentTrack(item.identifier)}
+										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
+									{:else}
+										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
+									{/if}
+								</button>
+							</div>
 						</a>
 
 						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-3">
+						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2">
 							<h3
-								class="font-medium truncate mb-1"
+								class="font-medium truncate flex items-center gap-2"
 								class:text-primary={isCurrentTrack(item.identifier)}
 							>
-								{item.title}
+								<span class="truncate">{item.title}</span>
+								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
+									<span class="flex-shrink-0">
+										<PlayingIndicator size="sm" />
+									</span>
+								{/if}
 							</h3>
-							<p class="text-sm text-base-content/70 truncate mb-2">{item.artist}</p>
+							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
 							{#if item.date}
-								<p class="text-xs text-base-content/50">{item.date}</p>
+								<p class="text-xs text-base-content/50 mt-0.5">{item.date}</p>
 							{/if}
 						</a>
 
-						<!-- Actions -->
-						<div class="flex items-center gap-2 mt-auto">
-							<button
-								on:click={() => playTrack(item.identifier)}
-								class="btn btn-sm flex-1"
-								class:btn-primary={!isCurrentTrack(item.identifier)}
-								class:btn-ghost={isCurrentTrack(item.identifier)}
-								disabled={loadingTrack === item.identifier}
-								title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-							>
-								{#if loadingTrack === item.identifier}
-									<span class="loading loading-spinner loading-xs"></span>
-								{:else if isCurrentTrack(item.identifier)}
-									<Icon icon="solar:pause-bold" width="20" />
-								{:else}
-									<Icon icon="solar:play-bold" width="20" />
-								{/if}
-							</button>
-							<button
-								on:click={() => addToQueue(item.identifier)}
-								class="btn btn-ghost btn-sm btn-square"
-								disabled={loadingTrack === item.identifier}
-								title="Add to queue"
-							>
-								<Icon icon="solar:add-circle-bold" width="18" />
-							</button>
+						<!-- Actions - show on hover -->
+						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+							<!-- Contextual menu -->
+							<div class="dropdown dropdown-end">
+								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
+									<Icon icon="solar:menu-dots-bold" width="16" />
+								</button>
+								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
+									<li>
+										<button
+											on:click={() => addToQueue(item.identifier)}
+											disabled={loadingTrack === item.identifier}
+											class="flex items-center gap-2"
+										>
+											<Icon icon="solar:add-circle-linear" width="16" />
+											<span>Add to queue</span>
+										</button>
+									</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				</div>

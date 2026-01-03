@@ -15,6 +15,25 @@ import {
 	AUDIO_FORMATS,
 	CONFIG
 } from '$lib/utils/constants';
+import { withCache } from '$lib/utils/cache';
+import { fetchWithRetry } from '$lib/utils/retry';
+import type { AudioQuality } from '$lib/types';
+import { browser } from '$app/environment';
+
+// Get quality preference from settings (browser only)
+function getQualityPreference(): AudioQuality {
+	if (!browser) return 'medium';
+
+	try {
+		const stored = localStorage.getItem('dustic-profile');
+		if (!stored) return 'medium';
+
+		const profile = JSON.parse(stored);
+		return profile?.settings?.audioQuality || 'medium';
+	} catch {
+		return 'medium';
+	}
+}
 
 /**
  * Search for audio items in the Internet Archive
@@ -74,12 +93,15 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
 
 	try {
-		const response = await fetch(url);
-		if (!response.ok) {
-			throw new Error(`IA API error: ${response.status}`);
-		}
-
-		const data: IASearchResponse = await response.json();
+		// Use cache and retry logic for search
+		const data = await withCache<IASearchResponse>(
+			`search:${url}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
+				return response.json();
+			},
+			3 * 60 * 1000 // Cache for 3 minutes
+		);
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '', // Will be populated when fetching full metadata
@@ -106,8 +128,18 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 			page,
 			pageSize
 		};
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Search error:', error);
+
+		// Provide specific error messages
+		if (error.status === 429) {
+			throw new Error('Too many requests. Please wait a moment and try again.');
+		} else if (error.status >= 500) {
+			throw new Error('Internet Archive is experiencing issues. Please try again later.');
+		} else if (error.message?.includes('fetch')) {
+			throw new Error('Network error. Please check your internet connection.');
+		}
+
 		throw new Error('Failed to search Internet Archive');
 	}
 }
@@ -119,41 +151,78 @@ export async function getItemMetadata(identifier: string): Promise<IAMetadataRes
 	const url = `${IA_METADATA_URL}/${identifier}`;
 
 	try {
-		const response = await fetch(url);
-		if (!response.ok) {
-			throw new Error(`IA API error: ${response.status}`);
+		// Cache metadata for 10 minutes
+		return await withCache<IAMetadataResponse>(
+			`metadata:${identifier}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
+				return response.json();
+			},
+			10 * 60 * 1000
+		);
+	} catch (error: any) {
+		console.error('Metadata fetch error:', error);
+
+		// Provide specific error messages
+		if (error.status === 404) {
+			throw new Error('Item not found on Internet Archive');
+		} else if (error.status === 429) {
+			throw new Error('Too many requests. Please wait a moment and try again.');
+		} else if (error.status >= 500) {
+			throw new Error('Internet Archive is experiencing issues. Please try again later.');
+		} else if (error.message?.includes('fetch')) {
+			throw new Error('Network error. Please check your internet connection.');
 		}
 
-		const data: IAMetadataResponse = await response.json();
-		return data;
-	} catch (error) {
-		console.error('Metadata fetch error:', error);
 		throw new Error('Failed to fetch item metadata');
 	}
 }
 
 /**
- * Get the best audio file from an item's file list
+ * Get format priority based on quality preference
  */
-export function getBestAudioFile(files: IAMetadataResponse['files']): {
+function getFormatPriority(quality: AudioQuality): string[] {
+	switch (quality) {
+		case 'lowest':
+			// Prefer smaller files: low bitrate MP3, Ogg Vorbis
+			return ['64kbps mp3', '128kbps mp3', 'ogg vorbis', 'ogg', 'vbr mp3', 'mp3', 'flac'];
+		case 'best':
+			// Prefer lossless and high quality: FLAC, high bitrate MP3
+			return ['flac', '320kbps mp3', 'vbr mp3', 'mp3', 'ogg', 'm4a'];
+		case 'medium':
+		default:
+			// Balanced: good quality MP3, Ogg
+			return ['vbr mp3', '128kbps mp3', 'mp3', 'ogg', 'flac', 'm4a', 'aac'];
+	}
+}
+
+/**
+ * Get the best audio file from an item's file list based on quality preference
+ */
+export function getBestAudioFile(
+	files: IAMetadataResponse['files'],
+	quality: AudioQuality = 'medium'
+): {
 	filename: string;
 	format: string;
 	duration?: number;
 } | null {
-	const allAudioFiles = getAllAudioFiles(files);
+	const allAudioFiles = getAllAudioFiles(files, quality);
 	return allAudioFiles.length > 0 ? allAudioFiles[0] : null;
 }
 
 /**
- * Get all audio files from an item's file list, sorted by filename
+ * Get all audio files from an item's file list, sorted by quality preference and filename
  */
-export function getAllAudioFiles(files: IAMetadataResponse['files']): {
+export function getAllAudioFiles(
+	files: IAMetadataResponse['files'],
+	quality: AudioQuality = 'medium'
+): {
 	filename: string;
 	format: string;
 	duration?: number;
 }[] {
-	// Prefer MP3 > OGG > FLAC
-	const formatPriority = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac'];
+	const formatPriority = getFormatPriority(quality);
 
 	// Filter for audio files - be more permissive
 	const audioFiles = files.filter((file) => {
@@ -200,27 +269,34 @@ export function getAllAudioFiles(files: IAMetadataResponse['files']): {
 
 /**
  * Build stream URL for a file
- * Note: We don't encode the filename because Internet Archive handles special characters
+ * Use /serve/ endpoint which is optimized for streaming and has better CDN support
  */
 export function getStreamUrl(identifier: string, filename: string): string {
-	// Don't use encodeURIComponent on the filename - IA expects it as-is
-	return `${IA_DOWNLOAD_URL}/${identifier}/${filename}`;
+	// Use /serve/ endpoint for better streaming performance
+	// Falls back to /download/ if serve is not available
+	return `https://archive.org/serve/${identifier}/${filename}`;
 }
 
 /**
  * Get thumbnail URL for an item
+ * Use higher quality version for better display on modern devices
  */
-export function getThumbnailUrl(identifier: string): string {
+export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'large'): string {
+	if (size === 'large') {
+		// Try to get high-res version first
+		return `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
+	}
 	return `${IA_BASE_URL}/services/img/${identifier}`;
 }
 
 /**
- * Fetch full track details including playable URL
+ * Fetch full track details including playable URL (uses current quality preference)
  */
-export async function getTrack(identifier: string): Promise<Track | null> {
+export async function getTrack(identifier: string, quality?: AudioQuality): Promise<Track | null> {
+	const qualityToUse = quality || getQualityPreference();
 	try {
 		const metadata = await getItemMetadata(identifier);
-		const audioFile = getBestAudioFile(metadata.files);
+		const audioFile = getBestAudioFile(metadata.files, qualityToUse);
 
 		if (!audioFile) {
 			console.warn(`No audio file found for ${identifier}`);
@@ -261,12 +337,13 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 }
 
 /**
- * Get all chapters/tracks from an item (for audiobooks with multiple files)
+ * Get all chapters/tracks from an item (uses current quality preference)
  */
-export async function getAllTracks(identifier: string): Promise<Track[]> {
+export async function getAllTracks(identifier: string, quality?: AudioQuality): Promise<Track[]> {
+	const qualityToUse = quality || getQualityPreference();
 	try {
 		const metadata = await getItemMetadata(identifier);
-		const audioFiles = getAllAudioFiles(metadata.files);
+		const audioFiles = getAllAudioFiles(metadata.files, qualityToUse);
 
 		if (audioFiles.length === 0) {
 			console.warn(`No audio files found for ${identifier}`);

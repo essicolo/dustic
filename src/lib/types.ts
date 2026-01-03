@@ -39,6 +39,8 @@ export interface AutoplayRule {
 	weight: number; // 0-100, relative probability
 }
 
+export type AudioQuality = 'lowest' | 'medium' | 'best';
+
 export interface UserProfile {
 	version: string; // Schema version for compatibility
 	exported: number; // Timestamp
@@ -49,6 +51,7 @@ export interface UserProfile {
 	settings: {
 		volume: number;
 		repeat: 'off' | 'one' | 'all';
+		audioQuality: AudioQuality; // Audio quality preference for streaming and downloads
 		defaultCollection?: string;
 	};
 }

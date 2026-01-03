@@ -462,7 +462,7 @@
 									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
 										<button
 											on:click={() => playTrack(item.identifier)}
-											class="btn btn-sm btn-square"
+											class="btn btn-sm btn-circle"
 											class:btn-primary={!isCurrentTrack(item.identifier)}
 											class:btn-ghost={isCurrentTrack(item.identifier)}
 											disabled={loadingTrack === item.identifier}
@@ -478,18 +478,18 @@
 										</button>
 										<button
 											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											disabled={loadingTrack === item.identifier}
 											title="Add to queue"
 										>
-											<Icon icon="solar:add-circle-bold" width="18" />
+											<Icon icon="solar:add-circle-linear" width="18" />
 										</button>
 										<button
 											on:click={() => handleShare(item)}
-											class="btn btn-ghost btn-sm btn-square hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
+											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
 											title="Share track"
 										>
-											<Icon icon="solar:share-bold" width="18" />
+											<Icon icon="solar:share-linear" width="18" />
 										</button>
 									</div>
 								</div>

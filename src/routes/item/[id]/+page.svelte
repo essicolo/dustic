@@ -237,7 +237,7 @@
 						class="btn btn-ghost btn-circle"
 						title="Share"
 					>
-						<Icon icon="solar:share-bold" width="24" />
+						<Icon icon="solar:share-linear" width="24" />
 					</button>
 				</div>
 
@@ -307,17 +307,17 @@
 								</div>
 								<button
 									on:click|stopPropagation={() => queue.addToEnd(track)}
-									class="btn btn-ghost btn-sm btn-square"
+									class="btn btn-ghost btn-sm btn-circle"
 									title="Add to queue"
 								>
-									<Icon icon="solar:add-circle-bold" width="18" />
+									<Icon icon="solar:add-circle-linear" width="18" />
 								</button>
 								<button
 									on:click|stopPropagation={() => handleShare(track)}
-									class="btn btn-ghost btn-sm btn-square"
+									class="btn btn-ghost btn-sm btn-circle"
 									title="Share"
 								>
-									<Icon icon="solar:share-bold" width="18" />
+									<Icon icon="solar:share-linear" width="18" />
 								</button>
 							</div>
 						</div>

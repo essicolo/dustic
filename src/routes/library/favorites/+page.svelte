@@ -115,7 +115,7 @@
 						class:btn-active={viewMode === 'grid'}
 						title="Grid view"
 					>
-						<Icon icon="solar:gallery-bold" width="18" />
+						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
 					<button
 						on:click={() => setViewMode('list')}

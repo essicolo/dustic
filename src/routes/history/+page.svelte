@@ -129,7 +129,7 @@
 						class:btn-active={viewMode === 'grid'}
 						title="Grid view"
 					>
-						<Icon icon="solar:gallery-bold" width="18" />
+						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
 					<button
 						on:click={() => setViewMode('list')}
@@ -333,10 +333,12 @@
 								>
 									{#if loadingTrack === track.identifier}
 										<span class="loading loading-spinner loading-xs"></span>
+									{:else if isCurrentTrack(track.identifier) && $player.isPlaying}
+										<Icon icon="solar:pause-bold" width="16" />
 									{:else if isCurrentTrack(track.identifier)}
-										Playing
+										<Icon icon="solar:play-bold" width="16" />
 									{:else}
-										Play
+										<Icon icon="solar:play-bold" width="16" />
 									{/if}
 								</button>
 

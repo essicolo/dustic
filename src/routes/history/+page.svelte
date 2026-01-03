@@ -129,7 +129,7 @@
 						class:btn-active={viewMode === 'grid'}
 						title="Grid view"
 					>
-						<Icon icon="solar:gallery-bold" width="18" />
+						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
 					<button
 						on:click={() => setViewMode('list')}
@@ -235,12 +235,12 @@
 						</a>
 
 						<!-- Info - Clickable -->
-						<a href="/item/{track.identifier.split('#')[0]}" class="block hover:text-primary transition-colors mb-2">
+						<a href="/item/{track.identifier.split('#')[0]}" class="block hover:text-primary transition-colors mb-2 min-w-0">
 							<h3
-								class="font-medium truncate flex items-center gap-2"
+								class="font-medium flex items-center gap-2 min-w-0"
 								class:text-primary={isCurrentTrack(track.identifier)}
 							>
-								<span class="truncate">{track.title}</span>
+								<span class="truncate min-w-0 flex-1">{track.title}</span>
 								{#if isCurrentTrack(track.identifier) && $player.isPlaying}
 									<span class="flex-shrink-0">
 										<PlayingIndicator size="sm" />
@@ -299,10 +299,10 @@
 
 							<a href="/item/{track.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
 								<h3
-									class="font-medium flex items-center gap-2"
+									class="font-medium flex items-center gap-2 min-w-0"
 									class:text-primary={isCurrentTrack(track.identifier)}
 								>
-									<span class="truncate">{track.title}</span>
+									<span class="truncate min-w-0 flex-1">{track.title}</span>
 									{#if isCurrentTrack(track.identifier) && $player.isPlaying}
 										<span class="flex-shrink-0">
 											<PlayingIndicator size="sm" />
@@ -333,10 +333,12 @@
 								>
 									{#if loadingTrack === track.identifier}
 										<span class="loading loading-spinner loading-xs"></span>
+									{:else if isCurrentTrack(track.identifier) && $player.isPlaying}
+										<Icon icon="solar:pause-bold" width="16" />
 									{:else if isCurrentTrack(track.identifier)}
-										Playing
+										<Icon icon="solar:play-bold" width="16" />
 									{:else}
-										Play
+										<Icon icon="solar:play-bold" width="16" />
 									{/if}
 								</button>
 

@@ -5,6 +5,7 @@
 	import QueuePanel from '$lib/components/Queue/QueuePanel.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 
@@ -130,9 +131,9 @@
 	</div>
 
 	<!-- Main row -->
-	<div class="flex items-center gap-2 md:gap-4 w-full">
+	<div class="flex items-center gap-2 md:gap-4 w-full justify-between">
 		<!-- Track Info -->
-		<div class="flex-shrink-0 flex-1 md:flex-initial md:w-64 min-w-0">
+		<div class="flex-shrink-0 flex-1 md:w-64 min-w-0 max-w-[40%] md:max-w-none">
 			{#if $player.currentTrack}
 				<div class="flex items-center gap-2 md:gap-3 min-w-0">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
@@ -178,8 +179,8 @@
 			{/if}
 		</div>
 
-		<!-- Player Controls - Centered on mobile -->
-		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
+		<!-- Player Controls - Centered -->
+		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 justify-center md:flex-1">
 			<!-- Shuffle - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleShuffle()}
@@ -224,9 +225,14 @@
 		</div>
 
 		<!-- Desktop: Volume & Queue -->
-		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4">
-			<!-- Desktop favorite/share buttons -->
+		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4 md:w-64 md:justify-end">
+			<!-- Desktop favorite/share/download buttons -->
 			<div class="hidden md:flex items-center gap-1">
+				{#if $player.currentTrack}
+					<div class="flex-shrink-0">
+						<DownloadButton track={$player.currentTrack} size="sm" />
+					</div>
+				{/if}
 				<button
 					on:click={toggleFavorite}
 					class="btn btn-ghost btn-sm btn-circle"
@@ -243,7 +249,7 @@
 					class="btn btn-ghost btn-sm btn-circle"
 					title="Share track"
 				>
-					<Icon icon="solar:share-bold" width="18" />
+					<Icon icon="solar:share-linear" width="18" />
 				</button>
 			</div>
 

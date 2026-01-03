@@ -367,12 +367,12 @@
 						</a>
 
 						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2">
+						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2 min-w-0">
 							<h3
-								class="font-medium truncate flex items-center gap-2"
+								class="font-medium flex items-center gap-2 min-w-0"
 								class:text-primary={isCurrentTrack(item.identifier)}
 							>
-								<span class="truncate">{item.title}</span>
+								<span class="truncate min-w-0 flex-1">{item.title}</span>
 								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
 									<span class="flex-shrink-0">
 										<PlayingIndicator size="sm" />

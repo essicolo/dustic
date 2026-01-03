@@ -6,8 +6,10 @@
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
+	import { fade } from 'svelte/transition';
 
 	$: currentPath = $page.url.pathname;
+	$: pageKey = $page.url.pathname;
 
 	let isSidebarOpen = false;
 
@@ -160,7 +162,11 @@
 
 		<!-- Main content -->
 		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding lg:pt-0 lg:ml-0">
-			<slot />
+			{#key pageKey}
+				<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
+					<slot />
+				</div>
+			{/key}
 		</main>
 	</div>
 

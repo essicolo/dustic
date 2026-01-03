@@ -253,15 +253,25 @@
 						</a>
 
 						<!-- Actions - show on hover -->
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-							<button
-								on:click={() => addToQueue(item.identifier)}
-								class="btn btn-ghost btn-sm btn-circle"
-								disabled={loadingTrack === item.identifier}
-								title="Add to queue"
-							>
-								<Icon icon="solar:add-circle-linear" width="16" />
-							</button>
+						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+							<!-- Contextual menu -->
+							<div class="dropdown dropdown-end">
+								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
+									<Icon icon="solar:menu-dots-bold" width="16" />
+								</button>
+								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
+									<li>
+										<button
+											on:click={() => addToQueue(item.identifier)}
+											disabled={loadingTrack === item.identifier}
+											class="flex items-center gap-2"
+										>
+											<Icon icon="solar:add-circle-linear" width="16" />
+											<span>Add to queue</span>
+										</button>
+									</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				</div>

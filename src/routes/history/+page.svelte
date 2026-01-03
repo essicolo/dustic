@@ -6,10 +6,13 @@
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import { isOfflineAvailable } from '$lib/stores/offline';
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
 	let loadingTrack: string | null = null;
+	let showOfflineOnly = false;
 
 	onMount(() => {
 		loadHistory();
@@ -87,16 +90,26 @@
 	}
 
 	$: validTracks = tracks.filter((t): t is Track => t !== null);
+	$: filteredTracks = showOfflineOnly
+		? validTracks.filter((t) => $isOfflineAvailable(t.identifier))
+		: validTracks;
 </script>
 
 <div class="p-8">
 	<div class="flex items-center justify-between mb-6">
 		<h2 class="text-3xl font-bold">Recently Played</h2>
-		{#if validTracks.length > 0}
-			<button on:click={clearHistory} class="btn btn-ghost btn-sm">
-				Clear History
-			</button>
-		{/if}
+		<div class="flex items-center gap-3">
+			{#if validTracks.length > 0}
+				<label class="label cursor-pointer gap-2">
+					<Icon icon="solar:download-minimalistic-bold" width="20" />
+					<span class="label-text">Offline only</span>
+					<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
+				</label>
+				<button on:click={clearHistory} class="btn btn-ghost btn-sm">
+					Clear History
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if isLoading}
@@ -108,9 +121,14 @@
 			<p class="text-lg">No history yet</p>
 			<p class="text-sm mt-2">Tracks you play will appear here</p>
 		</div>
+	{:else if filteredTracks.length === 0}
+		<div class="text-center py-20 text-base-content/50">
+			<p class="text-lg">No offline tracks in history</p>
+			<p class="text-sm mt-2">Download some tracks to see them here</p>
+		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each validTracks as track, index}
+			{#each filteredTracks as track, index}
 				{@const entry = $history.entries[index]}
 				<div
 					class="card bg-base-200 hover:bg-base-300 transition-colors group"
@@ -152,6 +170,10 @@
 								{/if}
 							</a>
 							<div class="flex items-center gap-2">
+								<!-- Download button -->
+								<DownloadButton track={track} size="sm" />
+
+								<!-- Play button -->
 								<button
 									on:click={() => playTrack(track.identifier)}
 									class="btn btn-sm"
@@ -167,6 +189,8 @@
 										Play
 									{/if}
 								</button>
+
+								<!-- Remove from history button -->
 								<button
 									on:click={() => removeFromHistory(track.identifier)}
 									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"

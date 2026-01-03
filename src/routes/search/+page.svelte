@@ -8,7 +8,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
-	import { batchExecute } from '$lib/utils/throttle';
+	import { batchExecute, debounce } from '$lib/utils/throttle';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -17,6 +17,7 @@
 	let pageSize = 50;
 
 	let isSearching = false;
+	let isTyping = false;
 	let results: Track[] = [];
 	let totalResults = 0;
 	let error = '';
@@ -36,9 +37,15 @@
 	});
 
 	async function handleSearch() {
-		if (!searchQuery.trim()) return;
+		if (!searchQuery.trim()) {
+			results = [];
+			totalResults = 0;
+			isTyping = false;
+			return;
+		}
 
 		isSearching = true;
+		isTyping = false;
 		error = '';
 
 		const params: SearchParams = {
@@ -62,6 +69,17 @@
 		} finally {
 			isSearching = false;
 		}
+	}
+
+	// Debounced search function for search-as-you-type
+	const debouncedSearch = debounce(() => {
+		currentPage = 1; // Reset to first page on new search
+		handleSearch();
+	}, 400);
+
+	function onSearchInput() {
+		isTyping = true;
+		debouncedSearch();
 	}
 
 	async function playTrack(identifier: string) {
@@ -182,23 +200,33 @@
 
 	<!-- Search Bar -->
 	<div class="mb-4 md:mb-6">
-		<div class="join w-full">
+		<div class="relative">
 			<input
 				type="text"
 				bind:value={searchQuery}
+				on:input={onSearchInput}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search for music, audiobooks, podcasts..."
-				class="input input-bordered join-item flex-1"
+				class="input input-bordered w-full pr-12"
+				autocomplete="off"
 			/>
-			<button on:click={handleSearch} class="btn btn-primary join-item" disabled={isSearching}>
-				{#if isSearching}
-					<span class="loading loading-spinner"></span>
+			<div class="absolute right-3 top-1/2 -translate-y-1/2">
+				{#if isTyping}
+					<span class="loading loading-spinner loading-sm text-base-content/50"></span>
+				{:else if isSearching}
+					<span class="loading loading-spinner loading-sm text-primary"></span>
+				{:else if searchQuery.trim()}
+					<Icon icon="solar:magnifer-bold" width="20" className="text-base-content/50" />
 				{:else}
-					<span class="hidden md:inline">Search</span>
-					<Icon icon="solar:magnifer-bold-duotone" width="20" class="md:hidden" />
+					<Icon icon="solar:magnifer-linear" width="20" className="text-base-content/30" />
 				{/if}
-			</button>
+			</div>
 		</div>
+		{#if searchQuery.trim() && totalResults > 0}
+			<p class="text-sm text-base-content/60 mt-2">
+				Found {totalResults.toLocaleString()} results
+			</p>
+		{/if}
 	</div>
 
 	<!-- Mobile Filter Toggle -->

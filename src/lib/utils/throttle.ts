@@ -42,3 +42,24 @@ export async function sequentialExecute<T>(
 
 	return results;
 }
+
+/**
+ * Debounce function - delays execution until after wait milliseconds have passed
+ * since the last time it was invoked
+ */
+export function debounce<T extends (...args: any[]) => any>(
+	func: T,
+	wait: number = 300
+): (...args: Parameters<T>) => void {
+	let timeout: ReturnType<typeof setTimeout> | null = null;
+
+	return function (...args: Parameters<T>) {
+		if (timeout) {
+			clearTimeout(timeout);
+		}
+
+		timeout = setTimeout(() => {
+			func(...args);
+		}, wait);
+	};
+}

@@ -33,15 +33,28 @@ export function setCurrentVersion(version: string) {
 	}
 }
 
+/**
+ * Reload app with fresh code while preserving user data
+ *
+ * This safely updates the app by:
+ * - Clearing app code caches (HTML, JS, CSS)
+ * - Preserving downloaded music (dustic-audio-cache)
+ * - Preserving user profile data (localStorage: dustic-profile)
+ * - Preserving offline track metadata (IndexedDB: dustic-offline)
+ */
 export async function reloadApp() {
 	if (typeof window !== 'undefined') {
-		// Clear all caches
+		// Clear app caches but preserve user data caches
 		if ('caches' in window) {
 			const cacheNames = await caches.keys();
-			await Promise.all(cacheNames.map(name => caches.delete(name)));
+			const userDataCaches = ['dustic-audio-cache']; // Preserve downloaded music
+
+			// Only delete non-user-data caches (app code, etc.)
+			const cachesToDelete = cacheNames.filter(name => !userDataCaches.includes(name));
+			await Promise.all(cachesToDelete.map(name => caches.delete(name)));
 		}
 
-		// Clear localStorage version
+		// Clear localStorage version only (preserve user profile and other data)
 		localStorage.removeItem('app_version');
 
 		// Force reload without cache

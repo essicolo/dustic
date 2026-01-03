@@ -116,111 +116,106 @@
 <audio bind:this={audioElement} preload="auto"></audio>
 
 <!-- Player Bar -->
-<div class="h-full flex flex-col md:flex-row items-center gap-2 md:gap-4 px-2 md:px-6 py-2 md:py-0">
-	<!-- Track Info -->
-	<div class="flex-shrink-0 w-full md:w-64">
-		{#if $player.currentTrack}
-			<div class="flex items-center gap-2 md:gap-3">
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-					{#if $player.currentTrack.thumbnailUrl}
-						<img
-							src={$player.currentTrack.thumbnailUrl}
-							alt={$player.currentTrack.title}
-							class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200"
-						/>
-					{:else}
-						<div class="w-10 h-10 md:w-12 md:h-12 rounded bg-base-200 flex items-center justify-center">
-							<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
-						</div>
-					{/if}
-				</a>
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-					<div class="text-sm md:text-base font-medium flex items-center gap-2">
-						<span class="truncate">{$player.currentTrack.title}</span>
-						{#if $player.isPlaying}
-							<span class="flex-shrink-0">
-								<PlayingIndicator size="sm" />
-							</span>
+<div class="h-full flex flex-col gap-1 px-2 md:px-6 py-2">
+	<!-- Mobile: Progress bar at top -->
+	<div class="md:hidden w-full">
+		<input
+			type="range"
+			min="0"
+			max="100"
+			value={($player.currentTime / $player.duration) * 100 || 0}
+			on:input={handleSeek}
+			class="range range-primary range-xs w-full"
+		/>
+	</div>
+
+	<!-- Main row -->
+	<div class="flex items-center gap-2 md:gap-4 w-full">
+		<!-- Track Info -->
+		<div class="flex-shrink-0 flex-1 md:flex-initial md:w-64 min-w-0">
+			{#if $player.currentTrack}
+				<div class="flex items-center gap-2 md:gap-3 min-w-0">
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
+						{#if $player.currentTrack.thumbnailUrl}
+							<img
+								src={$player.currentTrack.thumbnailUrl}
+								alt={$player.currentTrack.title}
+								class="w-12 h-12 rounded bg-base-200"
+							/>
+						{:else}
+							<div class="w-12 h-12 rounded bg-base-200 flex items-center justify-center">
+								<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
+							</div>
 						{/if}
-					</div>
-					<div class="text-xs md:text-sm text-base-content/70 truncate">
-						{$player.currentTrack.artist}
-					</div>
-				</a>
-				<div class="flex items-center gap-1 flex-shrink-0">
+					</a>
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
+						<div class="text-xs md:text-base font-medium flex items-center gap-1 md:gap-2">
+							<span class="truncate">{$player.currentTrack.title}</span>
+							{#if $player.isPlaying}
+								<span class="flex-shrink-0">
+									<PlayingIndicator size="sm" />
+								</span>
+							{/if}
+						</div>
+						<div class="text-xs text-base-content/70 truncate">
+							{$player.currentTrack.artist}
+						</div>
+					</a>
 					<button
 						on:click={toggleFavorite}
-						class="btn btn-ghost btn-xs md:btn-sm btn-square"
+						class="btn btn-ghost btn-xs btn-circle flex-shrink-0 md:hidden"
 						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
 					>
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-							width="18"
+							width="16"
 							className={isFavorite ? 'text-red-500' : ''}
 						/>
 					</button>
-					<button
-						on:click={handleShare}
-						class="btn btn-ghost btn-xs md:btn-sm btn-square"
-						title="Share track"
-					>
-						<Icon icon="solar:share-bold" width="18" />
-					</button>
 				</div>
-			</div>
-		{:else}
-			<div class="text-sm text-base-content/50">No track playing</div>
-		{/if}
-	</div>
-
-	<!-- Share Toast -->
-	{#if showShareToast}
-		<div class="toast toast-top toast-center z-50">
-			<div class="alert alert-success">
-				<Icon icon="solar:check-circle-bold" width="20" />
-				<span>{shareMessage}</span>
-			</div>
+			{:else}
+				<div class="text-sm text-base-content/50">No track playing</div>
+			{/if}
 		</div>
-	{/if}
 
-	<!-- Player Controls -->
-	<div class="flex-1 flex flex-col items-center gap-1 md:gap-2 w-full">
-		<!-- Buttons -->
-		<div class="flex items-center gap-1 md:gap-2">
+		<!-- Player Controls - Centered on mobile -->
+		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
+			<!-- Shuffle - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleShuffle()}
-				class="btn btn-ghost btn-xs md:btn-sm btn-square"
+				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
 				class:bg-base-200={$player.shuffle}
 				title="Shuffle"
 			>
 				<Icon icon="solar:shuffle-bold" width="16" />
 			</button>
 
-			<button on:click={() => player.previous()} class="btn btn-ghost btn-xs md:btn-sm btn-square" title="Previous">
+			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm btn-circle" title="Previous">
 				<Icon icon="solar:skip-previous-bold" width="16" />
 			</button>
 
 			<button
 				on:click={() => player.togglePlay()}
-				class="btn btn-circle btn-primary btn-sm md:btn-md"
+				class="btn btn-circle btn-primary btn-md"
 				disabled={!$player.currentTrack}
 			>
 				{#if $player.isLoading}
-					<span class="loading loading-spinner loading-xs md:loading-sm"></span>
+					<span class="loading loading-spinner loading-sm"></span>
 				{:else if $player.isPlaying}
-					<Icon icon="solar:pause-bold" width="18" className="text-primary-content" />
+					<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
 				{:else}
-					<Icon icon="solar:play-bold" width="18" className="text-primary-content" />
+					<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
 				{/if}
 			</button>
 
-			<button on:click={() => player.next()} class="btn btn-ghost btn-xs md:btn-sm btn-square" title="Next">
+			<button on:click={() => player.next()} class="btn btn-ghost btn-sm btn-circle" title="Next">
 				<Icon icon="solar:skip-next-bold" width="16" />
 			</button>
 
+			<!-- Repeat - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleRepeat()}
-				class="btn btn-ghost btn-xs md:btn-sm btn-square"
+				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
 				class:bg-base-200={$player.repeat !== 'off'}
 				title={$player.repeat === 'one' ? 'Repeat One' : $player.repeat === 'all' ? 'Repeat All' : 'Repeat Off'}
 			>
@@ -228,53 +223,85 @@
 			</button>
 		</div>
 
-		<!-- Progress Bar -->
-		<div class="w-full md:max-w-2xl flex items-center gap-1 md:gap-2">
-			<span class="text-xs text-base-content/70 w-8 md:w-12 text-right">
-				{formatTime($player.currentTime)}
-			</span>
-			<input
-				type="range"
-				min="0"
-				max="100"
-				value={($player.currentTime / $player.duration) * 100 || 0}
-				on:input={handleSeek}
-				class="range range-primary range-xs flex-1"
-			/>
-			<span class="text-xs text-base-content/70 w-8 md:w-12">
-				{formatTime($player.duration)}
-			</span>
+		<!-- Desktop: Volume & Queue -->
+		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4">
+			<!-- Desktop favorite/share buttons -->
+			<div class="hidden md:flex items-center gap-1">
+				<button
+					on:click={toggleFavorite}
+					class="btn btn-ghost btn-sm btn-circle"
+					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+				>
+					<Icon
+						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+						width="18"
+						className={isFavorite ? 'text-red-500' : ''}
+					/>
+				</button>
+				<button
+					on:click={handleShare}
+					class="btn btn-ghost btn-sm btn-circle"
+					title="Share track"
+				>
+					<Icon icon="solar:share-bold" width="18" />
+				</button>
+			</div>
+
+			<!-- Volume Control - Hidden on mobile -->
+			<div class="hidden md:flex w-32 items-center gap-2">
+				<button
+					on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
+					class="btn btn-ghost btn-sm btn-circle"
+					title="Mute/Unmute"
+				>
+					{#if $player.volume === 0}
+						<Icon icon="solar:volume-cross-bold" width="20" />
+					{:else if $player.volume < 0.5}
+						<Icon icon="solar:volume-small-bold" width="20" />
+					{:else}
+						<Icon icon="solar:volume-loud-bold" width="20" />
+					{/if}
+				</button>
+				<input
+					type="range"
+					min="0"
+					max="100"
+					value={$player.volume * 100}
+					on:input={(e) => player.setVolume(parseFloat((e.target as HTMLInputElement).value) / 100)}
+					class="range range-xs flex-1"
+				/>
+			</div>
+
+			<!-- Queue Button -->
+			<QueuePanel />
 		</div>
 	</div>
 
-	<!-- Volume & Queue -->
-	<div class="flex-shrink-0 flex items-center gap-2 md:gap-4">
-		<!-- Volume Control - Hidden on mobile -->
-		<div class="hidden md:flex w-32 items-center gap-2">
-			<button
-				on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
-				class="btn btn-ghost btn-sm btn-square"
-				title="Mute/Unmute"
-			>
-				{#if $player.volume === 0}
-					<Icon icon="solar:volume-cross-bold" width="20" />
-				{:else if $player.volume < 0.5}
-					<Icon icon="solar:volume-small-bold" width="20" />
-				{:else}
-					<Icon icon="solar:volume-loud-bold" width="20" />
-				{/if}
-			</button>
-			<input
-				type="range"
-				min="0"
-				max="100"
-				value={$player.volume * 100}
-				on:input={(e) => player.setVolume(parseFloat((e.target as HTMLInputElement).value) / 100)}
-				class="range range-xs flex-1"
-			/>
-		</div>
-
-		<!-- Queue Button -->
-		<QueuePanel />
+	<!-- Desktop: Progress bar with time stamps -->
+	<div class="hidden md:flex w-full items-center gap-2 justify-center">
+		<span class="text-xs text-base-content/70 w-12 text-right">
+			{formatTime($player.currentTime)}
+		</span>
+		<input
+			type="range"
+			min="0"
+			max="100"
+			value={($player.currentTime / $player.duration) * 100 || 0}
+			on:input={handleSeek}
+			class="range range-primary range-xs flex-1 max-w-2xl"
+		/>
+		<span class="text-xs text-base-content/70 w-12">
+			{formatTime($player.duration)}
+		</span>
 	</div>
 </div>
+
+<!-- Share Toast -->
+{#if showShareToast}
+	<div class="toast toast-top toast-center z-50">
+		<div class="alert alert-success">
+			<Icon icon="solar:check-circle-bold" width="20" />
+			<span>{shareMessage}</span>
+		</div>
+	</div>
+{/if}

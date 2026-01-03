@@ -3,6 +3,7 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
+	import { history } from '$lib/stores/history';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
@@ -21,10 +22,32 @@
 	let expandedItems: Set<string> = new Set();
 	let itemChapters: Map<string, Track[]> = new Map();
 	let loadingChapters: Set<string> = new Set();
+	let continueListening: Track[] = [];
+	let isLoadingContinue = false;
 
 	onMount(() => {
+		loadContinueListening();
 		loadTrending();
 	});
+
+	async function loadContinueListening() {
+		isLoadingContinue = true;
+		// Get recent history entries (last 10)
+		const recentEntries = $history.entries.slice(0, 10);
+
+		// Load track data for recent items
+		const trackTasks = recentEntries.map((entry) => async () => {
+			try {
+				return await getTrack(entry.trackId);
+			} catch {
+				return null;
+			}
+		});
+
+		const tracks = await batchExecute(trackTasks, 3, 500);
+		continueListening = tracks.filter((t): t is Track => t !== null);
+		isLoadingContinue = false;
+	}
 
 	async function loadTrending() {
 		isLoading = true;
@@ -176,6 +199,84 @@
 </script>
 
 <div class="p-4 md:p-8">
+	<!-- Continue Listening Section -->
+	{#if continueListening.length > 0}
+		<div class="mb-8">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-xl md:text-2xl font-bold">Continue Listening</h2>
+				<a href="/history" class="btn btn-ghost btn-sm">
+					View All
+					<Icon icon="solar:arrow-right-linear" width="16" />
+				</a>
+			</div>
+
+			<!-- Horizontal scrollable carousel -->
+			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+				<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0">
+					{#each continueListening as track}
+						<div
+							class="card bg-base-200 hover:bg-base-300 transition-colors group relative w-40 md:w-auto flex-shrink-0"
+							class:ring-2={isCurrentTrack(track.identifier)}
+							class:ring-primary={isCurrentTrack(track.identifier)}
+						>
+							<div class="card-body p-3">
+								<!-- Thumbnail - Clickable -->
+								<a href="/item/{track.identifier}" class="block mb-2 hover:opacity-80 transition-opacity relative">
+									{#if track.thumbnailUrl}
+										<img
+											src={track.thumbnailUrl}
+											alt={track.title}
+											class="w-full aspect-square object-cover rounded bg-base-300"
+										/>
+									{:else}
+										<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
+											<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
+										</div>
+									{/if}
+
+									<!-- Play button overlay - show on hover -->
+									<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
+										<button
+											on:click|preventDefault|stopPropagation={() => playTrack(track.identifier)}
+											class="btn btn-circle btn-primary btn-md shadow-lg"
+											disabled={loadingTrack === track.identifier}
+											title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
+										>
+											{#if loadingTrack === track.identifier}
+												<span class="loading loading-spinner loading-sm"></span>
+											{:else if isCurrentTrack(track.identifier)}
+												<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
+											{:else}
+												<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
+											{/if}
+										</button>
+									</div>
+								</a>
+
+								<!-- Info - Clickable -->
+								<a href="/item/{track.identifier}" class="block hover:text-primary transition-colors">
+									<h3
+										class="text-sm font-medium truncate flex items-center gap-1"
+										class:text-primary={isCurrentTrack(track.identifier)}
+									>
+										<span class="truncate">{track.title}</span>
+										{#if isCurrentTrack(track.identifier) && $player.isPlaying}
+											<span class="flex-shrink-0">
+												<PlayingIndicator size="sm" />
+											</span>
+										{/if}
+									</h3>
+									<p class="text-xs text-base-content/70 truncate">{track.artist}</p>
+								</a>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Trending Section -->
 	<div class="flex items-center justify-between mb-6">
 		<h2 class="text-2xl md:text-3xl font-bold">Trending</h2>
 		{#if results.length > 0}

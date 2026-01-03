@@ -8,6 +8,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { browser } from '$app/environment';
 
@@ -165,9 +166,20 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-20">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
-		</div>
+		<!-- Skeleton loaders matching current view mode -->
+		{#if viewMode === 'grid'}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+				{#each Array(8) as _}
+					<SkeletonCard layout="grid" />
+				{/each}
+			</div>
+		{:else}
+			<div class="space-y-2">
+				{#each Array(8) as _}
+					<SkeletonCard layout="list" />
+				{/each}
+			</div>
+		{/if}
 	{:else if validTracks.length === 0}
 		<div class="text-center py-20 text-base-content/50">
 			<p class="text-lg">No history yet</p>

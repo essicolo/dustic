@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
 
 	let collectionId = '';
@@ -186,8 +187,11 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-20">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
+		<!-- Skeleton loaders -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+			{#each Array(12) as _}
+				<SkeletonCard layout="grid" />
+			{/each}
 		</div>
 	{:else if results.length > 0}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">

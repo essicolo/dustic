@@ -133,7 +133,7 @@
 	<!-- Main row -->
 	<div class="flex items-center gap-2 md:gap-4 w-full justify-between">
 		<!-- Track Info -->
-		<div class="flex-shrink-0 flex-1 md:w-64 min-w-0 max-w-[40%] md:max-w-none">
+		<div class="flex-shrink-0 flex-1 md:w-64 min-w-0">
 			{#if $player.currentTrack}
 				<div class="flex items-center gap-2 md:gap-3 min-w-0">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
@@ -224,8 +224,15 @@
 			</button>
 		</div>
 
-		<!-- Desktop: Volume & Queue -->
+		<!-- Right section: Download/Volume/Queue -->
 		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4 md:w-64 md:justify-end">
+			<!-- Mobile download button -->
+			{#if $player.currentTrack}
+				<div class="md:hidden flex-shrink-0">
+					<DownloadButton track={$player.currentTrack} size="sm" />
+				</div>
+			{/if}
+
 			<!-- Desktop favorite/share/download buttons -->
 			<div class="hidden md:flex items-center gap-1">
 				{#if $player.currentTrack}

@@ -1,11 +1,18 @@
 <script lang="ts">
 	import { library } from '$lib/stores/library';
+	import { offline } from '$lib/stores/offline';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { onMount } from 'svelte';
 
 	let newPlaylistName = '';
 	let newPlaylistDescription = '';
 	let isCreating = false;
+
+	onMount(() => {
+		// Load offline tracks count
+		offline.loadOfflineTracks();
+	});
 
 	function createPlaylist() {
 		if (!newPlaylistName.trim()) return;
@@ -32,7 +39,7 @@
 	<h2 class="text-3xl font-bold mb-6">Library</h2>
 
 	<!-- Quick Links -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 		<a
 			href="{base}/library/favorites"
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
@@ -40,6 +47,16 @@
 			<div class="card-body">
 				<h3 class="card-title">Favorites</h3>
 				<p class="text-base-content/70">{$library.favorites.length} tracks</p>
+			</div>
+		</a>
+
+		<a
+			href="{base}/library/local"
+			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+		>
+			<div class="card-body">
+				<h3 class="card-title">Local</h3>
+				<p class="text-base-content/70">{$offline.offlineTracks.length} offline tracks</p>
 			</div>
 		</a>
 

@@ -6,6 +6,7 @@
 	import { library } from '$lib/stores/library';
 	import type { Track } from '$lib/types';
 	import Icon from '$lib/components/Icon.svelte';
+	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
@@ -268,6 +269,9 @@
 
 							<!-- Actions -->
 							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
+									<DownloadButton {track} size="sm" />
+								</div>
 								<button
 									on:click|stopPropagation={() => queue.addToEnd(track)}
 									class="btn btn-ghost btn-sm btn-square"

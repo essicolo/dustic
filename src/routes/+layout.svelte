@@ -70,14 +70,14 @@
 			class:-translate-y-full={!showHeader}
 			style="height: 3.5rem; will-change: transform;"
 		>
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md">
+			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md flex-shrink-0">
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-2 flex-1 justify-center">
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
 				<h1 class="text-lg font-semibold">Dustic</h1>
 			</div>
-			<div class="w-12"></div><!-- Spacer pour centrer le titre -->
+			<div class="w-12 flex-shrink-0"></div><!-- Spacer for symmetry -->
 		</div>
 
 		<!-- Overlay for mobile -->

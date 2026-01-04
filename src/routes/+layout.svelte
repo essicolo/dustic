@@ -26,12 +26,13 @@
 
 <div class="min-h-screen flex flex-col">
 	<div class="flex-1 flex safe-content-padding">
-		<!-- Mobile Header -->
-		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header">
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-square" style="height: 5rem; width: 5rem; min-height: 5rem;">
-				<Icon icon="solar:hamburger-menu-bold" width="48" />
+		<!-- Mobile Header - Compact -->
+		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header" style="height: 3.5rem;">
+			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md">
+				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
-			<h1 class="text-xl font-bold">Dustic</h1>
+			<h1 class="text-lg font-semibold">Dustic</h1>
+			<div class="w-12"></div><!-- Spacer pour centrer le titre -->
 		</div>
 
 		<!-- Overlay for mobile -->
@@ -48,19 +49,19 @@
 
 		<!-- Sidebar -->
 		<aside
-			class="w-64 bg-base-200 p-4 pb-32 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
+			class="w-64 bg-base-200 p-2 pb-32 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
 			class:translate-x-0={isSidebarOpen}
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
 		>
 			<!-- Close button for mobile only -->
-			<div class="mb-4 flex justify-end lg:hidden">
+			<div class="flex justify-end lg:hidden pt-1 pb-2">
 				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-circle">
-					<Icon icon="solar:close-circle-bold" width="20" />
+					<Icon icon="solar:close-circle-bold" width="18" />
 				</button>
 			</div>
 
-			<nav class="space-y-1 mb-4">
+			<nav class="space-y-1 px-2 mb-4">
 				<a
 					href="{base}/"
 					on:click={closeSidebar}

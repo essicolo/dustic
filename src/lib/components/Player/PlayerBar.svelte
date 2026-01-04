@@ -117,7 +117,7 @@
 <audio bind:this={audioElement} preload="auto"></audio>
 
 <!-- Player Bar -->
-<div class="h-full flex flex-col gap-1 px-2 md:px-6 py-2">
+<div class="flex flex-col gap-1 px-2 md:px-6 py-2">
 	<!-- Mobile: Progress bar at top -->
 	<div class="md:hidden w-full">
 		<input
@@ -133,14 +133,14 @@
 	<!-- Main row - CSS Grid for true centering -->
 	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start">
+		<div class="min-w-0 justify-self-start overflow-hidden">
 			{#if $player.currentTrack}
 				<!-- Mobile: minimal -->
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block md:hidden min-w-0 hover:text-primary transition-colors">
+				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block md:hidden min-w-0 overflow-hidden hover:text-primary transition-colors">
 					<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
 				</a>
 				<!-- Desktop: full -->
-				<div class="hidden md:flex items-center gap-3 min-w-0">
+				<div class="hidden md:flex items-center gap-3 min-w-0 overflow-hidden">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
@@ -219,21 +219,21 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden">
 			<!-- Mobile: Favorite + Download + Queue -->
 			<div class="md:hidden flex items-center gap-1">
-				<button
-					on:click={toggleFavorite}
-					class="btn btn-ghost btn-sm btn-circle"
-					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-				>
-					<Icon
-						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-						width="18"
-						className={isFavorite ? 'text-red-500' : ''}
-					/>
-				</button>
 				{#if $player.currentTrack}
+					<button
+						on:click={toggleFavorite}
+						class="btn btn-ghost btn-sm btn-circle"
+						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+					>
+						<Icon
+							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+							width="18"
+							className={isFavorite ? 'text-red-500' : ''}
+						/>
+					</button>
 					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
 			</div>

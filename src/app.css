@@ -89,13 +89,13 @@ input[type='range']::-moz-range-thumb {
 
 /* Safe header with top safe area */
 .safe-header {
-	height: calc(4rem + env(safe-area-inset-top));
+	height: calc(3.5rem + env(safe-area-inset-top));
 	padding-top: env(safe-area-inset-top);
 }
 
 /* Main content padding to account for header with safe area */
 .safe-main-padding {
-	padding-top: calc(4rem + env(safe-area-inset-top));
+	padding-top: calc(3.5rem + env(safe-area-inset-top));
 }
 
 /* Sidebar safe area padding (only on mobile when fixed) */

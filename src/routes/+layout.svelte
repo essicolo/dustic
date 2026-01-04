@@ -68,7 +68,7 @@
 		<div
 			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header transition-transform duration-200 ease-out"
 			class:-translate-y-full={!showHeader}
-			style="height: 3.5rem; will-change: transform;"
+			style="will-change: transform;"
 		>
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md flex-shrink-0">
 				<Icon icon="solar:hamburger-menu-bold" width="24" />

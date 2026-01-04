@@ -56,6 +56,7 @@
 			// Fetch latest version and set it
 			const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-cache' });
 			const data = await response.json();
+			console.log('Updating to version:', data.version, 'App version:', data.appVersion);
 			setCurrentVersion(data.version);
 
 			// Reload app with cleared caches

@@ -55,9 +55,12 @@ export async function reloadApp() {
 			await Promise.all(cachesToDelete.map(name => caches.delete(name)));
 		}
 
-		// Force reload without cache
+		// Force hard reload by navigating to current URL with cache-busting parameter
+		// This bypasses all browser and HTTP caches more reliably than reload()
 		// Note: We do NOT remove app_version from localStorage
 		// because we need it to know we're on the latest version after reload
-		window.location.reload();
+		const url = new URL(window.location.href);
+		url.searchParams.set('_reload', Date.now().toString());
+		window.location.href = url.toString();
 	}
 }

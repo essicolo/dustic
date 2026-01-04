@@ -118,29 +118,50 @@
 
 <!-- Player Bar -->
 <div class="flex flex-col gap-1 px-2 md:px-6 py-2">
-	<!-- Mobile: Progress bar at top -->
-	<div class="md:hidden w-full">
+	<!-- Mobile: Progress bar at top with times -->
+	<div class="md:hidden w-full flex items-center gap-2">
+		<span class="text-xs text-base-content/70 w-10 text-right flex-shrink-0">
+			{formatTime($player.currentTime)}
+		</span>
 		<input
 			type="range"
 			min="0"
 			max="100"
 			value={($player.currentTime / $player.duration) * 100 || 0}
 			on:input={handleSeek}
-			class="range range-primary range-xs w-full"
+			class="range range-primary range-xs flex-1"
 		/>
+		<span class="text-xs text-base-content/70 w-10 flex-shrink-0">
+			{formatTime($player.duration)}
+		</span>
 	</div>
 
 	<!-- Main row - CSS Grid for true centering -->
 	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start overflow-hidden">
+		<div class="min-w-0 justify-self-start overflow-hidden max-w-full">
 			{#if $player.currentTrack}
-				<!-- Mobile: minimal -->
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block md:hidden min-w-0 overflow-hidden hover:text-primary transition-colors">
-					<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
-				</a>
+				<!-- Mobile: compact with thumbnail -->
+				<div class="md:hidden flex items-center gap-2 min-w-0 overflow-hidden">
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0">
+						{#if $player.currentTrack.thumbnailUrl}
+							<img
+								src={$player.currentTrack.thumbnailUrl}
+								alt={$player.currentTrack.title}
+								class="w-10 h-10 rounded bg-base-200"
+							/>
+						{:else}
+							<div class="w-10 h-10 rounded bg-base-200 flex items-center justify-center">
+								<Icon icon="solar:music-note-bold" width="16" className="text-base-content/30" />
+							</div>
+						{/if}
+					</a>
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="min-w-0 overflow-hidden hover:text-primary transition-colors">
+						<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
+					</a>
+				</div>
 				<!-- Desktop: full -->
-				<div class="hidden md:flex items-center gap-3 min-w-0 overflow-hidden">
+				<div class="hidden md:flex items-center gap-3 min-w-0 overflow-hidden max-w-full">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
@@ -219,7 +240,7 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden max-w-full">
 			<!-- Mobile: Favorite + Download + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}

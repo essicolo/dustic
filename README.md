@@ -8,9 +8,12 @@ A vibe-coded, minimalist music player progressive web app that streams audio dir
 - **Smart Search**: Search across multiple audio collections with filters
 - **Rule-based Autoplay**: Configurable intelligent playlist continuation
 - **Library Management**: Favorites, playlists, and listening history
+- **Offline Support**: Download tracks for offline playback
 - **User-controlled Data**: Manual JSON export/import for profile management
+- **Progressive Web App**: Installable on mobile and desktop
 - **Minimalist Design**: Clean black and white interface
 - **No Backend Required**: Fully client-side application
+- **Automated Testing**: Unit tests for critical functionality
 
 ## Tech Stack
 
@@ -51,8 +54,30 @@ npm run dev
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build locally
 - `npm run check` - Run TypeScript and Svelte checks
+- `npm test` - Run unit tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:ui` - Run tests with browser UI
+
+### Running Tests
+
+Dustic includes a comprehensive test suite for critical functionality:
+
+```bash
+# Run all tests once
+npm test
+
+# Watch mode (auto-runs on file changes)
+npm run test:watch
+
+# Browser UI for debugging
+npm run test:ui
+```
+
+See `src/tests/README.md` for detailed testing documentation.
 
 ## Deploying to GitHub Pages
+
+**Dustic is specifically designed for GitHub Pages deployment.** The app uses SPA routing with a 404.html fallback to enable direct navigation and page refreshes.
 
 ### Automatic Deployment (Recommended)
 
@@ -70,6 +95,12 @@ This repository includes a GitHub Actions workflow for automatic deployment.
 
 The workflow is pre-configured with the correct base path for project pages.
 
+**How SPA Routing Works:**
+- The build process creates both `index.html` and `404.html` (identical copies)
+- GitHub Pages serves `404.html` for any missing route
+- This allows direct navigation to `/library`, `/search`, etc.
+- Client-side routing takes over once the app loads
+
 ### Manual Deployment
 
 If you prefer manual deployment:
@@ -82,6 +113,8 @@ BASE_PATH='/dustic' npm run build
 npm install -D gh-pages
 npx gh-pages -d build
 ```
+
+**Note:** Other hosting platforms (Netlify, Vercel, etc.) require different routing configurations. This app is optimized for GitHub Pages.
 
 ## Custom Domain (Optional)
 

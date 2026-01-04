@@ -41,6 +41,7 @@ export function setCurrentVersion(version: string) {
  * - Preserving downloaded music (dustic-audio-cache)
  * - Preserving user profile data (localStorage: dustic-profile)
  * - Preserving offline track metadata (IndexedDB: dustic-offline)
+ * - Preserving version tracking (localStorage: app_version)
  */
 export async function reloadApp() {
 	if (typeof window !== 'undefined') {
@@ -54,10 +55,9 @@ export async function reloadApp() {
 			await Promise.all(cachesToDelete.map(name => caches.delete(name)));
 		}
 
-		// Clear localStorage version only (preserve user profile and other data)
-		localStorage.removeItem('app_version');
-
 		// Force reload without cache
+		// Note: We do NOT remove app_version from localStorage
+		// because we need it to know we're on the latest version after reload
 		window.location.reload();
 	}
 }

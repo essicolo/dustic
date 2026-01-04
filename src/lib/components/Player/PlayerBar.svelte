@@ -118,16 +118,22 @@
 
 <!-- Player Bar -->
 <div class="flex flex-col gap-1 px-2 md:px-6 py-2">
-	<!-- Mobile: Progress bar at top -->
-	<div class="md:hidden w-full">
+	<!-- Mobile: Progress bar at top with times -->
+	<div class="md:hidden w-full flex items-center gap-2">
+		<span class="text-xs text-base-content/70 w-10 text-right flex-shrink-0">
+			{formatTime($player.currentTime)}
+		</span>
 		<input
 			type="range"
 			min="0"
 			max="100"
 			value={($player.currentTime / $player.duration) * 100 || 0}
 			on:input={handleSeek}
-			class="range range-primary range-xs w-full"
+			class="range range-primary range-xs flex-1"
 		/>
+		<span class="text-xs text-base-content/70 w-10 flex-shrink-0">
+			{formatTime($player.duration)}
+		</span>
 	</div>
 
 	<!-- Main row - CSS Grid for true centering -->

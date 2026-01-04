@@ -2,6 +2,7 @@
 	import '../app.css';
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
+	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
@@ -175,3 +176,6 @@
 		<PlayerBar />
 	</footer>
 </div>
+
+<!-- Update notification -->
+<UpdateNotification />

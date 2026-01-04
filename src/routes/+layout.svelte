@@ -48,7 +48,7 @@
 
 		<!-- Sidebar -->
 		<aside
-			class="w-64 bg-base-200 p-4 pb-24 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
+			class="w-64 bg-base-200 p-4 pb-32 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
 			class:translate-x-0={isSidebarOpen}
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
@@ -155,7 +155,7 @@
 				href="https://github.com/essicolo/dustic/issues/new"
 				target="_blank"
 				rel="noopener noreferrer"
-				class="block mt-4 px-4 py-2.5 text-center text-sm border border-base-300 rounded-lg hover:bg-base-300 transition-all font-medium"
+				class="block mt-4 mb-4 px-4 py-2.5 text-center text-sm border border-base-300 rounded-lg hover:bg-base-300 transition-all font-medium"
 			>
 				Send Feedback
 			</a>

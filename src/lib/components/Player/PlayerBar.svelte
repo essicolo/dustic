@@ -113,9 +113,10 @@
 	$: $player;
 </script>
 
-<!-- Hidden audio element -->
+<!-- Hidden audio element - MUST always be mounted -->
 <audio bind:this={audioElement} preload="auto"></audio>
 
+{#if $player.currentTrack}
 <!-- Player Bar -->
 <div class="flex flex-col gap-1 px-2 md:px-6 py-2">
 	<!-- Mobile: Progress bar at top with times -->
@@ -332,6 +333,7 @@
 		</span>
 	</div>
 </div>
+{/if}
 
 <!-- Share Toast -->
 {#if showShareToast}

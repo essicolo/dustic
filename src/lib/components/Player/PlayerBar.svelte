@@ -131,11 +131,11 @@
 	</div>
 
 	<!-- Main row -->
-	<div class="flex items-center gap-2 md:gap-4 w-full justify-between">
+	<div class="flex items-center gap-2 md:gap-4 w-full md:justify-between">
 		<!-- Track Info -->
-		<div class="flex-shrink-0 flex-1 md:w-64 min-w-0">
+		<div class="flex-shrink-0 md:flex-1 md:w-64 min-w-0">
 			{#if $player.currentTrack}
-				<div class="flex items-center gap-2 md:gap-3 min-w-0">
+				<div class="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
@@ -175,12 +175,12 @@
 					</button>
 				</div>
 			{:else}
-				<div class="text-sm text-base-content/50">No track playing</div>
+				<div class="text-xs md:text-sm text-base-content/50 hidden md:block">No track playing</div>
 			{/if}
 		</div>
 
 		<!-- Player Controls - Centered -->
-		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 justify-center md:flex-1">
+		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 flex-1 justify-center">
 			<!-- Shuffle - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleShuffle()}

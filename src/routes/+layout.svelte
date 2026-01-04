@@ -17,6 +17,7 @@
 	let isSidebarOpen = false;
 	let showHeader = true;
 	let lastScrollY = 0;
+	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -28,24 +29,36 @@
 
 	onMount(() => {
 		const handleScroll = () => {
+			// Throttle scroll events to avoid excessive updates
+			if (scrollTimeout) return;
+
+			scrollTimeout = setTimeout(() => {
+				scrollTimeout = null;
+			}, 100);
+
 			const currentScrollY = window.scrollY;
 
 			// Always show at top of page
 			if (currentScrollY < 10) {
 				showHeader = true;
 			}
-			// Hide when scrolling down, show when scrolling up
-			else if (currentScrollY > lastScrollY) {
-				showHeader = false;
-			} else {
-				showHeader = true;
+			// Only hide/show if scrolled more than 5px to avoid jitter
+			else if (Math.abs(currentScrollY - lastScrollY) > 5) {
+				if (currentScrollY > lastScrollY) {
+					showHeader = false;
+				} else {
+					showHeader = true;
+				}
 			}
 
 			lastScrollY = currentScrollY;
 		};
 
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		return () => window.removeEventListener('scroll', handleScroll);
+		return () => {
+			window.removeEventListener('scroll', handleScroll);
+			if (scrollTimeout) clearTimeout(scrollTimeout);
+		};
 	});
 </script>
 
@@ -53,9 +66,9 @@
 	<div class="flex-1 flex safe-content-padding">
 		<!-- Mobile Header - Compact + Auto-hide -->
 		<div
-			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header transition-transform duration-300"
+			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header transition-transform duration-200 ease-out"
 			class:-translate-y-full={!showHeader}
-			style="height: 3.5rem;"
+			style="height: 3.5rem; will-change: transform;"
 		>
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md">
 				<Icon icon="solar:hamburger-menu-bold" width="24" />

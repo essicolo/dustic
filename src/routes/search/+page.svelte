@@ -202,13 +202,14 @@
 	<div class="mb-4 md:mb-6">
 		<div class="relative">
 			<input
-				type="text"
+				type="search"
 				bind:value={searchQuery}
 				on:input={onSearchInput}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search for music, audiobooks, podcasts..."
 				class="input input-bordered w-full pr-12"
 				autocomplete="off"
+				enterkeyhint="search"
 			/>
 			<div class="absolute right-3 top-1/2 -translate-y-1/2">
 				{#if isTyping}

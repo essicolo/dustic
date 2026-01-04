@@ -220,12 +220,23 @@
 
 		<!-- Right: Actions/Volume/Queue -->
 		<div class="flex items-center gap-1 md:gap-2 justify-self-end">
-			<!-- Mobile: Download + Queue only -->
-			{#if $player.currentTrack}
-				<div class="md:hidden">
+			<!-- Mobile: Favorite + Download + Queue -->
+			<div class="md:hidden flex items-center gap-1">
+				<button
+					on:click={toggleFavorite}
+					class="btn btn-ghost btn-sm btn-circle"
+					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+				>
+					<Icon
+						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+						width="18"
+						className={isFavorite ? 'text-red-500' : ''}
+					/>
+				</button>
+				{#if $player.currentTrack}
 					<DownloadButton track={$player.currentTrack} size="sm" />
-				</div>
-			{/if}
+				{/if}
+			</div>
 
 			<!-- Desktop: Download/Favorite/Share -->
 			<div class="hidden md:flex items-center gap-1">

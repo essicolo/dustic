@@ -32,11 +32,10 @@
 </script>
 
 <!-- Queue Toggle Button -->
-<button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle md:btn-square relative" title="Queue">
-	<Icon icon="solar:playlist-minimalistic-bold" width="20" class="md:hidden" />
-	<span class="hidden md:inline">Queue</span>
+<button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle relative" title="Queue">
+	<Icon icon="solar:playlist-minimalistic-linear" width="20" />
 	{#if queueCount > 0}
-		<span class="badge badge-primary badge-sm absolute -top-1 -right-1 md:static">
+		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
 			{queueCount}
 		</span>
 	{/if}

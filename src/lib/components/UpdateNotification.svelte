@@ -21,8 +21,25 @@
 		checking = true;
 
 		try {
-			const hasUpdate = await checkForUpdates();
-			if (hasUpdate) {
+			// Fetch current version from server
+			const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-cache' });
+			if (!response.ok) {
+				checking = false;
+				return;
+			}
+
+			const data = await response.json();
+			const storedVersion = localStorage.getItem('app_version');
+
+			// First time user - just set the version without showing update
+			if (!storedVersion) {
+				setCurrentVersion(data.version);
+				checking = false;
+				return;
+			}
+
+			// Check if version changed
+			if (storedVersion !== data.version) {
 				showUpdatePrompt = true;
 			}
 		} catch (error) {
@@ -35,17 +52,28 @@
 	async function handleUpdate() {
 		showUpdatePrompt = false;
 
-		// Fetch latest version
-		const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-cache' });
-		const data = await response.json();
-		setCurrentVersion(data.version);
+		try {
+			// Fetch latest version and set it
+			const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-cache' });
+			const data = await response.json();
+			setCurrentVersion(data.version);
 
-		// Reload app
-		await reloadApp();
+			// Reload app with cleared caches
+			await reloadApp();
+		} catch (error) {
+			console.error('Update failed:', error);
+			// Retry by just reloading
+			window.location.reload();
+		}
 	}
 
 	function dismissUpdate() {
 		showUpdatePrompt = false;
+		// Snooze for 1 hour - don't check again during this session
+		const oneHour = 60 * 60 * 1000;
+		setTimeout(() => {
+			checkVersion();
+		}, oneHour);
 	}
 </script>
 

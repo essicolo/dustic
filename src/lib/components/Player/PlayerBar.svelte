@@ -133,14 +133,29 @@
 	<!-- Main row - CSS Grid for true centering -->
 	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start overflow-hidden">
+		<div class="min-w-0 justify-self-start overflow-hidden max-w-full">
 			{#if $player.currentTrack}
-				<!-- Mobile: minimal -->
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block md:hidden min-w-0 overflow-hidden hover:text-primary transition-colors">
-					<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
-				</a>
+				<!-- Mobile: compact with thumbnail -->
+				<div class="md:hidden flex items-center gap-2 min-w-0 overflow-hidden">
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0">
+						{#if $player.currentTrack.thumbnailUrl}
+							<img
+								src={$player.currentTrack.thumbnailUrl}
+								alt={$player.currentTrack.title}
+								class="w-10 h-10 rounded bg-base-200"
+							/>
+						{:else}
+							<div class="w-10 h-10 rounded bg-base-200 flex items-center justify-center">
+								<Icon icon="solar:music-note-bold" width="16" className="text-base-content/30" />
+							</div>
+						{/if}
+					</a>
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="min-w-0 overflow-hidden hover:text-primary transition-colors">
+						<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
+					</a>
+				</div>
 				<!-- Desktop: full -->
-				<div class="hidden md:flex items-center gap-3 min-w-0 overflow-hidden">
+				<div class="hidden md:flex items-center gap-3 min-w-0 overflow-hidden max-w-full">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
@@ -219,7 +234,7 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden max-w-full">
 			<!-- Mobile: Favorite + Download + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}

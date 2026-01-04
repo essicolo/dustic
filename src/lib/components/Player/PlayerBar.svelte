@@ -130,21 +130,17 @@
 		/>
 	</div>
 
-	<!-- Main row -->
-	<div class="flex items-center gap-2 w-full">
-		<!-- Mobile: Track info (minimal, left) -->
-		<div class="md:hidden flex-1 min-w-0">
+	<!-- Main row - CSS Grid for true centering -->
+	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+		<!-- Left: Track info -->
+		<div class="min-w-0 justify-self-start">
 			{#if $player.currentTrack}
-				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block min-w-0 hover:text-primary transition-colors">
+				<!-- Mobile: minimal -->
+				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block md:hidden min-w-0 hover:text-primary transition-colors">
 					<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
 				</a>
-			{/if}
-		</div>
-
-		<!-- Desktop: Track info (full, left) -->
-		<div class="hidden md:flex md:flex-1 md:w-64 min-w-0">
-			{#if $player.currentTrack}
-				<div class="flex items-center gap-3 min-w-0 flex-1">
+				<!-- Desktop: full -->
+				<div class="hidden md:flex items-center gap-3 min-w-0">
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
@@ -158,27 +154,27 @@
 							</div>
 						{/if}
 					</a>
-					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-						<div class="text-base font-medium flex items-center gap-2">
-							<span class="truncate">{$player.currentTrack.title}</span>
-							{#if $player.isPlaying}
-								<span class="flex-shrink-0">
-									<PlayingIndicator size="sm" />
-								</span>
-							{/if}
-						</div>
-						<div class="text-xs text-base-content/70 truncate">
-							{$player.currentTrack.artist}
-						</div>
-					</a>
+					<div class="flex-1 min-w-0">
+						<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="hover:text-primary transition-colors">
+							<div class="text-base font-medium flex items-center gap-2">
+								<span class="truncate">{$player.currentTrack.title}</span>
+								{#if $player.isPlaying}
+									<span class="flex-shrink-0">
+										<PlayingIndicator size="sm" />
+									</span>
+								{/if}
+							</div>
+							<div class="text-xs text-base-content/70 truncate">
+								{$player.currentTrack.artist}
+							</div>
+						</a>
+					</div>
 				</div>
-			{:else}
-				<div class="text-sm text-base-content/50">No track playing</div>
 			{/if}
 		</div>
 
-		<!-- Player Controls - Always centered -->
-		<div class="flex items-center justify-center gap-1 md:gap-2 md:flex-1">
+		<!-- Center: Player Controls -->
+		<div class="flex items-center justify-center gap-1 md:gap-2">
 			<!-- Shuffle - Desktop only -->
 			<button
 				on:click={() => player.toggleShuffle()}
@@ -222,8 +218,8 @@
 			</button>
 		</div>
 
-		<!-- Right section: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 md:w-64 md:justify-end">
+		<!-- Right: Actions/Volume/Queue -->
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end">
 			<!-- Mobile: Download + Queue only -->
 			{#if $player.currentTrack}
 				<div class="md:hidden">

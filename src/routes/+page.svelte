@@ -213,7 +213,7 @@
 
 			<!-- Horizontal scrollable carousel -->
 			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-				<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0">
+				<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 pt-1">
 					{#each continueListening as track}
 						<div
 							class="card bg-base-200 hover:bg-base-300 transition-colors group relative w-40 md:w-auto flex-shrink-0"

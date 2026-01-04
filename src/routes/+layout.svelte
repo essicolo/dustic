@@ -166,12 +166,10 @@
 		</main>
 	</div>
 
-	<!-- Player bar - Fixed at bottom with iOS safe area support - Only show when track is loaded -->
-	{#if $player.currentTrack}
-		<footer class="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-40 safe-player-bar">
-			<PlayerBar />
-		</footer>
-	{/if}
+	<!-- Player bar - Fixed at bottom with iOS safe area support -->
+	<footer class="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-40 safe-player-bar">
+		<PlayerBar />
+	</footer>
 </div>
 
 <!-- Update notification -->

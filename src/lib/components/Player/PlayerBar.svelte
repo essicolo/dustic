@@ -131,7 +131,7 @@
 	</div>
 
 	<!-- Main row -->
-	<div class="flex items-center gap-2 md:gap-4 w-full md:justify-between">
+	<div class="flex items-center gap-2 md:gap-4 w-full justify-between">
 		<!-- Track Info -->
 		<div class="flex-shrink-0 md:flex-1 md:w-64 min-w-0">
 			{#if $player.currentTrack}
@@ -180,7 +180,7 @@
 		</div>
 
 		<!-- Player Controls - Centered -->
-		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 flex-1 justify-center">
+		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 md:flex-1 md:justify-center">
 			<!-- Shuffle - Hidden on mobile -->
 			<button
 				on:click={() => player.toggleShuffle()}

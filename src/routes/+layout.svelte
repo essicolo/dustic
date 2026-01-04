@@ -30,7 +30,6 @@
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-square" style="height: 5rem; width: 5rem; min-height: 5rem;">
 				<Icon icon="solar:hamburger-menu-bold" width="48" />
 			</button>
-			<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-8 w-auto" />
 			<h1 class="text-xl font-bold">Dustic</h1>
 		</div>
 
@@ -53,15 +52,9 @@
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
 		>
-			<div class="mb-8 flex items-center justify-between">
-				<div class="flex items-center gap-3">
-					<img src="{base}/logo-dustic.svg" alt="Dustic" class="h-10 w-auto" />
-					<div>
-						<h1 class="text-2xl font-bold tracking-tight">Dustic</h1>
-						<p class="text-xs text-base-content/50 mt-1">Archive Audio Player</p>
-					</div>
-				</div>
-				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-square lg:hidden">
+			<!-- Close button for mobile only -->
+			<div class="mb-4 flex justify-end lg:hidden">
+				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-circle">
 					<Icon icon="solar:close-circle-bold" width="20" />
 				</button>
 			</div>

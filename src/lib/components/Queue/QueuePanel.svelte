@@ -33,7 +33,7 @@
 
 <!-- Queue Toggle Button -->
 <button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle relative" title="Queue">
-	<Icon icon="solar:playlist-minimalistic-linear" width="20" />
+	<Icon icon="solar:playlist-linear" width="20" />
 	{#if queueCount > 0}
 		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
 			{queueCount}

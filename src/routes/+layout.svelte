@@ -63,7 +63,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-	<div class="flex-1 flex safe-content-padding">
+	<div class="flex-1 flex">
 		<!-- Mobile Header - Compact + Auto-hide -->
 		<div
 			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header transition-transform duration-200 ease-out"
@@ -202,7 +202,7 @@
 		</aside>
 
 		<!-- Main content -->
-		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding lg:pt-0 lg:ml-0">
+		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding safe-content-padding lg:pt-0 lg:ml-0">
 			{#key pageKey}
 				<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
 					<slot />

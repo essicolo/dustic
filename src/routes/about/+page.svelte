@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { APP_VERSION } from '$lib/version';
 </script>
 
 <div class="p-4 md:p-8 max-w-3xl mx-auto">
@@ -172,7 +173,7 @@
 		<section class="card bg-base-200 p-6">
 			<h2 class="text-xl font-semibold mb-3">Version</h2>
 			<p class="text-base-content/80">
-				Current version: <strong>1.0.0</strong>
+				Current version: <strong>{APP_VERSION}</strong>
 			</p>
 		</section>
 

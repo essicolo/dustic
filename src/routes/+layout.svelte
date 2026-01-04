@@ -73,7 +73,10 @@
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md">
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
-			<h1 class="text-lg font-semibold">Dustic</h1>
+			<div class="flex items-center gap-2">
+				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
+				<h1 class="text-lg font-semibold">Dustic</h1>
+			</div>
 			<div class="w-12"></div><!-- Spacer pour centrer le titre -->
 		</div>
 

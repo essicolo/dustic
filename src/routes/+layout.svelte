@@ -9,11 +9,14 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { fade } from 'svelte/transition';
 	import { player } from '$lib/stores/player';
+	import { onMount } from 'svelte';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
 
 	let isSidebarOpen = false;
+	let showHeader = true;
+	let lastScrollY = 0;
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -22,12 +25,37 @@
 	function closeSidebar() {
 		isSidebarOpen = false;
 	}
+
+	onMount(() => {
+		const handleScroll = () => {
+			const currentScrollY = window.scrollY;
+
+			// Always show at top of page
+			if (currentScrollY < 10) {
+				showHeader = true;
+			}
+			// Hide when scrolling down, show when scrolling up
+			else if (currentScrollY > lastScrollY) {
+				showHeader = false;
+			} else {
+				showHeader = true;
+			}
+
+			lastScrollY = currentScrollY;
+		};
+
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
 </script>
 
 <div class="min-h-screen flex flex-col">
 	<div class="flex-1 flex safe-content-padding">
-		<!-- Mobile Header -->
-		<div class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header">
+		<!-- Mobile Header - Auto-hide on scroll -->
+		<div
+			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center px-4 gap-3 safe-header transition-transform duration-300"
+			class:-translate-y-full={!showHeader}
+		>
 			<button on:click={toggleSidebar} class="btn btn-ghost btn-square" style="height: 5rem; width: 5rem; min-height: 5rem;">
 				<Icon icon="solar:hamburger-menu-bold" width="48" />
 			</button>

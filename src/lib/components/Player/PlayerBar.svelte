@@ -131,12 +131,21 @@
 	</div>
 
 	<!-- Main row -->
-	<div class="flex items-center gap-2 md:gap-4 w-full justify-between">
-		<!-- Track Info -->
-		<div class="flex-shrink-0 md:flex-1 md:w-64 min-w-0">
+	<div class="flex items-center gap-2 w-full">
+		<!-- Mobile: Track info (minimal, left) -->
+		<div class="md:hidden flex-1 min-w-0">
 			{#if $player.currentTrack}
-				<div class="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity hidden md:block">
+				<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="block min-w-0 hover:text-primary transition-colors">
+					<div class="text-xs font-medium truncate">{$player.currentTrack.title}</div>
+				</a>
+			{/if}
+		</div>
+
+		<!-- Desktop: Track info (full, left) -->
+		<div class="hidden md:flex md:flex-1 md:w-64 min-w-0">
+			{#if $player.currentTrack}
+				<div class="flex items-center gap-3 min-w-0 flex-1">
+					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
 						{#if $player.currentTrack.thumbnailUrl}
 							<img
 								src={$player.currentTrack.thumbnailUrl}
@@ -150,7 +159,7 @@
 						{/if}
 					</a>
 					<a href="/item/{$player.currentTrack.identifier.split('#')[0]}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-						<div class="text-xs md:text-base font-medium flex items-center gap-1 md:gap-2">
+						<div class="text-base font-medium flex items-center gap-2">
 							<span class="truncate">{$player.currentTrack.title}</span>
 							{#if $player.isPlaying}
 								<span class="flex-shrink-0">
@@ -162,26 +171,15 @@
 							{$player.currentTrack.artist}
 						</div>
 					</a>
-					<button
-						on:click={toggleFavorite}
-						class="btn btn-ghost btn-xs btn-circle flex-shrink-0 md:hidden"
-						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-					>
-						<Icon
-							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-							width="16"
-							className={isFavorite ? 'text-red-500' : ''}
-						/>
-					</button>
 				</div>
 			{:else}
-				<div class="text-xs md:text-sm text-base-content/50 hidden md:block">No track playing</div>
+				<div class="text-sm text-base-content/50">No track playing</div>
 			{/if}
 		</div>
 
-		<!-- Player Controls - Centered -->
-		<div class="flex items-center gap-1 md:gap-2 flex-shrink-0 md:flex-1 md:justify-center">
-			<!-- Shuffle - Hidden on mobile -->
+		<!-- Player Controls - Always centered -->
+		<div class="flex items-center justify-center gap-1 md:gap-2 md:flex-1">
+			<!-- Shuffle - Desktop only -->
 			<button
 				on:click={() => player.toggleShuffle()}
 				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
@@ -213,7 +211,7 @@
 				<Icon icon="solar:skip-next-bold" width="16" />
 			</button>
 
-			<!-- Repeat - Hidden on mobile -->
+			<!-- Repeat - Desktop only -->
 			<button
 				on:click={() => player.toggleRepeat()}
 				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
@@ -224,21 +222,19 @@
 			</button>
 		</div>
 
-		<!-- Right section: Download/Volume/Queue -->
-		<div class="flex-shrink-0 flex items-center gap-2 md:gap-4 md:w-64 md:justify-end">
-			<!-- Mobile download button -->
+		<!-- Right section: Actions/Volume/Queue -->
+		<div class="flex items-center gap-1 md:gap-2 md:w-64 md:justify-end">
+			<!-- Mobile: Download + Queue only -->
 			{#if $player.currentTrack}
-				<div class="md:hidden flex-shrink-0">
+				<div class="md:hidden">
 					<DownloadButton track={$player.currentTrack} size="sm" />
 				</div>
 			{/if}
 
-			<!-- Desktop favorite/share/download buttons -->
+			<!-- Desktop: Download/Favorite/Share -->
 			<div class="hidden md:flex items-center gap-1">
 				{#if $player.currentTrack}
-					<div class="flex-shrink-0">
-						<DownloadButton track={$player.currentTrack} size="sm" />
-					</div>
+					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
 				<button
 					on:click={toggleFavorite}
@@ -260,7 +256,7 @@
 				</button>
 			</div>
 
-			<!-- Volume Control - Hidden on mobile -->
+			<!-- Volume Control - Desktop only -->
 			<div class="hidden md:flex w-32 items-center gap-2">
 				<button
 					on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
@@ -285,7 +281,7 @@
 				/>
 			</div>
 
-			<!-- Queue Button -->
+			<!-- Queue Button - Always visible -->
 			<QueuePanel />
 		</div>
 	</div>

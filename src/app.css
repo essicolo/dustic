@@ -83,18 +83,21 @@ input[type='range'].range {
 }
 
 /* iOS PWA specific: ensure header background extends behind status bar */
-@supports (-webkit-touch-callout: none) {
-	.safe-header {
-		/* On iOS, add extra top padding for status bar if env() doesn't work */
-		padding-top: max(env(safe-area-inset-top, 0px), 20px);
-		height: calc(3.5rem + max(env(safe-area-inset-top, 0px), 20px));
-	}
-
-	/* For devices with notch/Dynamic Island */
-	@media (min-height: 800px) {
+/* Only apply extra padding in standalone mode (PWA), not in Safari browser */
+@media (display-mode: standalone) {
+	@supports (-webkit-touch-callout: none) {
 		.safe-header {
-			padding-top: max(env(safe-area-inset-top, 0px), 44px);
-			height: calc(3.5rem + max(env(safe-area-inset-top, 0px), 44px));
+			/* On iOS PWA, add extra top padding for status bar if env() doesn't work */
+			padding-top: max(env(safe-area-inset-top, 0px), 20px);
+			height: calc(3.5rem + max(env(safe-area-inset-top, 0px), 20px));
+		}
+
+		/* For devices with notch/Dynamic Island */
+		@media (min-height: 800px) {
+			.safe-header {
+				padding-top: max(env(safe-area-inset-top, 0px), 44px);
+				height: calc(3.5rem + max(env(safe-area-inset-top, 0px), 44px));
+			}
 		}
 	}
 }
@@ -102,6 +105,21 @@ input[type='range'].range {
 /* Main content padding to account for header with safe area */
 .safe-main-padding {
 	padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+/* In PWA standalone mode on iOS, adjust for extra header padding */
+@media (display-mode: standalone) {
+	@supports (-webkit-touch-callout: none) {
+		.safe-main-padding {
+			padding-top: calc(3.5rem + max(env(safe-area-inset-top, 0px), 20px));
+		}
+
+		@media (min-height: 800px) {
+			.safe-main-padding {
+				padding-top: calc(3.5rem + max(env(safe-area-inset-top, 0px), 44px));
+			}
+		}
+	}
 }
 
 /* Sidebar safe area padding (only on mobile when fixed) */

@@ -19,6 +19,12 @@
 	let loadingTrack: string | null = null;
 	let currentPage = 1;
 	let totalResults = 0;
+	let failedImages = new Set<string>(); // Track failed image loads
+
+	function handleImageError(identifier: string) {
+		failedImages.add(identifier);
+		failedImages = failedImages; // Trigger reactivity
+	}
 	let sortBy: 'downloads' | 'date' | 'title' = 'downloads';
 
 	$: collectionId = $page.params.id || '';
@@ -204,11 +210,12 @@
 					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
 						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if item.thumbnailUrl}
+							{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
 								<img
 									src={item.thumbnailUrl}
 									alt={item.title}
 									class="w-full aspect-square object-cover rounded bg-base-300"
+									on:error={() => handleImageError(item.identifier)}
 								/>
 							{:else}
 								<div

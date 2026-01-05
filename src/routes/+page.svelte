@@ -25,11 +25,17 @@
 	let loadingChapters: Set<string> = new Set();
 	let continueListening: Track[] = [];
 	let isLoadingContinue = false;
+	let failedImages = new Set<string>(); // Track failed image loads
 
 	onMount(() => {
 		loadContinueListening();
 		loadTrending();
 	});
+
+	function handleImageError(identifier: string) {
+		failedImages.add(identifier);
+		failedImages = failedImages; // Trigger reactivity
+	}
 
 	async function loadContinueListening() {
 		isLoadingContinue = true;
@@ -223,11 +229,12 @@
 							<div class="card-body p-3">
 								<!-- Thumbnail - Clickable -->
 								<a href="/item/{track.identifier}" class="block mb-2 hover:opacity-80 transition-opacity relative">
-									{#if track.thumbnailUrl}
+									{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
 										<img
 											src={track.thumbnailUrl}
 											alt={track.title}
 											class="w-full aspect-square object-cover rounded bg-base-300"
+											on:error={() => handleImageError(track.identifier)}
 										/>
 									{:else}
 										<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
@@ -333,11 +340,12 @@
 					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
 						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if item.thumbnailUrl}
+							{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
 								<img
 									src={item.thumbnailUrl}
 									alt={item.title}
 									class="w-full aspect-square object-cover rounded bg-base-300"
+									on:error={() => handleImageError(item.identifier)}
 								/>
 							{:else}
 								<div

@@ -25,6 +25,12 @@
 	let showFilters = false;
 	let shareMessage = '';
 	let showShareToast = false;
+	let failedImages = new Set<string>(); // Track failed image loads
+
+	function handleImageError(identifier: string) {
+		failedImages.add(identifier);
+		failedImages = failedImages; // Trigger reactivity
+	}
 
 	// Read query params on mount
 	onMount(() => {
@@ -434,11 +440,12 @@
 								<div class="flex items-center gap-3 max-w-full">
 									<!-- Album Art - Clickable -->
 									<a href="/item/{item.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-										{#if item.thumbnailUrl}
+										{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
 											<img
 												src={item.thumbnailUrl}
 												alt={item.title}
 												class="w-12 h-12 rounded object-cover bg-base-300"
+												on:error={() => handleImageError(item.identifier)}
 											/>
 										{:else}
 											<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">

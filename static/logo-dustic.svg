@@ -26,9 +26,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="1.9369417"
-     inkscape:cx="167.27401"
-     inkscape:cy="125.45551"
+     inkscape:zoom="1.8029652"
+     inkscape:cx="163.61936"
+     inkscape:cy="119.24801"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -53,7 +53,8 @@
        inkscape:export-xdpi="96"
        inkscape:export-ydpi="96" />
     <g
-       id="g1">
+       id="g1"
+       transform="matrix(0.89655174,0,0,0.89655174,4.5872127,15.813673)">
       <path
          d="m 44.593199,130.74844 v 44.23418 H 88.82737 v -3.44356 a 20.106439,20.106439 0 0 1 -6.59084,1.11114 20.106439,20.106439 0 0 1 -20.106535,-20.10653 20.106439,20.106439 0 0 1 20.106535,-20.10654 20.106439,20.106439 0 0 1 6.59084,1.11114 v -2.79983 z"
          style="stroke:#000000;stroke-width:0.500276;stroke-linecap:round"

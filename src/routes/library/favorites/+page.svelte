@@ -18,6 +18,12 @@
 	let loadingTrack: string | null = null;
 	let showOfflineOnly = false;
 	let viewMode: 'grid' | 'list' = 'list';
+	let failedImages = new Set<string>(); // Track failed image loads
+
+	function handleImageError(identifier: string) {
+		failedImages.add(identifier);
+		failedImages = failedImages; // Trigger reactivity
+	}
 
 	// Load view preference from localStorage
 	onMount(() => {
@@ -188,11 +194,12 @@
 					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
 						<a href="/item/{track.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if track.thumbnailUrl}
+							{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
 								<img
 									src={track.thumbnailUrl}
 									alt={track.title}
 									class="w-full aspect-square object-cover rounded bg-base-300"
+									on:error={() => handleImageError(track.identifier)}
 								/>
 							{:else}
 								<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
@@ -263,11 +270,12 @@
 						<div class="flex items-center gap-3">
 							<!-- Album Art -->
 							<a href="/item/{track.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-								{#if track.thumbnailUrl}
+								{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
 									<img
 										src={track.thumbnailUrl}
 										alt={track.title}
 										class="w-12 h-12 rounded object-cover bg-base-300"
+										on:error={() => handleImageError(track.identifier)}
 									/>
 								{:else}
 									<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">

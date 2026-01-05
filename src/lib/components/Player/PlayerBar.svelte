@@ -130,6 +130,7 @@
 			max="100"
 			value={($player.currentTime / $player.duration) * 100 || 0}
 			on:input={handleSeek}
+			on:change={handleSeek}
 			class="range range-primary range-xs flex-1"
 		/>
 		<span class="text-xs text-base-content/70 w-10 flex-shrink-0">
@@ -326,6 +327,7 @@
 			max="100"
 			value={($player.currentTime / $player.duration) * 100 || 0}
 			on:input={handleSeek}
+			on:change={handleSeek}
 			class="range range-primary range-xs flex-1 max-w-2xl"
 		/>
 		<span class="text-xs text-base-content/70 w-12">

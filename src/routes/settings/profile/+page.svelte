@@ -3,10 +3,12 @@
 	import { history } from '$lib/stores/history';
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { player } from '$lib/stores/player';
+	import { offline } from '$lib/stores/offline';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
+	import { onMount } from 'svelte';
 
 	let fileInput: HTMLInputElement;
 	let isImporting = false;
@@ -23,6 +25,26 @@
 		playlistTracks: Object.values($library.playlists).reduce((sum, p) => sum + p.tracks.length, 0),
 		historyEntries: $history.entries.length
 	};
+
+	// Offline storage stats
+	$: offlineStats = {
+		tracks: $offline.offlineTracks.length,
+		storageUsed: $offline.storageUsed,
+		storageQuota: $offline.storageQuota
+	};
+
+	// Format bytes to human readable
+	function formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	onMount(() => {
+		offline.loadOfflineTracks();
+	});
 
 	function handleExport() {
 		const profile: UserProfile = {
@@ -233,7 +255,7 @@
 	</div>
 
 	<!-- What's Stored -->
-	<div class="card bg-base-200">
+	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
 			<h3 class="text-xl font-semibold mb-4">What's Included in Your Profile</h3>
 			<ul class="space-y-2 text-base-content/80">
@@ -268,6 +290,54 @@
 					</div>
 				</li>
 			</ul>
+		</div>
+	</div>
+
+	<!-- Offline Storage Information -->
+	<div class="card bg-base-200">
+		<div class="card-body">
+			<h3 class="text-xl font-semibold mb-4">
+				<Icon icon="solar:download-minimalistic-bold" width="24" className="inline mr-2" />
+				Offline Storage
+			</h3>
+
+			<!-- Storage stats -->
+			<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+				<div class="stat bg-base-300 rounded-lg p-4">
+					<div class="stat-title text-xs">Downloaded Tracks</div>
+					<div class="stat-value text-2xl">{offlineStats.tracks}</div>
+				</div>
+				<div class="stat bg-base-300 rounded-lg p-4">
+					<div class="stat-title text-xs">Storage Used</div>
+					<div class="stat-value text-xl">{formatBytes(offlineStats.storageUsed)}</div>
+				</div>
+				<div class="stat bg-base-300 rounded-lg p-4">
+					<div class="stat-title text-xs">Storage Quota</div>
+					<div class="stat-value text-xl">{formatBytes(offlineStats.storageQuota)}</div>
+				</div>
+			</div>
+
+			<div class="space-y-3 text-sm text-base-content/70">
+				<div class="alert alert-info">
+					<Icon icon="solar:info-circle-bold" width="20" />
+					<div class="space-y-2">
+						<p>
+							<strong>Storage Location:</strong> Offline files are stored in your browser's storage:
+						</p>
+						<ul class="list-disc list-inside ml-4 space-y-1">
+							<li><strong>Audio files:</strong> Cache API (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-audio-cache</code>)</li>
+							<li><strong>Metadata:</strong> IndexedDB (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-offline</code>)</li>
+						</ul>
+					</div>
+				</div>
+
+				<div class="alert alert-warning">
+					<Icon icon="solar:danger-triangle-bold" width="20" />
+					<div>
+						<p><strong>Important:</strong> Offline files cannot be exported or synced across devices due to browser security restrictions. Downloaded tracks must be re-downloaded on each device where you want offline access.</p>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

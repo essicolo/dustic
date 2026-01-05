@@ -40,7 +40,14 @@ body {
 		/* Add vertical padding for larger touch target */
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
+		/* Prevent page scroll while dragging */
+		touch-action: none;
 	}
+}
+
+/* Ensure smooth dragging on desktop too */
+input[type='range'].range {
+	touch-action: none;
 }
 
 /* iOS Safe Area Support for Player Bar */

@@ -94,7 +94,7 @@
 
 		<!-- Sidebar -->
 		<aside
-			class="w-64 bg-base-200 p-2 pb-32 overflow-y-auto border-r border-base-300 fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
+			class="w-64 bg-base-200 p-2 pb-32 overflow-y-auto border-r border-base-300 fixed lg:sticky inset-y-0 lg:top-0 lg:h-screen left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
 			class:translate-x-0={isSidebarOpen}
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}

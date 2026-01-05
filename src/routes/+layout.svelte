@@ -94,13 +94,13 @@
 
 		<!-- Sidebar -->
 		<aside
-			class="w-64 bg-base-200 p-2 pb-32 overflow-y-auto border-r border-base-300 fixed lg:sticky inset-y-0 lg:top-0 lg:h-screen left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar"
+			class="w-64 bg-base-200 p-2 pb-32 overflow-y-auto border-r border-base-300 fixed lg:sticky inset-y-0 lg:top-0 lg:h-screen left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar sidebar-scrollbar"
 			class:translate-x-0={isSidebarOpen}
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
 		>
 			<!-- Logo - Desktop only -->
-			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-4 mb-2">
+			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
 				<span class="text-xl font-bold">Dustic</span>
 			</a>
@@ -116,7 +116,7 @@
 				<a
 					href="{base}/"
 					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/` || currentPath === base}
 					class:text-primary-content={currentPath === `${base}/` || currentPath === base}
 				>
@@ -125,16 +125,16 @@
 				<a
 					href="{base}/search"
 					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/search`}
 					class:text-primary-content={currentPath === `${base}/search`}
 				>
 					Search
 				</a>
 
-				<div class="border-t border-base-300 my-4"></div>
+				<div class="border-t border-base-300 my-3"></div>
 
-				<div class="px-4 py-2 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
 					Collections
 				</div>
 				{#each POPULAR_COLLECTIONS as collection}
@@ -149,12 +149,12 @@
 					</a>
 				{/each}
 
-				<div class="border-t border-base-300 my-4"></div>
+				<div class="border-t border-base-300 my-3"></div>
 
 				<a
 					href="{base}/library"
 					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 					class:text-primary-content={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 				>
@@ -163,29 +163,19 @@
 				<a
 					href="{base}/settings"
 					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
 				>
 					Settings
 				</a>
 
-				<div class="border-t border-base-300 my-4"></div>
+				<div class="border-t border-base-300 my-3"></div>
 
-				<a
-					href="https://github.com/sponsors/essicolo"
-					target="_blank"
-					rel="noopener noreferrer"
-					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg bg-pink-600 hover:bg-pink-700 transition-all text-sm font-medium text-white flex items-center justify-center gap-2"
-				>
-					<Icon icon="solar:heart-bold" width="18" />
-					<span>Sponsor</span>
-				</a>
 				<a
 					href="{base}/about"
 					on:click={closeSidebar}
-					class="block px-4 py-2.5 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 					class:bg-primary={currentPath === `${base}/about`}
 					class:text-primary-content={currentPath === `${base}/about`}
 				>
@@ -193,18 +183,8 @@
 				</a>
 			</nav>
 
-			<!-- Profile Manager -->
+			<!-- Compact Profile Manager -->
 			<ProfileManager />
-
-			<!-- Feedback Button -->
-			<a
-				href="https://github.com/essicolo/dustic/issues/new"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="block mt-4 mb-4 px-4 py-2.5 text-center text-sm border border-base-300 rounded-lg hover:bg-base-300 transition-all font-medium"
-			>
-				Send Feedback
-			</a>
 		</aside>
 
 		<!-- Main content -->

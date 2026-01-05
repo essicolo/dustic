@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { APP_VERSION } from '$lib/version';
+	import Icon from '$lib/components/Icon.svelte';
 </script>
 
 <div class="p-4 md:p-8 max-w-3xl mx-auto">
@@ -177,6 +178,34 @@
 			<h2 class="text-xl font-semibold mb-3">Version</h2>
 			<p class="text-base-content/80">
 				Current version: <strong>{APP_VERSION}</strong>
+			</p>
+		</section>
+
+		<!-- Support & Feedback -->
+		<section class="card bg-base-200 p-6">
+			<h2 class="text-xl font-semibold mb-4">Support & Feedback</h2>
+			<div class="space-y-3">
+				<a
+					href="https://github.com/sponsors/essicolo"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn btn-primary w-full flex items-center gap-2"
+				>
+					<Icon icon="solar:heart-bold" width="20" />
+					<span>Sponsor this project</span>
+				</a>
+				<a
+					href="https://github.com/essicolo/dustic/issues/new"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn btn-outline w-full flex items-center gap-2"
+				>
+					<Icon icon="solar:chat-round-dots-bold" width="20" />
+					<span>Send Feedback</span>
+				</a>
+			</div>
+			<p class="text-sm text-base-content/70 mt-4">
+				If you enjoy Dustic, consider sponsoring the project. Report bugs or suggest features via GitHub issues.
 			</p>
 		</section>
 

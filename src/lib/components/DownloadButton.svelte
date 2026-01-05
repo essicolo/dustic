@@ -59,21 +59,16 @@
 {/if}
 
 <style>
-	/* Increase touch target on mobile without changing visual appearance */
+	/* Increase touch target on mobile using padding */
 	@media (max-width: 768px) {
 		.touch-target {
-			position: relative;
-		}
-
-		.touch-target::before {
-			content: '';
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			width: 44px;
-			height: 44px;
-			/* Invisible but touchable */
+			/* Add invisible padding to expand click area */
+			padding: 0.5rem;
+			/* Compensate with negative margin to keep visual position */
+			margin: -0.5rem;
+			/* Ensure it's clickable */
+			min-width: 44px;
+			min-height: 44px;
 		}
 	}
 </style>

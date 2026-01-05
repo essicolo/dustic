@@ -99,6 +99,12 @@
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
 		>
+			<!-- Logo - Desktop only -->
+			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-4 mb-2">
+				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
+				<span class="text-xl font-bold">Dustic</span>
+			</a>
+
 			<!-- Close button for mobile only -->
 			<div class="flex justify-end lg:hidden pt-1 pb-2">
 				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-circle">

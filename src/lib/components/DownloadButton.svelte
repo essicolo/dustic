@@ -39,11 +39,11 @@
 	<!-- Downloaded state - subtle filled icon with small checkmark -->
 	<button
 		on:click={handleDownload}
-		class="btn btn-{size} btn-circle btn-ghost relative"
+		class="btn btn-{size} btn-circle btn-ghost relative overflow-visible"
 		title="Downloaded - Click to re-download"
 	>
 		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} className="text-base-content" />
-		<div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-success rounded-full flex items-center justify-center">
+		<div class="absolute top-0 right-0 w-3 h-3 bg-success rounded-full flex items-center justify-center">
 			<Icon icon="solar:check-circle-bold" width="10" className="text-success-content" />
 		</div>
 	</button>

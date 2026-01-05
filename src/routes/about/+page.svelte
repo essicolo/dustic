@@ -112,6 +112,9 @@
 					<li>Your privacy is fully protected</li>
 					<li>Data persists across browser sessions</li>
 				</ul>
+				<p class="mt-3">
+					<strong>Account-free design:</strong> To keep the app simple and privacy-focused, there is no cloud infrastructure or account system to sync profiles between devices. However, you can export and import your profile using the buttons in Settings → Profile Data to transfer your data between devices.
+				</p>
 			</div>
 		</section>
 

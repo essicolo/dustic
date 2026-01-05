@@ -333,20 +333,10 @@
 
 				<div class="alert alert-warning">
 					<Icon icon="solar:danger-triangle-bold" width="20" />
-					<div class="space-y-2">
-						<p><strong>Important:</strong> Offline files cannot be exported or synced across devices due to browser security restrictions.</p>
-						<p>However, you can:</p>
-						<ul class="list-disc list-inside ml-4 space-y-1">
-							<li>Export your profile JSON (favorites, playlists, history) and save it to cloud storage (Dropbox, Google Drive, etc.)</li>
-							<li>Import the profile JSON on other devices</li>
-							<li>Re-download tracks on each device where you want offline access</li>
-						</ul>
+					<div>
+						<p><strong>Important:</strong> Offline files cannot be exported or synced across devices due to browser security restrictions. Downloaded tracks must be re-downloaded on each device where you want offline access.</p>
 					</div>
 				</div>
-
-				<p class="text-xs">
-					<strong>Cross-device sync:</strong> To share your profile across devices, download your profile JSON above and upload it to your cloud storage. Then download and import it on your other devices. Downloaded audio files must be downloaded separately on each device.
-				</p>
 			</div>
 		</div>
 	</div>

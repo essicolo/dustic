@@ -121,7 +121,7 @@
 	}
 </script>
 
-<div class="p-4 border-t border-base-content/10">
+<div class="px-4 pb-4 border-t border-base-content/10 pt-3">
 	<!-- Hidden file input -->
 	<input
 		type="file"
@@ -131,50 +131,41 @@
 		class="hidden"
 	/>
 
-	<!-- Dirty indicator -->
-	{#if isDirty}
-		<div class="alert alert-warning mb-3 text-xs p-2 flex items-center gap-1">
-			<Icon icon="solar:danger-triangle-bold" width="16" />
-			<span>Unsaved changes</span>
+	<!-- Compact Profile Manager - Single Line -->
+	<div class="flex items-center justify-between gap-2">
+		<span class="text-sm font-medium flex items-center gap-1.5">
+			{#if isDirty}
+				<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning" />
+			{/if}
+			Profile
+		</span>
+		<div class="flex items-center gap-1">
+			<button
+				on:click={handleExport}
+				class="btn btn-ghost btn-xs btn-circle"
+				title="Download profile"
+			>
+				<Icon icon="solar:download-bold" width="16" />
+			</button>
+			<button
+				on:click={handleImportClick}
+				class="btn btn-ghost btn-xs btn-circle"
+				disabled={isImporting}
+				title="Upload profile"
+			>
+				{#if isImporting}
+					<span class="loading loading-spinner loading-xs"></span>
+				{:else}
+					<Icon icon="solar:upload-bold" width="16" />
+				{/if}
+			</button>
 		</div>
-	{/if}
+	</div>
 
 	<!-- Import Error -->
 	{#if importError}
-		<div class="alert alert-error mb-3 text-xs p-2">
+		<div class="alert alert-error mt-2 text-xs p-2">
 			<span>{importError}</span>
 		</div>
 	{/if}
-
-	<!-- Actions -->
-	<div class="space-y-2">
-		<button
-			on:click={handleExport}
-			class="btn btn-primary btn-sm w-full"
-			title="Download your profile"
-		>
-			<span>↓</span>
-			<span>Download Profile</span>
-		</button>
-
-		<button
-			on:click={handleImportClick}
-			class="btn btn-ghost btn-sm w-full"
-			disabled={isImporting}
-			title="Upload a profile"
-		>
-			{#if isImporting}
-				<span class="loading loading-spinner loading-xs"></span>
-			{:else}
-				<span>↑</span>
-			{/if}
-			<span>Upload Profile</span>
-		</button>
-	</div>
-
-	<!-- Info -->
-	<div class="text-xs text-base-content/50 mt-3">
-		<p>Your data stays on your device.</p>
-		<p>Download to backup or move between browsers.</p>
-	</div>
 </div>

@@ -34,6 +34,29 @@ body {
 	@apply bg-neutral;
 }
 
+/* Extra thin scrollbar for sidebar */
+.sidebar-scrollbar::-webkit-scrollbar {
+	width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+	@apply bg-transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+	@apply bg-base-300/50 rounded-full;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+	@apply bg-base-300;
+}
+
+/* Firefox thin scrollbar */
+.sidebar-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: hsl(var(--bc) / 0.2) transparent;
+}
+
 /* Improve range slider touch targets for mobile - only add padding, let DaisyUI handle styling */
 @media (max-width: 768px) {
 	input[type='range'].range {

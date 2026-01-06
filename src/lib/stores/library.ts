@@ -94,6 +94,14 @@ function createLibraryStore() {
 		},
 
 		// Playlists
+		findPlaylistByName(name: string): Playlist | undefined {
+			const state = get({ subscribe });
+			const normalizedName = name.trim().toLowerCase();
+			return Object.values(state.playlists).find(
+				(playlist) => playlist.name.toLowerCase() === normalizedName
+			);
+		},
+
 		createPlaylist(name: string, description?: string): string {
 			const id = generateId();
 			update((state) => {

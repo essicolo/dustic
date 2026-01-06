@@ -1,4 +1,4 @@
-<script lang="ts">
+ble <script lang="ts">
 	import { queue } from '$lib/stores/queue';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { library } from '$lib/stores/library';
@@ -9,6 +9,7 @@
 
 	let isOpen = false;
 	let showSaveDialog = false;
+	let selectedPlaylistId: string | 'new' = 'new';
 	let playlistName = '';
 	let playlistDescription = '';
 	let showPlaylistSelectorForTrack: string | null = null;
@@ -35,6 +36,7 @@
 	}
 
 	function openSaveDialog() {
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 		showSaveDialog = true;
@@ -42,18 +44,24 @@
 
 	function cancelSave() {
 		showSaveDialog = false;
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 	}
 
 	function saveAsPlaylist() {
-		if (!playlistName.trim()) return;
-
 		// Get all track IDs from queue
 		const trackIds = $queue.tracks.map(track => track.identifier);
+		let id: string;
 
-		// Create playlist
-		const id = library.createPlaylist(playlistName.trim(), playlistDescription.trim());
+		if (selectedPlaylistId === 'new') {
+			// Create new playlist
+			if (!playlistName.trim()) return;
+			id = library.createPlaylist(playlistName.trim(), playlistDescription.trim());
+		} else {
+			// Use existing playlist
+			id = selectedPlaylistId;
+		}
 
 		// Add all tracks
 		trackIds.forEach(trackId => {
@@ -62,6 +70,7 @@
 
 		// Reset and close
 		showSaveDialog = false;
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 
@@ -134,41 +143,67 @@
 			<!-- Save as Playlist Dialog -->
 			{#if showSaveDialog}
 				<div class="p-4 bg-base-300/80 border-b border-base-content/10">
-					<h3 class="font-semibold mb-3">Save Queue as Playlist</h3>
+					<h3 class="font-semibold mb-3">Save Queue to Playlist</h3>
 					<div class="space-y-3">
+						<!-- Playlist Selector -->
 						<div class="form-control">
-							<label class="label" for="queue-playlist-name">
-								<span class="label-text text-xs">Playlist Name</span>
+							<label class="label" for="queue-playlist-select">
+								<span class="label-text text-xs">Select Playlist</span>
 							</label>
-							<input
-								id="queue-playlist-name"
-								type="text"
-								bind:value={playlistName}
-								placeholder="My Queue"
-								class="input input-sm input-bordered"
-								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
-							/>
+							<select
+								id="queue-playlist-select"
+								bind:value={selectedPlaylistId}
+								class="select select-sm select-bordered w-full"
+							>
+								<option value="new">+ Create New Playlist</option>
+								{#each playlists as playlist}
+									<option value={playlist.id}>{playlist.name} ({playlist.tracks.length})</option>
+								{/each}
+							</select>
 						</div>
-						<div class="form-control">
-							<label class="label" for="queue-playlist-description">
-								<span class="label-text text-xs">Description (optional)</span>
-							</label>
-							<input
-								id="queue-playlist-description"
-								type="text"
-								bind:value={playlistDescription}
-								placeholder="From my queue"
-								class="input input-sm input-bordered"
-								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
-							/>
-						</div>
+
+						{#if selectedPlaylistId === 'new'}
+							<!-- New Playlist Form -->
+							<div class="form-control">
+								<label class="label" for="queue-playlist-name">
+									<span class="label-text text-xs">Playlist Name</span>
+								</label>
+								<input
+									id="queue-playlist-name"
+									type="text"
+									bind:value={playlistName}
+									placeholder="My Queue"
+									class="input input-sm input-bordered"
+									on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+									autofocus
+								/>
+							</div>
+							<div class="form-control">
+								<label class="label" for="queue-playlist-description">
+									<span class="label-text text-xs">Description (optional)</span>
+								</label>
+								<input
+									id="queue-playlist-description"
+									type="text"
+									bind:value={playlistDescription}
+									placeholder="From my queue"
+									class="input input-sm input-bordered"
+									on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+								/>
+							</div>
+						{/if}
+
 						<div class="flex gap-2">
 							<button
 								on:click={saveAsPlaylist}
-								disabled={!playlistName.trim()}
+								disabled={selectedPlaylistId === 'new' && !playlistName.trim()}
 								class="btn btn-primary btn-sm flex-1"
 							>
-								Save ({$queue.tracks.length} tracks)
+								{#if selectedPlaylistId === 'new'}
+									Create & Add ({$queue.tracks.length})
+								{:else}
+									Add ({$queue.tracks.length})
+								{/if}
 							</button>
 							<button on:click={cancelSave} class="btn btn-ghost btn-sm">
 								Cancel

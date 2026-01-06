@@ -30,7 +30,7 @@
 
 {#if status === 'downloading'}
 	<!-- Downloading state - subtle progress indicator -->
-	<button class="btn btn-{size} btn-circle btn-ghost relative" disabled title="Downloading... {progress}%">
+	<button class="btn btn-{size} btn-circle btn-ghost relative touch-target" disabled title="Downloading... {progress}%">
 		<div class="radial-progress text-[10px]" style="--value:{progress}; --size:1.25rem; --thickness: 2px;">
 			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 12 : 14} className="text-base-content/50" />
 		</div>
@@ -39,7 +39,7 @@
 	<!-- Downloaded state - subtle filled icon with small checkmark -->
 	<button
 		on:click={handleDownload}
-		class="btn btn-{size} btn-circle btn-ghost relative overflow-visible"
+		class="btn btn-{size} btn-circle btn-ghost relative overflow-visible touch-target"
 		title="Downloaded - Click to re-download"
 	>
 		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} className="text-base-content" />
@@ -51,9 +51,24 @@
 	<!-- Not downloaded state - subtle outline icon -->
 	<button
 		on:click={handleDownload}
-		class="btn btn-{size} btn-circle btn-ghost"
+		class="btn btn-{size} btn-circle btn-ghost touch-target"
 		title="Download for offline"
 	>
 		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} className="text-base-content/50" />
 	</button>
 {/if}
+
+<style>
+	/* Increase touch target on mobile using padding */
+	@media (max-width: 768px) {
+		.touch-target {
+			/* Add invisible padding to expand click area */
+			padding: 0.5rem;
+			/* Compensate with negative margin to keep visual position */
+			margin: -0.5rem;
+			/* Ensure it's clickable */
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
+</style>

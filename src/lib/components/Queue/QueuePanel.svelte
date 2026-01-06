@@ -1,10 +1,16 @@
 <script lang="ts">
 	import { queue } from '$lib/stores/queue';
 	import { player, currentTrack } from '$lib/stores/player';
+	import { library } from '$lib/stores/library';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getTrack } from '$lib/services/internetArchive';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let isOpen = false;
+	let showSaveDialog = false;
+	let playlistName = '';
+	let playlistDescription = '';
 
 	function togglePanel() {
 		isOpen = !isOpen;
@@ -27,8 +33,45 @@
 		}
 	}
 
+	function openSaveDialog() {
+		playlistName = '';
+		playlistDescription = '';
+		showSaveDialog = true;
+	}
+
+	function cancelSave() {
+		showSaveDialog = false;
+		playlistName = '';
+		playlistDescription = '';
+	}
+
+	function saveAsPlaylist() {
+		if (!playlistName.trim()) return;
+
+		// Get all track IDs from queue
+		const trackIds = $queue.tracks.map(track => track.identifier);
+
+		// Create playlist
+		const id = library.createPlaylist(playlistName.trim(), playlistDescription.trim());
+
+		// Add all tracks
+		trackIds.forEach(trackId => {
+			library.addToPlaylist(id, trackId);
+		});
+
+		// Reset and close
+		showSaveDialog = false;
+		playlistName = '';
+		playlistDescription = '';
+
+		// Show success and navigate
+		isOpen = false;
+		goto(`${base}/library/playlists/${id}`);
+	}
+
 	$: upcomingTracks = $queue.tracks.slice($queue.currentIndex + 1);
 	$: queueCount = upcomingTracks.length;
+
 </script>
 
 <!-- Queue Toggle Button -->
@@ -61,11 +104,68 @@
 				<h2 class="text-xl font-bold">Queue</h2>
 				<div class="flex items-center gap-2">
 					{#if $queue.tracks.length > 0}
+						<button
+							on:click={openSaveDialog}
+							class="btn btn-primary btn-sm"
+							title="Save queue as playlist"
+						>
+							<Icon icon="solar:playlist-minimalistic-2-bold" width="16" />
+							Save
+						</button>
 						<button on:click={clearQueue} class="btn btn-ghost btn-sm">Clear</button>
 					{/if}
-					<button on:click={togglePanel} class="btn btn-ghost btn-sm">Close</button>
+					<button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle">
+						<Icon icon="solar:close-circle-bold" width="18" />
+					</button>
 				</div>
 			</div>
+
+			<!-- Save as Playlist Dialog -->
+			{#if showSaveDialog}
+				<div class="p-4 bg-base-300/80 border-b border-base-content/10">
+					<h3 class="font-semibold mb-3">Save Queue as Playlist</h3>
+					<div class="space-y-3">
+						<div class="form-control">
+							<label class="label" for="queue-playlist-name">
+								<span class="label-text text-xs">Playlist Name</span>
+							</label>
+							<input
+								id="queue-playlist-name"
+								type="text"
+								bind:value={playlistName}
+								placeholder="My Queue"
+								class="input input-sm input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+							/>
+						</div>
+						<div class="form-control">
+							<label class="label" for="queue-playlist-description">
+								<span class="label-text text-xs">Description (optional)</span>
+							</label>
+							<input
+								id="queue-playlist-description"
+								type="text"
+								bind:value={playlistDescription}
+								placeholder="From my queue"
+								class="input input-sm input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+							/>
+						</div>
+						<div class="flex gap-2">
+							<button
+								on:click={saveAsPlaylist}
+								disabled={!playlistName.trim()}
+								class="btn btn-primary btn-sm flex-1"
+							>
+								Save ({$queue.tracks.length} tracks)
+							</button>
+							<button on:click={cancelSave} class="btn btn-ghost btn-sm">
+								Cancel
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Current Track -->
 			{#if $currentTrack}

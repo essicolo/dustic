@@ -114,7 +114,7 @@
 </script>
 
 <!-- Hidden audio element - MUST always be mounted -->
-<audio bind:this={audioElement} preload="auto" crossorigin="anonymous"></audio>
+<audio bind:this={audioElement} preload="auto"></audio>
 
 {#if $player.currentTrack}
 <!-- Player Bar -->

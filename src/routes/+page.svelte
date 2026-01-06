@@ -245,7 +245,6 @@
 									src={track.thumbnailUrl}
 									alt={track.title}
 									class="w-full aspect-square object-cover rounded bg-base-300"
-									crossorigin="anonymous"
 									on:error={() => handleImageError(track.identifier)}
 								/>
 									{:else}
@@ -357,7 +356,6 @@
 								src={item.thumbnailUrl}
 								alt={item.title}
 								class="w-full aspect-square object-cover rounded bg-base-300"
-								crossorigin="anonymous"
 								on:error={() => handleImageError(item.identifier)}
 							/>
 							{:else}

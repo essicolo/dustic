@@ -242,7 +242,7 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end overflow-hidden max-w-full">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end max-w-full">
 			<!-- Mobile: Favorite + Download + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}

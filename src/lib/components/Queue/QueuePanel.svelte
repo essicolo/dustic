@@ -11,6 +11,7 @@
 	let showSaveDialog = false;
 	let playlistName = '';
 	let playlistDescription = '';
+	let showPlaylistSelectorForTrack: string | null = null;
 
 	function togglePanel() {
 		isOpen = !isOpen;
@@ -69,8 +70,18 @@
 		goto(`${base}/library/playlists/${id}`);
 	}
 
+	function togglePlaylistSelector(trackId: string) {
+		showPlaylistSelectorForTrack = showPlaylistSelectorForTrack === trackId ? null : trackId;
+	}
+
+	function addToPlaylist(trackId: string, playlistId: string) {
+		library.addToPlaylist(playlistId, trackId);
+		showPlaylistSelectorForTrack = null;
+	}
+
 	$: upcomingTracks = $queue.tracks.slice($queue.currentIndex + 1);
 	$: queueCount = upcomingTracks.length;
+	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 
 </script>
 
@@ -208,27 +219,59 @@
 				{:else}
 					<div class="divide-y divide-base-content/10">
 						{#each upcomingTracks as track, index}
-							<div class="p-3 hover:bg-base-300/50 group flex items-center gap-3">
-								<button
-									on:click={() => playTrackAt($queue.currentIndex + 1 + index)}
-									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
-									title="Play"
-								>
-									Play
-								</button>
+							<div class="p-3 hover:bg-base-300/50 group">
+								<div class="flex items-center gap-2">
+									<button
+										on:click={() => playTrackAt($queue.currentIndex + 1 + index)}
+										class="btn btn-ghost btn-xs"
+										title="Play"
+									>
+										<Icon icon="solar:play-bold" width="14" />
+									</button>
 
-								<div class="flex-1 min-w-0">
-									<div class="font-medium truncate text-sm">{track.title}</div>
-									<div class="text-xs text-base-content/70 truncate">{track.artist}</div>
+									<div class="flex-1 min-w-0">
+										<div class="font-medium truncate text-sm">{track.title}</div>
+										<div class="text-xs text-base-content/70 truncate">{track.artist}</div>
+									</div>
+
+									<div class="relative">
+										<button
+											on:click={() => togglePlaylistSelector(track.identifier)}
+											class="btn btn-ghost btn-xs"
+											title="Add to playlist"
+										>
+											<Icon icon="solar:add-circle-bold" width="14" />
+										</button>
+
+										{#if showPlaylistSelectorForTrack === track.identifier}
+											<div class="absolute right-0 mt-1 w-48 bg-base-200 rounded-lg shadow-xl z-10 border border-base-content/10 max-h-60 overflow-y-auto">
+												{#if playlists.length === 0}
+													<div class="p-3 text-center text-sm text-base-content/50">
+														No playlists yet
+													</div>
+												{:else}
+													{#each playlists as playlist}
+														<button
+															on:click={() => addToPlaylist(track.identifier, playlist.id)}
+															class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm flex items-center justify-between gap-2"
+														>
+															<span class="truncate">{playlist.name}</span>
+															<span class="text-xs text-base-content/50">{playlist.tracks.length}</span>
+														</button>
+													{/each}
+												{/if}
+											</div>
+										{/if}
+									</div>
+
+									<button
+										on:click={() => removeTrack($queue.currentIndex + 1 + index)}
+										class="btn btn-ghost btn-xs"
+										title="Remove"
+									>
+										<Icon icon="solar:close-circle-bold" width="14" />
+									</button>
 								</div>
-
-								<button
-									on:click={() => removeTrack($queue.currentIndex + 1 + index)}
-									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
-									title="Remove"
-								>
-									Remove
-								</button>
 							</div>
 						{/each}
 					</div>

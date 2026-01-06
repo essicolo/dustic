@@ -48,7 +48,7 @@
 
 	function handleExport() {
 		const profile: UserProfile = {
-			version: '1.0.0',
+			schemaVersion: 1,
 			exported: Date.now(),
 			favorites: $library.favorites,
 			playlists: $library.playlists,
@@ -56,7 +56,8 @@
 			autoplayRules: $autoplayStore.rules,
 			settings: {
 				volume: $player.volume,
-				repeat: $player.repeat
+				repeat: $player.repeat,
+				audioQuality: 'medium'
 			}
 		};
 

@@ -30,13 +30,13 @@ function createLibraryStore() {
 	function triggerAutoSave() {
 		const state = get({ subscribe });
 		const profile = loadFromStorage() || {
-			version: '1.0.0',
+			schemaVersion: 1,
 			exported: Date.now(),
 			favorites: [],
 			playlists: {},
 			history: [],
 			autoplayRules: [],
-			settings: { volume: 0.7, repeat: 'off' as const }
+			settings: { volume: 0.7, repeat: 'off' as const, audioQuality: 'medium' as const }
 		};
 
 		scheduleAutoSave({

@@ -54,8 +54,8 @@ export function importProfile(file: File): Promise<UserProfile> {
 function validateProfile(profile: any): profile is UserProfile {
 	if (!profile || typeof profile !== 'object') return false;
 
-	// Check required fields
-	if (!profile.version || !profile.exported) return false;
+	// Check required fields (accept both old 'version' and new 'schemaVersion')
+	if ((!profile.version && !profile.schemaVersion) || !profile.exported) return false;
 	if (!Array.isArray(profile.favorites)) return false;
 	if (!Array.isArray(profile.history)) return false;
 	if (!Array.isArray(profile.autoplayRules)) return false;
@@ -70,7 +70,7 @@ function validateProfile(profile: any): profile is UserProfile {
  */
 export function createDefaultProfile(): UserProfile {
 	return {
-		version: CONFIG.profileVersion,
+		schemaVersion: 1,
 		exported: Date.now(),
 		favorites: [],
 		playlists: {},
@@ -90,7 +90,7 @@ export function createDefaultProfile(): UserProfile {
 export function mergeProfiles(current: UserProfile, imported: UserProfile): UserProfile {
 	return {
 		...imported,
-		version: CONFIG.profileVersion,
+		schemaVersion: 1,
 		exported: Date.now(),
 		// Keep newer history entries
 		history: [

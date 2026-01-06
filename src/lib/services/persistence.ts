@@ -5,7 +5,9 @@ import type { UserProfile } from '$lib/types';
 import { createDefaultProfile } from './storage';
 
 const STORAGE_KEY = 'dustic-profile';
-const STORAGE_VERSION = '1.0.0';
+// Storage schema version - only increment when data structure changes (breaking changes)
+// This is SEPARATE from app version and should rarely change
+const STORAGE_SCHEMA_VERSION = 1;
 
 /**
  * Load profile from localStorage
@@ -17,13 +19,18 @@ export function loadFromStorage(): UserProfile | null {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) return null;
 
-		const profile = JSON.parse(stored) as UserProfile;
+		const profile = JSON.parse(stored) as any;
 
-		// Migrate old version data instead of deleting
-		if (profile.version !== STORAGE_VERSION) {
-			console.log(`Migrating profile from version ${profile.version} to ${STORAGE_VERSION}`);
-			profile.version = STORAGE_VERSION;
+		// Get schema version (default to 1 for old data)
+		const schemaVersion = profile.schemaVersion || 1;
+
+		// Migrate data if schema changed
+		if (schemaVersion < STORAGE_SCHEMA_VERSION) {
+			console.log(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
+			// Add migration logic here if schema changes in the future
 		}
+
+		profile.schemaVersion = STORAGE_SCHEMA_VERSION;
 
 		// Backward compatibility: add missing fields with defaults
 		if (!profile.settings) {
@@ -68,7 +75,7 @@ export function saveToStorage(profile: UserProfile): void {
 	try {
 		const toSave = {
 			...profile,
-			version: STORAGE_VERSION,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now()
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));

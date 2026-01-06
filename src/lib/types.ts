@@ -42,7 +42,7 @@ export interface AutoplayRule {
 export type AudioQuality = 'lowest' | 'medium' | 'best';
 
 export interface UserProfile {
-	version: string; // Schema version for compatibility
+	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
 	favorites: string[]; // Track identifiers
 	playlists: Record<string, Playlist>;

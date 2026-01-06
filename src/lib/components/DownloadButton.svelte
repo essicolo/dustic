@@ -43,7 +43,7 @@
 		title="Downloaded - Click to re-download"
 	>
 		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} className="text-base-content" />
-		<div class="absolute top-0 right-0 w-3 h-3 bg-success rounded-full flex items-center justify-center">
+		<div class="absolute -top-1 -right-1 w-3 h-3 bg-success rounded-full flex items-center justify-center">
 			<Icon icon="solar:check-circle-bold" width="10" className="text-success-content" />
 		</div>
 	</button>

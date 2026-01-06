@@ -240,13 +240,14 @@
 							<div class="card-body p-3">
 								<!-- Thumbnail - Clickable -->
 								<a href="/item/{track.identifier}" class="block mb-2 hover:opacity-80 transition-opacity relative">
-									{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
-										<img
-											src={track.thumbnailUrl}
-											alt={track.title}
-											class="w-full aspect-square object-cover rounded bg-base-300"
-											on:error={() => handleImageError(track.identifier)}
-										/>
+																{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
+								<img
+									src={track.thumbnailUrl}
+									alt={track.title}
+									class="w-full aspect-square object-cover rounded bg-base-300"
+									crossorigin="anonymous"
+									on:error={() => handleImageError(track.identifier)}
+								/>
 									{:else}
 										<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
 											<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
@@ -351,13 +352,14 @@
 					<div class="card-body p-3">
 						<!-- Thumbnail - Clickable -->
 						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
-								<img
-									src={item.thumbnailUrl}
-									alt={item.title}
-									class="w-full aspect-square object-cover rounded bg-base-300"
-									on:error={() => handleImageError(item.identifier)}
-								/>
+													{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
+							<img
+								src={item.thumbnailUrl}
+								alt={item.title}
+								class="w-full aspect-square object-cover rounded bg-base-300"
+								crossorigin="anonymous"
+								on:error={() => handleImageError(item.identifier)}
+							/>
 							{:else}
 								<div
 									class="w-full aspect-square flex items-center justify-center bg-base-300 rounded"

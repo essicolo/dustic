@@ -19,17 +19,38 @@ export function loadFromStorage(): UserProfile | null {
 
 		const profile = JSON.parse(stored) as UserProfile;
 
-		// Version check - clear if schema changed
+		// Migrate old version data instead of deleting
 		if (profile.version !== STORAGE_VERSION) {
-			console.warn('Profile version mismatch, clearing storage');
-			localStorage.removeItem(STORAGE_KEY);
-			return null;
+			console.log(`Migrating profile from version ${profile.version} to ${STORAGE_VERSION}`);
+			profile.version = STORAGE_VERSION;
 		}
 
-		// Backward compatibility: add audioQuality if missing
+		// Backward compatibility: add missing fields with defaults
+		if (!profile.settings) {
+			profile.settings = {
+				volume: 0.7,
+				repeat: 'off',
+				audioQuality: 'medium'
+			};
+		}
 		if (!profile.settings.audioQuality) {
 			profile.settings.audioQuality = 'medium';
 		}
+		if (!profile.playlists) {
+			profile.playlists = {};
+		}
+		if (!profile.favorites) {
+			profile.favorites = [];
+		}
+		if (!profile.history) {
+			profile.history = [];
+		}
+		if (!profile.autoplayRules) {
+			profile.autoplayRules = [];
+		}
+
+		// Save migrated profile
+		saveToStorage(profile);
 
 		return profile;
 	} catch (error) {

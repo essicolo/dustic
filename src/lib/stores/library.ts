@@ -60,9 +60,22 @@ function createLibraryStore() {
 		},
 
 		// Favorites
-		toggleFavorite(trackId: string) {
+		async toggleFavorite(trackId: string) {
+			const state = get({ subscribe });
+			const isFavorite = state.favorites.includes(trackId);
+
+			// If removing from favorites, also remove download
+			if (isFavorite) {
+				// Import offline store dynamically to avoid circular dependency
+				const { offline } = await import('./offline');
+				try {
+					await offline.deleteTrack(trackId);
+				} catch (e) {
+					// Ignore if not downloaded
+				}
+			}
+
 			update((state) => {
-				const isFavorite = state.favorites.includes(trackId);
 				const newState = {
 					...state,
 					favorites: isFavorite

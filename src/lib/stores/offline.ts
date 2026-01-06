@@ -3,6 +3,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { offlineStorage, type OfflineTrack } from '$lib/services/offlineStorage';
 import type { Track } from '$lib/types';
+import { library } from './library';
 
 export interface DownloadProgress {
 	trackId: string;
@@ -101,6 +102,12 @@ function createOfflineStore() {
 					}
 					return { ...state, downloadQueue: newQueue };
 				});
+
+				// Auto-add to favorites when downloading
+				const baseId = track.identifier.split('#')[0];
+				if (!library.isFavorite(baseId)) {
+					library.toggleFavorite(baseId);
+				}
 
 				// Remove from queue after a delay
 				setTimeout(() => {

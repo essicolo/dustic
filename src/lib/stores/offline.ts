@@ -62,14 +62,8 @@ function createOfflineStore() {
 		async downloadTrack(track: Track) {
 			const state = get({ subscribe });
 
-			// Check if already downloaded or downloading
+			// Check if already downloading
 			if (state.downloadQueue.has(track.identifier)) {
-				return;
-			}
-
-			// Check if already offline
-			const isOffline = await offlineStorage.isDownloaded(track.identifier);
-			if (isOffline) {
 				return;
 			}
 

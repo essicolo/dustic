@@ -42,17 +42,28 @@
 		// Get recent history entries (last 10)
 		const recentEntries = $history.entries.slice(0, 10);
 
+		if (recentEntries.length === 0) {
+			isLoadingContinue = false;
+			return;
+		}
+
 		// Load track data for recent items
 		const trackTasks = recentEntries.map((entry) => async () => {
 			try {
-				return await getTrack(entry.trackId);
-			} catch {
+				const track = await getTrack(entry.trackId);
+				if (!track) {
+					console.warn(`Failed to load track: ${entry.trackId}`);
+				}
+				return track;
+			} catch (err) {
+				console.error(`Error loading track ${entry.trackId}:`, err);
 				return null;
 			}
 		});
 
 		const tracks = await batchExecute(trackTasks, 3, 500);
 		continueListening = tracks.filter((t): t is Track => t !== null);
+		console.log(`Loaded ${continueListening.length} / ${recentEntries.length} continue listening tracks`);
 		isLoadingContinue = false;
 	}
 

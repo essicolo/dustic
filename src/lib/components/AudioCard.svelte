@@ -77,14 +77,11 @@
 			queue.addToEnd(item.tracks[0]);
 		}
 	}
-</script>
-
-<script lang="ts">
-	// compute classes for layout
-	$: containerClass =
-		layout === 'list'
-			? 'card card-side bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group items-center'
-			: 'card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group';
+// compute classes for layout
+$: containerClass =
+	layout === 'list'
+		? 'card card-side bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group items-center'
+		: 'card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group';
 
 </script>
 

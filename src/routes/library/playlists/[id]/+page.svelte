@@ -11,6 +11,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
 
 	$: playlistId = $page.params.id;
@@ -138,78 +139,42 @@
 			<div class="space-y-2">
 				{#each tracks as track, index}
 					{#if track}
-						<div
-							class="card bg-base-200 hover:bg-base-300 transition-colors group"
-							class:ring-2={isCurrentTrack(track.identifier)}
-							class:ring-primary={isCurrentTrack(track.identifier)}
-						>
-							<div class="card-body p-4">
-								<div class="flex items-center gap-3">
-									<!-- Number -->
-									<div class="text-base-content/50 w-8 text-center flex-shrink-0">
-										{#if isCurrentTrack(track.identifier) && $player.isPlaying}
-											<PlayingIndicator size="sm" />
-										{:else}
-											{index + 1}
-										{/if}
-									</div>
-
-									<!-- Album Art -->
-									<a href="/item/{track.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-										{#if track.thumbnailUrl}
-											<img
-												src={track.thumbnailUrl}
-												alt={track.title}
-												class="w-12 h-12 rounded object-cover bg-base-300"
-											/>
-										{:else}
-											<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
-												<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-											</div>
-										{/if}
-									</a>
-
-									<!-- Info -->
-									<a href="/item/{track.identifier}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-										<h3
-											class="font-medium truncate"
-											class:text-primary={isCurrentTrack(track.identifier)}
-										>
-											{track.title}
-										</h3>
-										<p class="text-sm text-base-content/70 truncate">{track.artist}</p>
-									</a>
-
-									<!-- Actions -->
-									<div class="flex items-center gap-1">
-										<button
-											on:click={() => playTrack(track.identifier, index)}
-											class="btn btn-ghost btn-sm btn-circle"
-											disabled={loadingTrack === track.identifier}
-											title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
-										>
-											{#if loadingTrack === track.identifier}
-												<span class="loading loading-spinner loading-sm"></span>
-											{:else if isCurrentTrack(track.identifier)}
-												<Icon icon="solar:pause-bold" width="18" />
-											{:else}
-												<Icon icon="solar:play-bold" width="18" />
-											{/if}
-										</button>
-
-										<DownloadButton {track} size="sm" />
-
-										<button
-											on:click={() => removeFromPlaylist(track.identifier)}
-											class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100"
-											title="Remove from playlist"
-										>
-											<Icon icon="solar:close-circle-linear" width="18" />
-										</button>
-									</div>
+						<AudioCard item={{ ...track, tracks: [track] }} type="track" showActions={true} layout="list">
+							<div slot="extra-actions" class="flex items-center gap-3">
+								<div class="text-base-content/50 w-8 text-center flex-shrink-0">
+									{#if isCurrentTrack(track.identifier) && $player.isPlaying}
+										<PlayingIndicator size="sm" />
+									{:else}
+										{index + 1}
+									{/if}
 								</div>
+
+								<DownloadButton {track} size="sm" />
+
+								<button
+									on:click={() => playTrack(track.identifier, index)}
+									class="btn btn-ghost btn-sm btn-circle"
+									disabled={loadingTrack === track.identifier}
+									title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
+								>
+									{#if loadingTrack === track.identifier}
+										<span class="loading loading-spinner loading-sm"></span>
+									{:else if isCurrentTrack(track.identifier)}
+										<Icon icon="solar:pause-bold" width="18" />
+									{:else}
+										<Icon icon="solar:play-bold" width="18" />
+									{/if}
+								</button>
+
+								<button
+									on:click={() => removeFromPlaylist(track.identifier)}
+									class="btn btn-ghost btn-sm"
+									title="Remove from playlist"
+								>
+									<Icon icon="solar:close-circle-linear" width="16" />
+								</button>
 							</div>
-						</div>
+						</AudioCard>
 					{/if}
 				{/each}
 			</div>

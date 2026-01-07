@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
@@ -186,154 +187,51 @@
 		<!-- Grid View -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 			{#each filteredTracks as track}
-				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
-					class:ring-2={isCurrentTrack(track.identifier)}
-					class:ring-primary={isCurrentTrack(track.identifier)}
-				>
-					<div class="card-body p-3">
-						<!-- Thumbnail - Clickable -->
-						<a href="/item/{track.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
-								<img
-									src={track.thumbnailUrl}
-									alt={track.title}
-									class="w-full aspect-square object-cover rounded bg-base-300"
-									on:error={() => handleImageError(track.identifier)}
-								/>
-							{:else}
-								<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
-									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-								</div>
-							{/if}
-
-							<!-- Play button overlay - show on hover -->
-							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
-								<button
-									on:click|preventDefault|stopPropagation={() => playTrack(track.identifier)}
-									class="btn btn-circle btn-primary btn-lg shadow-lg"
-									disabled={loadingTrack === track.identifier}
-									title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
-								>
-									{#if loadingTrack === track.identifier}
-										<span class="loading loading-spinner loading-md"></span>
-									{:else if isCurrentTrack(track.identifier)}
-										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
-									{:else}
-										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
-									{/if}
-								</button>
-							</div>
-						</a>
-
-						<!-- Info - Clickable -->
-						<a href="/item/{track.identifier}" class="block hover:text-primary transition-colors mb-2 min-w-0">
-							<h3
-								class="font-medium flex items-center gap-2 min-w-0"
-								class:text-primary={isCurrentTrack(track.identifier)}
-							>
-								<span class="truncate min-w-0 flex-1">{track.title}</span>
-								{#if isCurrentTrack(track.identifier) && $player.isPlaying}
-									<span class="flex-shrink-0">
-										<PlayingIndicator size="sm" />
-									</span>
-								{/if}
-							</h3>
-							<p class="text-sm text-base-content/70 truncate">{track.artist}</p>
-						</a>
-
-						<!-- Actions - show on hover -->
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-							<DownloadButton {track} size="sm" />
-							<button
-								on:click={() => removeFavorite(track.identifier)}
-								class="btn btn-ghost btn-sm btn-circle ml-auto"
-								title="Remove from favorites"
-							>
-								<Icon icon="solar:heart-bold" width="16" className="text-red-500" />
-							</button>
-						</div>
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" showActions={true} layout="tile">
+					<div slot="extra-actions" class="flex items-center gap-2">
+						<DownloadButton {track} size="sm" />
+						<button
+							on:click={() => removeFavorite(track.identifier)}
+							class="btn btn-ghost btn-sm btn-circle ml-auto"
+							title="Remove from favorites"
+						>
+							<Icon icon="solar:heart-bold" width="16" className="text-red-500" />
+						</button>
 					</div>
-				</div>
+				</AudioCard>
 			{/each}
 		</div>
 	{:else}
 		<!-- List View -->
 		<div class="space-y-2">
 			{#each filteredTracks as track}
-				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group"
-					class:ring-2={isCurrentTrack(track.identifier)}
-					class:ring-primary={isCurrentTrack(track.identifier)}
-				>
-					<div class="card-body p-4">
-						<div class="flex items-center gap-3">
-							<!-- Album Art -->
-							<a href="/item/{track.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-								{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
-									<img
-										src={track.thumbnailUrl}
-										alt={track.title}
-										class="w-12 h-12 rounded object-cover bg-base-300"
-										on:error={() => handleImageError(track.identifier)}
-									/>
-								{:else}
-									<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
-										<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-									</div>
-								{/if}
-							</a>
-
-							<a href="/item/{track.identifier}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-								<h3
-									class="font-medium flex items-center gap-2 min-w-0"
-									class:text-primary={isCurrentTrack(track.identifier)}
-								>
-									<span class="truncate min-w-0 flex-1">{track.title}</span>
-									{#if isCurrentTrack(track.identifier) && $player.isPlaying}
-										<span class="flex-shrink-0">
-											<PlayingIndicator size="sm" />
-										</span>
-									{/if}
-								</h3>
-								<p class="text-sm text-base-content/70 truncate">{track.artist}</p>
-								{#if track.date}
-									<p class="text-xs text-base-content/50 mt-1">{track.date}</p>
-								{/if}
-							</a>
-							<div class="flex items-center gap-2">
-								<!-- Download button -->
-								<DownloadButton {track} size="sm" />
-
-								<!-- Play button -->
-								<button
-									on:click={() => playTrack(track.identifier)}
-									class="btn btn-sm"
-									class:btn-primary={!isCurrentTrack(track.identifier)}
-									class:btn-ghost={isCurrentTrack(track.identifier)}
-									disabled={loadingTrack === track.identifier}
-								>
-									{#if loadingTrack === track.identifier}
-										<span class="loading loading-spinner loading-xs"></span>
-									{:else if isCurrentTrack(track.identifier)}
-										Playing
-									{:else}
-										Play
-									{/if}
-								</button>
-
-								<!-- Remove from favorites button -->
-								<button
-									on:click={() => removeFavorite(track.identifier)}
-									class="btn btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
-									title="Remove from favorites"
-								>
-									Remove
-								</button>
-							</div>
-						</div>
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" showActions={true} layout="list">
+					<div slot="extra-actions" class="ml-auto flex items-center gap-2">
+						<DownloadButton {track} size="sm" />
+						<button
+							on:click={() => playTrack(track.identifier)}
+							class="btn btn-sm"
+							class:btn-primary={!isCurrentTrack(track.identifier)}
+							class:btn-ghost={isCurrentTrack(track.identifier)}
+							disabled={loadingTrack === track.identifier}
+						>
+							{#if loadingTrack === track.identifier}
+								<span class="loading loading-spinner loading-xs"></span>
+							{:else if isCurrentTrack(track.identifier)}
+								<Icon icon="solar:pause-bold" width="16" />
+							{:else}
+								<Icon icon="solar:play-bold" width="16" />
+							{/if}
+						</button>
+						<button
+							on:click={() => removeFavorite(track.identifier)}
+							class="btn btn-ghost btn-sm"
+							title="Remove from favorites"
+						>
+							<Icon icon="solar:close-circle-linear" width="16" />
+						</button>
 					</div>
-				</div>
+				</AudioCard>
 			{/each}
 		</div>
 	{/if}

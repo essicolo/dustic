@@ -7,6 +7,26 @@
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
+	import { offline } from '$lib/stores/offline';
+
+	let downloadingIds = new Set<string>();
+
+	async function lazyDownload(identifier: string) {
+		if (downloadingIds.has(identifier)) return;
+		downloadingIds.add(identifier);
+		try {
+			const track = await getTrack(identifier);
+			if (track) {
+				await offline.downloadTrack(track);
+			}
+		} catch (err) {
+			console.error('Lazy download failed:', err);
+		} finally {
+			downloadingIds.delete(identifier);
+			downloadingIds = new Set(downloadingIds);
+		}
+	}
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -202,90 +222,45 @@
 	{:else if results.length > 0}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
 			{#each results as item}
-				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
-					class:ring-2={isCurrentTrack(item.identifier)}
-					class:ring-primary={isCurrentTrack(item.identifier)}
-				>
-					<div class="card-body p-3">
-						<!-- Thumbnail - Clickable -->
-						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
-								<img
-									src={item.thumbnailUrl}
-									alt={item.title}
-									class="w-full aspect-square object-cover rounded bg-base-300"
-									on:error={() => handleImageError(item.identifier)}
-								/>
+				<AudioCard item={item} type="album" showActions={true} layout="tile">
+					<div slot="extra-actions" class="flex items-center gap-1 ml-auto">
+						<button
+							on:click={() => playTrack(item.identifier)}
+							class="btn btn-ghost btn-sm btn-circle"
+							disabled={loadingTrack === item.identifier}
+							title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
+						>
+							{#if loadingTrack === item.identifier}
+								<span class="loading loading-spinner loading-sm"></span>
+							{:else if isCurrentTrack(item.identifier)}
+								<Icon icon="solar:pause-bold" width="18" />
 							{:else}
-								<div
-									class="w-full aspect-square flex items-center justify-center bg-base-300 rounded"
-								>
-									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-								</div>
+								<Icon icon="solar:play-bold" width="18" />
 							{/if}
+						</button>
+						<button
+							on:click={() => addToQueue(item.identifier)}
+							class="btn btn-ghost btn-sm btn-circle"
+							disabled={loadingTrack === item.identifier}
+							title="Add to queue"
+						>
+							<Icon icon="solar:add-circle-linear" width="18" />
+						</button>
 
-							<!-- Play button overlay - show on hover -->
-							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
-								<button
-									on:click|preventDefault|stopPropagation={() => playTrack(item.identifier)}
-									class="btn btn-circle btn-primary btn-lg shadow-lg"
-									disabled={loadingTrack === item.identifier}
-									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-								>
-									{#if loadingTrack === item.identifier}
-										<span class="loading loading-spinner loading-md"></span>
-									{:else if isCurrentTrack(item.identifier)}
-										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
-									{:else}
-										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
-									{/if}
-								</button>
-							</div>
-						</a>
-
-						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2 min-w-0">
-							<h3
-								class="font-medium flex items-center gap-2 min-w-0"
-								class:text-primary={isCurrentTrack(item.identifier)}
-							>
-								<span class="truncate min-w-0 flex-1">{item.title}</span>
-								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
-									<span class="flex-shrink-0">
-										<PlayingIndicator size="sm" />
-									</span>
-								{/if}
-							</h3>
-							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-							{#if item.date}
-								<p class="text-xs text-base-content/50 mt-0.5">{item.date}</p>
+						<!-- Lazy download -->
+						<button
+							on:click={() => lazyDownload(item.identifier)}
+							class="btn btn-ghost btn-sm btn-circle"
+							title="Download for offline"
+						>
+							{#if downloadingIds.has(item.identifier)}
+								<span class="loading loading-spinner loading-sm"></span>
+							{:else}
+								<Icon icon="solar:download-minimalistic-linear" width="18" />
 							{/if}
-						</a>
-
-						<!-- Actions - show on hover -->
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-							<!-- Contextual menu -->
-							<div class="dropdown dropdown-end">
-								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
-									<Icon icon="solar:menu-dots-bold" width="16" />
-								</button>
-								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
-									<li>
-										<button
-											on:click={() => addToQueue(item.identifier)}
-											disabled={loadingTrack === item.identifier}
-											class="flex items-center gap-2"
-										>
-											<Icon icon="solar:add-circle-linear" width="16" />
-											<span>Add to queue</span>
-										</button>
-									</li>
-								</ul>
-							</div>
-						</div>
+						</button>
 					</div>
-				</div>
+				</AudioCard>
 			{/each}
 		</div>
 

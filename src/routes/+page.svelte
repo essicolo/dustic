@@ -9,6 +9,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -25,6 +26,7 @@
 	let loadingChapters: Set<string> = new Set();
 	let continueListening: Track[] = [];
 	let isLoadingContinue = false;
+	let viewMode: 'tiles' | 'list' = 'tiles';
 	let failedImages = new Set<string>(); // Track failed image loads
 
 	onMount(() => {
@@ -228,69 +230,31 @@
 				</a>
 			</div>
 
-			<!-- Horizontal scrollable carousel -->
+			<!-- Horizontal scrollable carousel / list -->
 			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-				<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 p-1">
-					{#each continueListening as track}
-						<div
-							class="card bg-base-200 hover:bg-base-300 transition-colors group relative w-40 md:w-auto flex-shrink-0"
-							class:ring-2={isCurrentTrack(track.identifier)}
-							class:ring-primary={isCurrentTrack(track.identifier)}
-						>
-							<div class="card-body p-3">
-								<!-- Thumbnail - Clickable -->
-								<a href="/item/{track.identifier}" class="block mb-2 hover:opacity-80 transition-opacity relative">
-																{#if track.thumbnailUrl && !failedImages.has(track.identifier)}
-								<img
-									src={track.thumbnailUrl}
-									alt={track.title}
-									class="w-full aspect-square object-cover rounded bg-base-300"
-									on:error={() => handleImageError(track.identifier)}
-								/>
-									{:else}
-										<div class="w-full aspect-square flex items-center justify-center bg-base-300 rounded">
-											<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
-										</div>
-									{/if}
-
-									<!-- Play button overlay - show on hover -->
-									<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
-										<button
-											on:click|preventDefault|stopPropagation={() => playTrack(track.identifier)}
-											class="btn btn-circle btn-primary btn-md shadow-lg"
-											disabled={loadingTrack === track.identifier}
-											title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
-										>
-											{#if loadingTrack === track.identifier}
-												<span class="loading loading-spinner loading-sm"></span>
-											{:else if isCurrentTrack(track.identifier)}
-												<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
-											{:else}
-												<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
-											{/if}
-										</button>
-									</div>
-								</a>
-
-								<!-- Info - Clickable -->
-								<a href="/item/{track.identifier}" class="block hover:text-primary transition-colors">
-									<h3
-										class="text-sm font-medium truncate flex items-center gap-1"
-										class:text-primary={isCurrentTrack(track.identifier)}
-									>
-										<span class="truncate">{track.title}</span>
-										{#if isCurrentTrack(track.identifier) && $player.isPlaying}
-											<span class="flex-shrink-0">
-												<PlayingIndicator size="sm" />
-											</span>
-										{/if}
-									</h3>
-									<p class="text-xs text-base-content/70 truncate">{track.artist}</p>
-								</a>
-							</div>
-						</div>
-					{/each}
-				</div>
+				{#if viewMode === 'tiles'}
+					<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 p-1">
+						{#each continueListening as track}
+							<AudioCard
+								item={{ ...track, tracks: [track], trackCount: 1 }}
+								type="track"
+								showActions={true}
+								layout="tile"
+							/>
+						{/each}
+					</div>
+				{:else}
+					<div class="space-y-2">
+						{#each continueListening as track}
+							<AudioCard
+								item={{ ...track, tracks: [track], trackCount: 1 }}
+								type="track"
+								showActions={true}
+								layout="list"
+							/>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -298,11 +262,30 @@
 	<!-- Trending Section -->
 	<div class="flex items-center justify-between mb-6">
 		<h2 class="text-2xl md:text-3xl font-bold">Trending</h2>
-		{#if results.length > 0}
-			<button on:click={playAll} class="btn btn-primary btn-sm">
-				Play All
-			</button>
-		{/if}
+		<div class="flex items-center gap-2">
+			{#if results.length > 0}
+				<button on:click={playAll} class="btn btn-primary btn-sm">Play All</button>
+				<!-- View toggle -->
+				<div class="btn-group ml-2" role="group" aria-label="View mode">
+					<button
+						on:click={() => (viewMode = 'tiles')}
+						class="btn btn-sm"
+						class:btn-active={viewMode === 'tiles'}
+						title="Tiles view"
+					>
+						Tiles
+					</button>
+					<button
+						on:click={() => (viewMode = 'list')}
+						class="btn btn-sm"
+						class:btn-active={viewMode === 'list'}
+						title="List view"
+					>
+						List
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Collection Filter -->
@@ -341,159 +324,19 @@
 			{/each}
 		</div>
 	{:else if results.length > 0}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-			{#each results as item, index}
-				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
-					class:ring-2={isCurrentTrack(item.identifier)}
-					class:ring-primary={isCurrentTrack(item.identifier)}
-				>
-					<div class="card-body p-3">
-						<!-- Thumbnail - Clickable -->
-						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-													{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
-							<img
-								src={item.thumbnailUrl}
-								alt={item.title}
-								class="w-full aspect-square object-cover rounded bg-base-300"
-								on:error={() => handleImageError(item.identifier)}
-							/>
-							{:else}
-								<div
-									class="w-full aspect-square flex items-center justify-center bg-base-300 rounded"
-								>
-									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-								</div>
-							{/if}
-
-							<!-- Play button overlay - show on hover -->
-							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
-								<button
-									on:click|preventDefault|stopPropagation={() => playTrack(item.identifier)}
-									class="btn btn-circle btn-primary btn-lg shadow-lg"
-									disabled={loadingTrack === item.identifier}
-									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-								>
-									{#if loadingTrack === item.identifier}
-										<span class="loading loading-spinner loading-md"></span>
-									{:else if isCurrentTrack(item.identifier)}
-										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
-									{:else}
-										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
-									{/if}
-								</button>
-							</div>
-						</a>
-
-						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2 min-w-0">
-							<h3
-								class="font-medium flex items-center gap-2 min-w-0"
-								class:text-primary={isCurrentTrack(item.identifier)}
-							>
-								<span class="truncate min-w-0 flex-1">{item.title}</span>
-								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
-									<span class="flex-shrink-0">
-										<PlayingIndicator size="sm" />
-									</span>
-								{/if}
-							</h3>
-							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-						</a>
-
-						<!-- Actions - show on hover -->
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-							<!-- Favorite button (always visible in hover) -->
-							<button
-								on:click={() => toggleFavorite(item.identifier)}
-								class="btn btn-ghost btn-sm btn-circle"
-								title={$library.favorites.includes(item.identifier) ? 'Remove from favorites' : 'Add to favorites'}
-							>
-								<Icon
-									icon={$library.favorites.includes(item.identifier) ? 'solar:heart-bold' : 'solar:heart-linear'}
-									width="16"
-									className={$library.favorites.includes(item.identifier) ? 'text-red-500' : ''}
-								/>
-							</button>
-
-							<!-- Contextual menu -->
-							<div class="dropdown dropdown-end ml-auto">
-								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
-									<Icon icon="solar:menu-dots-bold" width="16" />
-								</button>
-								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
-									<li>
-										<button
-											on:click={() => addToQueue(item.identifier)}
-											disabled={loadingTrack === item.identifier}
-											class="flex items-center gap-2"
-										>
-											<Icon icon="solar:add-circle-linear" width="16" />
-											<span>Add to queue</span>
-										</button>
-									</li>
-									<li>
-										<button on:click={() => handleShare(item)} class="flex items-center gap-2">
-											<Icon icon="solar:share-linear" width="16" />
-											<span>Share</span>
-										</button>
-									</li>
-									<li>
-										<button on:click={() => toggleExpand(item.identifier)} class="flex items-center gap-2">
-											<Icon
-												icon={expandedItems.has(item.identifier) ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
-												width="16"
-											/>
-											<span>{expandedItems.has(item.identifier) ? 'Hide' : 'Show'} all tracks</span>
-										</button>
-									</li>
-								</ul>
-							</div>
-						</div>
-
-						<!-- Expandable Chapter List -->
-						{#if expandedItems.has(item.identifier)}
-							<div class="mt-3 pt-3 border-t border-base-300">
-								{#if loadingChapters.has(item.identifier)}
-									<div class="flex justify-center py-4">
-										<span class="loading loading-spinner loading-sm"></span>
-									</div>
-								{:else if itemChapters.has(item.identifier)}
-									{@const chapters = itemChapters.get(item.identifier) || []}
-									<div class="flex items-center justify-between mb-2">
-										<p class="text-sm font-medium">{chapters.length} track{chapters.length !== 1 ? 's' : ''}</p>
-										{#if chapters.length > 1}
-											<button
-												on:click={() => playAllChapters(item.identifier)}
-												class="btn btn-xs btn-primary"
-											>
-												Play All
-											</button>
-										{/if}
-									</div>
-									<div class="max-h-64 overflow-y-auto space-y-1">
-										{#each chapters as chapter, idx}
-											<button
-												on:click={() => playChapter(chapter)}
-												class="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-base-300 transition-colors flex items-center gap-2"
-											>
-												<span class="text-base-content/50">{idx + 1}.</span>
-												<span class="flex-1 truncate">{chapter.title}</span>
-												{#if chapter.duration}
-													<span class="text-base-content/50">
-														{Math.floor(chapter.duration / 60)}:{String(Math.floor(chapter.duration % 60)).padStart(2, '0')}
-													</span>
-												{/if}
-											</button>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						{/if}
-					</div>
+			{#if viewMode === 'tiles'}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+					{#each results as item, index}
+						<AudioCard item={item} type="album" showActions={true} layout="tile" />
+					{/each}
 				</div>
-			{/each}
-		</div>
+			{:else}
+				<div class="space-y-2">
+					{#each results as item}
+						<AudioCard item={item} type="album" showActions={true} layout="list" />
+					{/each}
+				</div>
+			{/if}
 	{:else}
 		<div class="text-center py-20 text-base-content/50">
 			<p class="text-lg">No trending tracks found</p>

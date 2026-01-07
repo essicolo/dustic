@@ -19,6 +19,7 @@
 	};
 	export let type: 'album' | 'track' = 'album';
 	export let showActions: boolean = true;
+	export let layout: 'tile' | 'list' = 'tile';
 
 	let showPlaylistSelector = false;
 	let showShareToast = false;
@@ -78,40 +79,72 @@
 	}
 </script>
 
+<script lang="ts">
+	// compute classes for layout
+	$: containerClass =
+		layout === 'list'
+			? 'card card-side bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group items-center'
+			: 'card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group';
+
+</script>
+
 <div
-	class="card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group"
+	class={containerClass}
 	on:click={handleClick}
 	on:keydown={(e) => e.key === 'Enter' && handleClick()}
 	role="button"
 	tabindex="0"
 >
 	<!-- Thumbnail -->
-	<figure class="relative aspect-square">
-		{#if item.thumbnailUrl}
-			<img
-				src={item.thumbnailUrl}
-				alt={item.title}
-				class="w-full h-full object-cover"
-				loading="lazy"
-			/>
-		{:else}
-			<div class="w-full h-full flex items-center justify-center bg-base-300">
-				<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-			</div>
-		{/if}
-		
-		{#if showActions}
-			<!-- Play button overlay -->
-			<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-				<button
-					on:click|stopPropagation={() => item.tracks && item.tracks[0] && playTrack(item.tracks[0])}
-					class="btn btn-circle btn-primary btn-lg"
-				>
-					<Icon icon="solar:play-bold" width="32" className="text-primary-content" />
-				</button>
-			</div>
-		{/if}
-	</figure>
+	{#if layout === 'list'}
+		<figure class="relative w-24 h-24 flex-shrink-0">
+			{#if item.thumbnailUrl}
+				<img src={item.thumbnailUrl} alt={item.title} class="w-full h-full object-cover rounded" loading="lazy" />
+			{:else}
+				<div class="w-full h-full flex items-center justify-center bg-base-300 rounded">
+					<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
+				</div>
+			{/if}
+
+			{#if showActions}
+				<div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+					<button
+						on:click|stopPropagation={() => item.tracks && item.tracks[0] && playTrack(item.tracks[0])}
+						class="btn btn-circle btn-primary btn-sm"
+					>
+						<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
+					</button>
+				</div>
+			{/if}
+		</figure>
+	{:else}
+		<figure class="relative aspect-square">
+			{#if item.thumbnailUrl}
+				<img
+					src={item.thumbnailUrl}
+					alt={item.title}
+					class="w-full h-full object-cover"
+					loading="lazy"
+				/>
+			{:else}
+				<div class="w-full h-full flex items-center justify-center bg-base-300">
+					<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
+				</div>
+			{/if}
+            
+			{#if showActions}
+				<!-- Play button overlay -->
+				<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+					<button
+						on:click|stopPropagation={() => item.tracks && item.tracks[0] && playTrack(item.tracks[0])}
+						class="btn btn-circle btn-primary btn-lg"
+					>
+						<Icon icon="solar:play-bold" width="32" className="text-primary-content" />
+					</button>
+				</div>
+			{/if}
+		</figure>
+	{/if}
 
 	<div class="card-body p-4">
 		<!-- Title & Artist -->
@@ -220,6 +253,9 @@
 				</button>
 			</div>
 		{/if}
+
+		<!-- Extra actions slot (for page-specific controls like remove from history) -->
+		<slot name="extra-actions" />
 	</div>
 </div>
 

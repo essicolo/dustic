@@ -281,9 +281,9 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Get thumbnail URL for an item
  * Use higher quality version for better display on modern devices
  */
-export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'large'): string {
+export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
 	if (size === 'large') {
-		// Try to get high-res version first
+		// Try to get high-res version first (may be on a CDN and cause opaque responses)
 		return `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
 	}
 	return `${IA_BASE_URL}/services/img/${identifier}`;

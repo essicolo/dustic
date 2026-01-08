@@ -6,6 +6,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let fileInput: HTMLInputElement;
@@ -17,11 +18,15 @@
 
 	onMount(() => {
 		// Warn on page close if unsaved changes
-		window.addEventListener('beforeunload', handleBeforeUnload);
+		if (browser) {
+			window.addEventListener('beforeunload', handleBeforeUnload);
+		}
 	});
 
 	onDestroy(() => {
-		window.removeEventListener('beforeunload', handleBeforeUnload);
+		if (browser) {
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+		}
 	});
 
 	function handleBeforeUnload(e: BeforeUnloadEvent) {

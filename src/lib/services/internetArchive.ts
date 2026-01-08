@@ -168,8 +168,6 @@ export async function getItemMetadata(identifier: string): Promise<IAMetadataRes
 			throw new Error('Item not found on Internet Archive');
 		} else if (error.status === 429) {
 			throw new Error('Too many requests. Please wait a moment and try again.');
-		} else if (error.status >= 500) {
-			throw new Error('Internet Archive is experiencing issues. Please try again later.');
 		} else if (error.message?.includes('fetch')) {
 			throw new Error('Network error. Please check your internet connection.');
 		}
@@ -274,7 +272,8 @@ export function getAllAudioFiles(
 export function getStreamUrl(identifier: string, filename: string): string {
 	// Use /serve/ endpoint for better streaming performance
 	// Falls back to /download/ if serve is not available
-	return `https://archive.org/serve/${identifier}/${filename}`;
+	const streamUrl = `https://archive.org/serve/${identifier}/${filename}`;
+	return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
 }
 
 /**
@@ -282,11 +281,15 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Use higher quality version for better display on modern devices
  */
 export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
+	let imageUrl: string;
 	if (size === 'large') {
 		// Try to get high-res version first (may be on a CDN and cause opaque responses)
-		return `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
+		imageUrl = `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
+	} else {
+		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
 	}
-	return `${IA_BASE_URL}/services/img/${identifier}`;
+	// Route all thumbnail requests through the CORS proxy
+	return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
 }
 
 /**
@@ -295,8 +298,12 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 export async function getTrack(identifier: string, quality?: AudioQuality): Promise<Track | null> {
 	const qualityToUse = quality || getQualityPreference();
 	try {
-		const metadata = await getItemMetadata(identifier);
-		const audioFile = getBestAudioFile(metadata.files, qualityToUse);
+		const [itemIdentifier, trackIndexStr] = identifier.split('#');
+		const trackIndex = trackIndexStr ? parseInt(trackIndexStr, 10) : 0;
+
+		const metadata = await getItemMetadata(itemIdentifier);
+		const allAudioFiles = getAllAudioFiles(metadata.files, qualityToUse);
+		const audioFile = allAudioFiles[trackIndex];
 
 		if (!audioFile) {
 			console.warn(`No audio file found for ${identifier}`);
@@ -306,7 +313,9 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 		const track: Track = {
 			identifier,
 			filename: audioFile.filename,
-			title: metadata.metadata.title || 'Untitled',
+			title: trackIndexStr
+				? extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title)
+				: metadata.metadata.title || 'Untitled',
 			artist: Array.isArray(metadata.metadata.creator)
 				? metadata.metadata.creator[0]
 				: metadata.metadata.creator || 'Unknown Artist',
@@ -324,8 +333,8 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 					? [metadata.metadata.subject]
 					: undefined,
 			format: audioFile.format,
-			streamUrl: getStreamUrl(identifier, audioFile.filename),
-			thumbnailUrl: getThumbnailUrl(identifier),
+			streamUrl: getStreamUrl(itemIdentifier, audioFile.filename),
+			thumbnailUrl: getThumbnailUrl(itemIdentifier),
 			metadata: metadata.metadata
 		};
 

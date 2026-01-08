@@ -1,10 +1,8 @@
-<script lang="ts">
-	import Icon from '@iconify/svelte';
-
-	export let icon: string;
-	export let width: string | number = '1em';
-	export let height: string | number = '1em';
-	export let className: string = '';
+<script>
+  import Icon from '@iconify/svelte';
+  export let icon;
+  export let width = "24";
+  export let className = "";
 </script>
 
-<Icon {icon} {width} {height} class={className} />
+<Icon {icon} {width} class={className} {...$$restProps} />

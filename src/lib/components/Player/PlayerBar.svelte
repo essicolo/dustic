@@ -18,9 +18,13 @@
 		window.addEventListener('keydown', handleKeyPress);
 	});
 
-	onDestroy(() => {
-		window.removeEventListener('keydown', handleKeyPress);
-	});
+    import { browser } from '$app/environment';
+
+    onDestroy(() => {
+        if (browser) {
+            window.removeEventListener('keydown', handleKeyPress);
+        }
+    });
 
 	function handleKeyPress(e: KeyboardEvent) {
 		// Ignore if typing in input fields

@@ -1,16 +1,23 @@
 <script lang="ts">
 	import { offline, isOfflineAvailable } from '$lib/stores/offline';
-	import type { Track } from '$lib/types';
-	import Icon from './Icon.svelte';
+	import type { Track, ArchiveItem } from '$lib/types';
+	import Icon from '@iconify/svelte';
+	import { getTrack } from '$lib/services/internetArchive';
 
-	export let track: Track;
+	export let track: Track | ArchiveItem;
 	export let size: 'xs' | 'sm' | 'md' = 'sm';
+	export let lazy = false;
+	export let showText = false;
+	export let className = '';
 
 	let progress = 0;
-	let status: 'idle' | 'downloading' | 'completed' | 'error' = 'idle';
+	let status: 'idle' | 'downloading' | 'completed' | 'error' | 'fetching' = 'idle';
+	let fullTrack: Track | null = lazy ? null : (track as Track);
 
-	$: isOffline = $isOfflineAvailable(track.identifier);
-	$: downloadProgress = $offline.downloadQueue.get(track.identifier);
+	$: identifier = track.identifier;
+	$: isOffline = $isOfflineAvailable(identifier);
+	$: downloadProgress = $offline.downloadQueue.get(identifier);
+
 	$: {
 		if (downloadProgress) {
 			progress = downloadProgress.progress;
@@ -21,54 +28,100 @@
 	}
 
 	async function handleDownload() {
-		if (status === 'downloading') return; // Already downloading
+		if (status === 'downloading' || status === 'fetching') return;
 
-		// If already downloaded, allow re-download without confirmation
-		await offline.downloadTrack(track);
+		if (!fullTrack && lazy) {
+			status = 'fetching';
+			try {
+				fullTrack = await getTrack(identifier);
+			} catch (err) {
+				console.error('Failed to fetch track details for download', err);
+				status = 'error';
+				return;
+			}
+		}
+
+		if (fullTrack) {
+			await offline.downloadTrack(fullTrack);
+		} else {
+			console.warn('No track data available to start download');
+		}
 	}
 </script>
 
-{#if status === 'downloading'}
-	<!-- Downloading state - subtle progress indicator -->
-	<button class="btn btn-{size} btn-circle btn-ghost relative touch-target" disabled title="Downloading... {progress}%">
-		<div class="radial-progress text-[10px]" style="--value:{progress}; --size:1.25rem; --thickness: 2px;">
-			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 12 : 14} className="text-base-content/50" />
-		</div>
+{#if status === 'fetching'}
+	<button class="btn btn-{size} btn-ghost {className}" class:btn-circle={!showText} disabled title="Preparing download...">
+		<span class="loading loading-spinner text-primary"></span>
+		{#if showText}
+			<span>Preparing...</span>
+		{/if}
 	</button>
-{:else if isOffline}
-	<!-- Downloaded state - subtle filled icon with small checkmark -->
+{:else if status === 'downloading'}
+	<!-- Downloading state - subtle progress indicator -->
 	<button
-		on:click={handleDownload}
-		class="btn btn-{size} btn-circle btn-ghost relative overflow-visible touch-target"
+		class="btn btn-{size} btn-ghost relative {className}"
+		class:btn-circle={!showText}
+		disabled
+		title="Downloading... {progress}%"
+	>
+		{#if !showText}
+			<div
+				class="radial-progress text-xs"
+				style="--value:{progress}; --size:1.5rem; --thickness: 2px;"
+			>
+				<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
+			</div>
+		{:else}
+			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
+			<span>Downloading...</span>
+			<progress class="progress progress-primary w-12" value={progress} max="100"></progress>
+		{/if}
+	</button>
+{:else if status === 'completed'}
+	<!-- Downloaded state - subtle filled icon -->
+	<button
+		on:click|stopPropagation={handleDownload}
+		class="btn btn-{size} btn-ghost {className}"
+		class:btn-circle={!showText}
 		title="Downloaded - Click to re-download"
 	>
-		<Icon icon="solar:download-minimalistic-bold" width={size === 'xs' ? 14 : 16} className="text-base-content" />
-		<div class="absolute top-1 right-1 w-3 h-3 bg-success rounded-full flex items-center justify-center">
-			<Icon icon="solar:check-circle-bold" width="10" className="text-success-content" />
-		</div>
+		<Icon
+			icon="solar:download-minimalistic-bold"
+			width={size === 'xs' ? 14 : 16}
+			class="text-primary"
+		/>
+		{#if showText}
+			<span>Downloaded</span>
+		{/if}
+	</button>
+{:else if status === 'error'}
+	<button
+		class="btn btn-{size} btn-ghost {className}"
+		class:btn-circle={!showText}
+		disabled
+		title="Download failed"
+	>
+		<Icon
+			icon="solar:danger-triangle-linear"
+			width={size === 'xs' ? 14 : 16}
+			class="text-error"
+		/>
+		{#if showText}
+			<span>Error</span>
+		{/if}
 	</button>
 {:else}
 	<!-- Not downloaded state - subtle outline icon -->
 	<button
-		on:click={handleDownload}
-		class="btn btn-{size} btn-circle btn-ghost touch-target"
+		on:click|stopPropagation={handleDownload}
+		class="btn btn-{size} btn-ghost {className}"
+		class:btn-circle={!showText}
 		title="Download for offline"
 	>
-		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} className="text-base-content/50" />
+		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
+		{#if showText}
+			<span>Download</span>
+		{/if}
 	</button>
 {/if}
 
-<style>
-	/* Increase touch target on mobile using padding */
-	@media (max-width: 768px) {
-		.touch-target {
-			/* Add invisible padding to expand click area */
-			padding: 0.5rem;
-			/* Compensate with negative margin to keep visual position */
-			margin: -0.5rem;
-			/* Ensure it's clickable */
-			min-width: 44px;
-			min-height: 44px;
-		}
-	}
-</style>

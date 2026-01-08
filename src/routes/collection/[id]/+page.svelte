@@ -6,7 +6,7 @@
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { offline } from '$lib/stores/offline';
 
@@ -46,14 +46,24 @@
 		failedImages = failedImages; // Trigger reactivity
 	}
 	let sortBy: 'downloads' | 'date' | 'title' = 'downloads';
+	let viewMode: 'tiles' | 'list' = 'tiles';
 
 	$: collectionId = $page.params.id || '';
 	$: collectionInfo =
 		POPULAR_COLLECTIONS.find((c) => c.id === collectionId) || { name: collectionId, icon: '📁' };
 
 	onMount(() => {
+		const savedView = localStorage.getItem(`collection-view-${collectionId}`);
+		if (savedView === 'tiles' || savedView === 'list') {
+			viewMode = savedView;
+		}
 		loadCollection();
 	});
+
+	function setViewMode(mode: 'tiles' | 'list') {
+		viewMode = mode;
+		localStorage.setItem(`collection-view-${collectionId}`, mode);
+	}
 
 	async function loadCollection() {
 		isLoading = true;
@@ -178,30 +188,47 @@
 		{/if}
 	</div>
 
-	<!-- Sort Options -->
-	<div class="mb-6 flex items-center gap-2">
-		<span class="text-sm text-base-content/70">Sort:</span>
+	<!-- Controls -->
+	<div class="flex items-center justify-between mb-6">
+		<!-- Sort Options -->
+		<div class="flex items-center gap-2">
+			<span class="text-sm text-base-content/70">Sort:</span>
+			<div class="btn-group">
+				<button
+					on:click={() => (sortBy = 'downloads')}
+					class="btn btn-sm {sortBy === 'downloads' ? 'btn-active' : ''}"
+				>
+					Popular
+				</button>
+				<button
+					on:click={() => (sortBy = 'date')}
+					class="btn btn-sm {sortBy === 'date' ? 'btn-active' : ''}"
+				>
+					Newest
+				</button>
+				<button
+					on:click={() => (sortBy = 'title')}
+					class="btn btn-sm {sortBy === 'title' ? 'btn-active' : ''}"
+				>
+					A-Z
+				</button>
+			</div>
+		</div>
+		<!-- View Mode Toggle -->
 		<div class="btn-group">
 			<button
-				on:click={() => (sortBy = 'downloads')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'downloads'}
+				on:click={() => setViewMode('tiles')}
+				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
+				title="Tiles view"
 			>
-				Popular
+				<Icon icon="solar:widget-5-bold" width="18" />
 			</button>
 			<button
-				on:click={() => (sortBy = 'date')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'date'}
+				on:click={() => setViewMode('list')}
+				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
+				title="List view"
 			>
-				Newest
-			</button>
-			<button
-				on:click={() => (sortBy = 'title')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'title'}
-			>
-				A-Z
+				<Icon icon="solar:list-bold" width="18" />
 			</button>
 		</div>
 	</div>
@@ -220,49 +247,27 @@
 			{/each}
 		</div>
 	{:else if results.length > 0}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-			{#each results as item}
-				<AudioCard item={item} type="album" showActions={true} layout="tile">
-					<div slot="extra-actions" class="flex items-center gap-1 ml-auto">
-						<button
-							on:click={() => playTrack(item.identifier)}
-							class="btn btn-ghost btn-sm btn-circle"
-							disabled={loadingTrack === item.identifier}
-							title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-						>
-							{#if loadingTrack === item.identifier}
-								<span class="loading loading-spinner loading-sm"></span>
-							{:else if isCurrentTrack(item.identifier)}
-								<Icon icon="solar:pause-bold" width="18" />
-							{:else}
-								<Icon icon="solar:play-bold" width="18" />
-							{/if}
-						</button>
-						<button
-							on:click={() => addToQueue(item.identifier)}
-							class="btn btn-ghost btn-sm btn-circle"
-							disabled={loadingTrack === item.identifier}
-							title="Add to queue"
-						>
-							<Icon icon="solar:add-circle-linear" width="18" />
-						</button>
-
-						<!-- Lazy download -->
-						<button
-							on:click={() => lazyDownload(item.identifier)}
-							class="btn btn-ghost btn-sm btn-circle"
-							title="Download for offline"
-						>
-							{#if downloadingIds.has(item.identifier)}
-								<span class="loading loading-spinner loading-sm"></span>
-							{:else}
-								<Icon icon="solar:download-minimalistic-linear" width="18" />
-							{/if}
-						</button>
-					</div>
-				</AudioCard>
-			{/each}
-		</div>
+		{#if viewMode === 'tiles'}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+				{#each results as item}
+					<AudioCard
+						item={{ ...(item as any), creator: item.artist }}
+						type="album"
+						layout="tile"
+					/>
+				{/each}
+			</div>
+		{:else}
+			<div class="space-y-2 mb-6">
+				{#each results as item}
+					<AudioCard
+						item={{ ...(item as any), creator: item.artist }}
+						type="album"
+						layout="list"
+					/>
+				{/each}
+			</div>
+		{/if}
 
 		<!-- Pagination -->
 		{#if totalPages > 1}

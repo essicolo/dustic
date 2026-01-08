@@ -6,7 +6,7 @@
 	import { history } from '$lib/stores/history';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
@@ -219,6 +219,26 @@
 </script>
 
 <div class="p-4 md:p-8">
+	<!-- Page Header / Controls -->
+	<div class="flex justify-end mb-4">
+		<div class="btn-group" role="group" aria-label="View mode">
+			<button
+				on:click={() => (viewMode = 'tiles')}
+				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
+				title="Tiles view"
+			>
+				<Icon icon="solar:widget-5-bold" width="20" />
+			</button>
+			<button
+				on:click={() => (viewMode = 'list')}
+				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
+				title="List view"
+			>
+				<Icon icon="solar:list-bold" width="20" />
+			</button>
+		</div>
+	</div>
+
 	<!-- Continue Listening Section -->
 	{#if continueListening.length > 0}
 		<div class="mb-8">
@@ -233,13 +253,15 @@
 			<!-- Horizontal scrollable carousel / list -->
 			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
 				{#if viewMode === 'tiles'}
-					<div class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 p-1">
+					<div
+						class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 p-1"
+					>
 						{#each continueListening as track}
 							<AudioCard
-								item={{ ...track, tracks: [track], trackCount: 1 }}
+								item={{ ...(track as any), creator: track.artist, tracks: [track] }}
 								type="track"
-								showActions={true}
 								layout="tile"
+								actionsLayout="collapsed"
 							/>
 						{/each}
 					</div>
@@ -247,9 +269,8 @@
 					<div class="space-y-2">
 						{#each continueListening as track}
 							<AudioCard
-								item={{ ...track, tracks: [track], trackCount: 1 }}
+								item={{ ...(track as any), creator: track.artist, tracks: [track] }}
 								type="track"
-								showActions={true}
 								layout="list"
 							/>
 						{/each}
@@ -265,25 +286,6 @@
 		<div class="flex items-center gap-2">
 			{#if results.length > 0}
 				<button on:click={playAll} class="btn btn-primary btn-sm">Play All</button>
-				<!-- View toggle -->
-				<div class="btn-group ml-2" role="group" aria-label="View mode">
-					<button
-						on:click={() => (viewMode = 'tiles')}
-						class="btn btn-sm"
-						class:btn-active={viewMode === 'tiles'}
-						title="Tiles view"
-					>
-						Tiles
-					</button>
-					<button
-						on:click={() => (viewMode = 'list')}
-						class="btn btn-sm"
-						class:btn-active={viewMode === 'list'}
-						title="List view"
-					>
-						List
-					</button>
-				</div>
 			{/if}
 		</div>
 	</div>
@@ -293,17 +295,14 @@
 		<div class="flex items-center gap-2 flex-wrap">
 			<button
 				on:click={() => (selectedCollection = '')}
-				class="btn btn-sm"
-				class:btn-primary={selectedCollection === ''}
+				class="btn btn-sm {selectedCollection === '' ? 'btn-primary' : ''}"
 			>
 				All Audio
 			</button>
 			{#each POPULAR_COLLECTIONS as collection}
 				<button
 					on:click={() => (selectedCollection = collection.id)}
-					class="btn btn-sm"
-					class:btn-primary={selectedCollection === collection.id}
-				>
+									class="btn btn-sm {selectedCollection === collection.id ? 'btn-primary' : ''}"				>
 					{collection.name}
 				</button>
 			{/each}
@@ -327,13 +326,13 @@
 			{#if viewMode === 'tiles'}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 					{#each results as item, index}
-						<AudioCard item={item} type="album" showActions={true} layout="tile" />
+						<AudioCard item={item} type="album" layout="tile" />
 					{/each}
 				</div>
 			{:else}
 				<div class="space-y-2">
 					{#each results as item}
-						<AudioCard item={item} type="album" showActions={true} layout="list" />
+						<AudioCard item={item} type="album" layout="list" />
 					{/each}
 				</div>
 			{/if}

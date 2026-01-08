@@ -4,7 +4,7 @@
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track, SearchParams } from '$lib/types';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { offline } from '$lib/stores/offline';
 
@@ -29,6 +29,7 @@
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute, debounce } from '$lib/utils/throttle';
+	import { browser } from '$app/environment';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -54,11 +55,13 @@
 
 	// Read query params on mount
 	onMount(() => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const q = urlParams.get('q');
-		if (q) {
-			searchQuery = q;
-			handleSearch();
+		if (browser) {
+			const urlParams = new URLSearchParams(window.location.search);
+			const q = urlParams.get('q');
+			if (q) {
+				searchQuery = q;
+				handleSearch();
+			}
 		}
 	});
 
@@ -258,7 +261,7 @@
 
 	<!-- Mobile Filter Toggle -->
 	<div class="md:hidden mb-4">
-		<button on:click={toggleFilters} class="btn btn-outline btn-sm w-full">
+		<button on:click={toggleFilters} class="btn btn-outline btn-sm w-full {selectedCollections.length > 0 || sortBy !== 'relevance' ? 'btn-primary' : ''}">
 			<Icon icon="solar:filter-bold" width="20" />
 			<span>Filters</span>
 			{#if selectedCollections.length > 0 || sortBy !== 'relevance'}
@@ -451,54 +454,7 @@
 				<!-- Results Grid -->
 				<div class="space-y-2 mb-6">
 					{#each results as item}
-						<AudioCard item={item} type="album" showActions={true} layout="list">
-							<div slot="extra-actions" class="flex items-center gap-1 md:gap-2">
-								<button
-									on:click={() => playTrack(item.identifier)}
-									class="btn btn-sm btn-circle"
-									class:btn-primary={!isCurrentTrack(item.identifier)}
-									class:btn-ghost={isCurrentTrack(item.identifier)}
-									disabled={loadingTrack === item.identifier}
-									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-								>
-									{#if loadingTrack === item.identifier}
-										<span class="loading loading-spinner loading-xs"></span>
-									{:else if isCurrentTrack(item.identifier)}
-										<Icon icon="solar:pause-bold" width="18" />
-									{:else}
-										<Icon icon="solar:play-bold" width="18" />
-									{/if}
-								</button>
-								<button
-									on:click={() => addToQueue(item.identifier)}
-									class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex"
-									disabled={loadingTrack === item.identifier}
-									title="Add to queue"
-								>
-									<Icon icon="solar:add-circle-linear" width="18" />
-								</button>
-								<button
-									on:click={() => handleShare(item)}
-									class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex"
-									title="Share track"
-								>
-									<Icon icon="solar:share-linear" width="18" />
-								</button>
-
-								<!-- Lazy download (fetch metadata then download) -->
-								<button
-									on:click={() => lazyDownload(item.identifier)}
-									class="btn btn-ghost btn-sm btn-circle"
-									title="Download for offline"
-								>
-									{#if downloadingIds.has(item.identifier)}
-										<span class="loading loading-spinner loading-xs"></span>
-									{:else}
-										<Icon icon="solar:download-minimalistic-linear" width="18" />
-									{/if}
-								</button>
-							</div>
-						</AudioCard>
+						<AudioCard item={item} type="album" layout="list" />
 					{/each}
 				</div>
 

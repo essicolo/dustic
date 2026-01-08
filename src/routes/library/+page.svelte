@@ -2,7 +2,7 @@
 	import { library } from '$lib/stores/library';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 
 	$: playlistCount = Object.keys($library.playlists).length;
 </script>

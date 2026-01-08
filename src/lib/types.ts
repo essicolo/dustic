@@ -16,6 +16,14 @@ export interface Track {
 	metadata: Record<string, any>; // raw IA metadata
 }
 
+export interface ArchiveItem {
+	identifier: string;
+	title: string;
+	creator?: string;
+	[key: string]: any;
+	tracks?: Track[];
+}
+
 export interface Playlist {
 	id: string; // uuid
 	name: string;

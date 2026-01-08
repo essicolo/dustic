@@ -1,279 +1,442 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { onMount, createEventDispatcher } from 'svelte';
 	import { base } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import Icon from '@iconify/svelte';
+
+	// Stores
 	import { library } from '$lib/stores/library';
 	import { queue } from '$lib/stores/queue';
 	import { player } from '$lib/stores/player';
-	import type { Track } from '$lib/types';
-	import Icon from '$lib/components/Icon.svelte';
-	import DownloadButton from '$lib/components/DownloadButton.svelte';
+
+	// Services & Utils
+	import { getTrack, getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
 	import { shareTrack } from '$lib/utils/share';
 
-	export let item: {
-		identifier: string;
-		title: string;
-		artist?: string;
-		thumbnailUrl?: string;
-		trackCount?: number;
-		tracks?: Track[];
-	};
-	export let type: 'album' | 'track' = 'album';
-	export let showActions: boolean = true;
-	export let layout: 'tile' | 'list' = 'tile';
+	// Components
+	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import LoadingImage from './LoadingImage.svelte';
 
+	// Types
+	import type { ArchiveItem, Track } from '$lib/types';
+
+	export let item: ArchiveItem;
+	export let type: 'album' | 'track' = 'album';
+	export let layout: 'tile' | 'list' = 'tile';
+	export let compact = false;
+	export let showRemoveFromQueue = false;
+	export let actionsLayout: 'full' | 'collapsed' = 'full';
+
+	const dispatch = createEventDispatcher();
+
+	let isFetching = false;
 	let showPlaylistSelector = false;
-	let showShareToast = false;
-	let shareMessage = '';
+	let showActions = false;
+	let tracks: Track[] = item.tracks || [];
+	let actionsButton: HTMLElement;
+	let actionsMenu: HTMLElement;
+
+	// --- Portal Action for Dropdown ---
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node);
+		node.style.display = 'block';
+
+		return {
+			destroy() {
+				if (node.parentNode) {
+					node.parentNode.removeChild(node);
+				}
+			}
+		};
+	}
+
+	function positionActionsMenu() {
+		if (!actionsButton || !actionsMenu) return;
+
+		const btnRect = actionsButton.getBoundingClientRect();
+		const top = btnRect.bottom + window.scrollY + 4;
+		const right = window.innerWidth - btnRect.right - window.scrollX;
+
+		actionsMenu.style.top = `${top}px`;
+		actionsMenu.style.right = `${right}px`;
+	}
+
+	function toggleActions(event: MouseEvent) {
+		event.stopPropagation();
+		showActions = !showActions;
+		if (showActions) {
+			setTimeout(positionActionsMenu, 0);
+		}
+	}
+
+	function clickOutside(node: HTMLElement) {
+		const handleClick = (event: MouseEvent) => {
+			if (node && !node.contains(event.target as Node) && !actionsButton.contains(event.target as Node)) {
+				showActions = false;
+			}
+		};
+
+		document.addEventListener('click', handleClick, true);
+
+		return {
+			destroy() {
+				document.removeEventListener('click', handleClick, true);
+			}
+		};
+	}
+
 
 	$: isFavorite = $library.favorites.includes(item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
+	$: thumb = getThumbnailUrl(item.identifier);
 
-	function handleClick() {
-		if (type === 'album') {
-			goto(`${base}/item/${item.identifier}`);
-		} else if (type === 'track' && item.tracks && item.tracks[0]) {
-			playTrack(item.tracks[0]);
+	async function ensureTracks(): Promise<Track[]> {
+		if (tracks.length > 0) return tracks;
+		isFetching = true;
+		try {
+			const fetchedTracks =
+				type === 'album'
+					? await getAllTracks(item.identifier)
+					: [await getTrack(item.identifier)];
+			tracks = fetchedTracks;
+			item.tracks = fetchedTracks; // Cache on the item object
+			return tracks;
+		} finally {
+			isFetching = false;
 		}
 	}
 
-	function playTrack(track: Track) {
-		if (item.tracks) {
-			queue.setQueue(item.tracks, 0);
+	async function handlePlay(e?: MouseEvent | KeyboardEvent) {
+		e?.stopPropagation();
+		const tracksToPlay = await ensureTracks();
+		if (tracksToPlay?.length > 0) {
+			queue.setQueue(tracksToPlay, 0);
+			player.play(tracksToPlay[0]);
 		}
-		player.play(track);
 	}
 
-	function toggleFavorite(e: Event) {
+	async function handleAddToQueue(e: MouseEvent) {
 		e.stopPropagation();
+		showActions = false;
+		const tracksToAdd = await ensureTracks();
+		if (tracksToAdd?.length > 0) {
+			queue.addToEnd(tracksToAdd[0]);
+		}
+	}
+
+	async function handleShare(e: MouseEvent) {
+		e.stopPropagation();
+		showActions = false;
+		const tracksToShare = await ensureTracks();
+		if (tracksToShare?.[0]) {
+			await shareTrack(tracksToShare[0]);
+		}
+	}
+
+	function handleToggleFavorite(e: MouseEvent) {
+		e.stopPropagation();
+		showActions = false;
 		library.toggleFavorite(item.identifier);
 	}
 
-	function togglePlaylistSelector(e: Event) {
+	function handleAddToPlaylist(e: MouseEvent, playlistId: string) {
 		e.stopPropagation();
-		showPlaylistSelector = !showPlaylistSelector;
-	}
-
-	function addToPlaylist(playlistId: string, e: Event) {
-		e.stopPropagation();
+		showActions = false;
 		library.addToPlaylist(playlistId, item.identifier);
 		showPlaylistSelector = false;
 	}
 
-	async function handleShare(e: Event) {
+	function handleRemoveFromQueue(e: MouseEvent) {
 		e.stopPropagation();
-		if (item.tracks && item.tracks[0]) {
-			const result = await shareTrack(item.tracks[0]);
-			shareMessage = result.message;
-			showShareToast = true;
-			setTimeout(() => {
-				showShareToast = false;
-			}, 3000);
+		showActions = false;
+		dispatch('removeFromQueue');
+	}
+
+	function handleNavigate() {
+		if (type === 'album') {
+			goto(`${base}/item/${item.identifier}`);
+		} else {
+			handlePlay();
 		}
 	}
 
-	function handleAddToQueue(e: Event) {
-		e.stopPropagation();
-		if (item.tracks && item.tracks[0]) {
-			queue.addToEnd(item.tracks[0]);
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			handleNavigate();
+		}
+		if (e.key === 'Escape') {
+			showPlaylistSelector = false;
+			showActions = false;
 		}
 	}
-// compute classes for layout
-$: containerClass =
-	layout === 'list'
-		? 'card card-side bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group items-center'
-		: 'card bg-base-200 hover:bg-base-300 transition-all duration-200 cursor-pointer group';
 
+	onMount(() => {
+		const closeOnEscape = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				showPlaylistSelector = false;
+				showActions = false;
+			}
+		};
+
+		const closeOnClickOutside = (e: MouseEvent) => {
+			if (showPlaylistSelector) {
+				const playlistSelector = document.getElementById(`playlist-selector-${item.identifier}`);
+				if (playlistSelector && !playlistSelector.contains(e.target as Node)) {
+					showPlaylistSelector = false;
+				}
+			}
+		};
+
+		window.addEventListener('keydown', closeOnEscape);
+		document.addEventListener('click', closeOnClickOutside);
+
+		return () => {
+			window.removeEventListener('keydown', closeOnEscape);
+			document.removeEventListener('click', closeOnClickOutside);
+		};
+	});
 </script>
 
 <div
-	class={containerClass}
-	on:click={handleClick}
-	on:keydown={(e) => e.key === 'Enter' && handleClick()}
+	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group"
+	class:card-side={layout === 'list'}
+	class:h-full={layout === 'tile'}
+	on:click={handleNavigate}
+	on:keydown={handleKeyDown}
 	role="button"
 	tabindex="0"
+	aria-label="Play {item.title}"
 >
-	<!-- Thumbnail -->
-	{#if layout === 'list'}
-		<figure class="relative w-24 h-24 flex-shrink-0">
-			{#if item.thumbnailUrl}
-				<img src={item.thumbnailUrl} alt={item.title} class="w-full h-full object-cover rounded" loading="lazy" />
+	<figure
+		class="relative bg-neutral"
+		class:aspect-square={layout === 'tile'}
+		class:w-20={layout === 'list'}
+		class:h-20={layout === 'list'}
+		class:flex-shrink-0={layout === 'list'}
+	>
+		<LoadingImage
+			src={thumb}
+			alt="Cover for {item.title}"
+			className="w-full h-full object-cover"
+			aspectRatio="square"
+		/>
+		<div
+			class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+		>
+			{#if isFetching}
+				<span class="loading loading-spinner text-primary"></span>
 			{:else}
-				<div class="w-full h-full flex items-center justify-center bg-base-300 rounded">
-					<Icon icon="solar:music-note-bold" width="48" className="text-base-content/30" />
-				</div>
-			{/if}
-
-			{#if showActions}
-				<div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
-					<button
-						on:click|stopPropagation={() => item.tracks && item.tracks[0] && playTrack(item.tracks[0])}
-						class="btn btn-circle btn-primary btn-sm"
-					>
-						<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
-					</button>
-				</div>
-			{/if}
-		</figure>
-	{:else}
-		<figure class="relative aspect-square">
-			{#if item.thumbnailUrl}
-				<img
-					src={item.thumbnailUrl}
-					alt={item.title}
-					class="w-full h-full object-cover"
-					loading="lazy"
-				/>
-			{:else}
-				<div class="w-full h-full flex items-center justify-center bg-base-300">
-					<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-				</div>
-			{/if}
-            
-			{#if showActions}
-				<!-- Play button overlay -->
-				<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-					<button
-						on:click|stopPropagation={() => item.tracks && item.tracks[0] && playTrack(item.tracks[0])}
-						class="btn btn-circle btn-primary btn-lg"
-					>
-						<Icon icon="solar:play-bold" width="32" className="text-primary-content" />
-					</button>
-				</div>
-			{/if}
-		</figure>
-	{/if}
-
-	<div class="card-body p-4">
-		<!-- Title & Artist -->
-		<h3 class="card-title text-base line-clamp-1">{item.title}</h3>
-		{#if item.artist}
-			<p class="text-sm text-base-content/70 line-clamp-1">{item.artist}</p>
-		{/if}
-		{#if item.trackCount !== undefined}
-			<p class="text-xs text-base-content/50">{item.trackCount} track{item.trackCount !== 1 ? 's' : ''}</p>
-		{/if}
-
-		{#if showActions}
-			<!-- Actions -->
-			<div class="card-actions justify-end mt-2 gap-1">
-				<!-- Favorite -->
 				<button
-					on:click={toggleFavorite}
-					class="btn btn-ghost btn-sm btn-circle"
-					title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+					class="btn btn-primary btn-circle"
+					class:btn-sm={compact}
+					on:click={handlePlay}
+					aria-label="Play"
+				>
+					<Icon icon="solar:play-bold" width={compact ? '20' : '28'} />
+				</button>
+			{/if}
+		</div>
+	</figure>
+
+	<div
+		class="card-body min-w-0 {layout === 'list'
+			? 'flex-row items-center justify-between'
+			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
+	>
+		<div class="flex-grow min-w-0">
+			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}">
+				{item.title}
+			</h2>
+			<p class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'}">
+				{(item as any).artist || item.creator || 'Unknown Artist'}
+			</p>
+		</div>
+
+		<div
+			class="card-actions items-center {layout === 'list'
+				? 'flex-shrink-0 flex-nowrap'
+				: 'justify-between mt-auto -ml-2'}"
+		>
+			{#if actionsLayout === 'full'}
+				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
+					<DownloadButton
+						track={tracks?.[0] || item}
+						lazy={true}
+						size={compact ? 'xs' : 'sm'}
+					/>
+				</div>
+
+				<button
+					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
+						? ''
+						: 'order-2'}"
+					title="Favorite"
+					on:click={handleToggleFavorite}
 				>
 					<Icon
 						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-						width="18"
-						className={isFavorite ? 'text-red-500' : ''}
+						class={isFavorite ? 'text-error' : ''}
+						width="20"
 					/>
 				</button>
 
-				<!-- Add to Playlist -->
-				<div class="relative">
-					<button
-						on:click={togglePlaylistSelector}
-						class="btn btn-ghost btn-sm btn-circle"
-						title="Add to playlist"
-					>
-						<Icon icon="solar:add-circle-linear" width="18" />
-					</button>
+				<button
+					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
+						? ''
+						: 'order-3'}"
+					title="Share"
+					on:click={handleShare}
+				>
+					<Icon icon="solar:share-linear" width="20" />
+				</button>
 
+				<div class="relative {layout === 'list' ? '' : 'order-4'}">
+					<button
+						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
+						title="Add to Playlist"
+						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
+					>
+						<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
+					</button>
 					{#if showPlaylistSelector}
 						<div
-							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-xl z-20 border border-base-content/10 max-h-60 overflow-y-auto"
-							on:click|stopPropagation
-							on:keydown|stopPropagation
-							role="none"
+							id="playlist-selector-{item.identifier}"
+							class="absolute bottom-full left-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
 						>
-							{#if playlists.length === 0}
-								<div class="p-3 text-center text-sm text-base-content/50">
-									<p class="mb-2">No playlists yet</p>
-									<a
-										href="{base}/library/playlists"
-										class="btn btn-primary btn-xs"
-										on:click|stopPropagation
-									>
-										Create Playlist
-									</a>
-								</div>
-							{:else}
-								{#each playlists as playlist}
-									<button
-										on:click={(e) => addToPlaylist(playlist.id, e)}
-										class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm flex items-center justify-between gap-2"
-									>
-										<span class="truncate">{playlist.name}</span>
-										<span class="text-xs text-base-content/50">{playlist.tracks.length}</span>
-									</button>
-								{/each}
-								<div class="border-t border-base-content/10">
-									<a
-										href="{base}/library/playlists"
-										class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm flex items-center gap-2 text-primary"
-										on:click|stopPropagation
-									>
-										<Icon icon="solar:add-circle-bold" width="14" />
-										<span>New Playlist</span>
-									</a>
-								</div>
-							{/if}
+							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+							{#each playlists as p}
+								<button
+									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
+									on:click={(e) => handleAddToPlaylist(e, p.id)}
+								>
+									{p.name}
+								</button>
+							{/each}
+							<a
+								href="{base}/library/playlists"
+								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
+							>
+								+ New Playlist
+							</a>
 						</div>
 					{/if}
 				</div>
 
-				<!-- Add to Queue -->
-				{#if type === 'track'}
+				<button
+					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
+						? ''
+						: 'order-5'}"
+					title="Add to Queue"
+					on:click={handleAddToQueue}
+				>
+					<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
+				</button>
+
+				{#if showRemoveFromQueue}
 					<button
-						on:click={handleAddToQueue}
-						class="btn btn-ghost btn-sm btn-circle"
-						title="Add to queue"
+						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
+							? ''
+							: 'order-6'}"
+						title="Remove from Queue"
+						on:click={handleRemoveFromQueue}
 					>
-						<Icon icon="solar:playlist-minimalistic-2-linear" width="18" />
+						<Icon icon="solar:close-circle-bold" width="20" />
 					</button>
 				{/if}
+			{:else}
+				<div class="relative">
+					<button
+						bind:this={actionsButton}
+						on:click={toggleActions}
+						class="btn btn-ghost btn-circle btn-xs"
+					>
+						<Icon icon="solar:menu-dots-bold" width="20" />
+					</button>
 
-				<!-- Download -->
-				{#if item.tracks && item.tracks[0]}
-					<div on:click|stopPropagation on:keydown|stopPropagation role="none">
-						<DownloadButton track={item.tracks[0]} size="sm" />
-					</div>
-				{/if}
-
-				<!-- Share -->
-				<button
-					on:click={handleShare}
-					class="btn btn-ghost btn-sm btn-circle"
-					title="Share"
-				>
-					<Icon icon="solar:share-linear" width="18" />
-				</button>
-			</div>
-		{/if}
-
-		<!-- Extra actions slot (for page-specific controls like remove from history) -->
-		<slot name="extra-actions" />
-	</div>
-</div>
-
-<!-- Share Toast -->
-{#if showShareToast}
-	<div class="toast toast-top toast-center z-50">
-		<div class="alert alert-success">
-			<Icon icon="solar:check-circle-bold" width="20" />
-			<span>{shareMessage}</span>
+					{#if showActions}
+						<div
+							use:portal
+							bind:this={actionsMenu}
+							use:clickOutside
+							class="fixed z-[99]"
+						>
+							<ul
+								class="menu p-2 shadow-2xl bg-base-300 rounded-box w-56"
+							>
+								<li>
+									<DownloadButton
+										track={tracks?.[0] || item}
+										lazy={true}
+										size="sm"
+										showText={true}
+										className="w-full justify-start"
+									/>
+								</li>
+								<li>
+									<a role="button" tabindex="0" on:click={handleToggleFavorite} on:keydown={handleToggleFavorite} class="flex items-center">
+										<Icon
+											icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+											class={isFavorite ? 'text-error' : ''}
+											width="20"
+										/>
+										Favorite
+									</a>
+								</li>
+								<li>
+									<a role="button" tabindex="0" on:click={handleShare} on:keydown={handleShare} class="flex items-center">
+										<Icon icon="solar:share-linear" width="20" />
+										Share
+									</a>
+								</li>
+								<li on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}>
+									<a role="button" tabindex="0" class="flex items-center">
+										<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
+										Add to Playlist
+									</a>
+								</li>
+								<li>
+									<a role="button" tabindex="0" on:click={handleAddToQueue} on:keydown={handleAddToQueue} class="flex items-center">
+										<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
+										Add to Queue
+									</a>
+								</li>
+								{#if showRemoveFromQueue}
+									<li class="border-t border-base-content/10 mt-1 pt-1">
+										<a role="button" tabindex="0" on:click={handleRemoveFromQueue} on:keydown={handleRemoveFromQueue} class="flex items-center">
+											<Icon icon="solar:close-circle-bold" width="20" />
+											Remove from Queue
+										</a>
+									</li>
+								{/if}
+							</ul>
+						</div>
+					{/if}
+					
+					{#if showPlaylistSelector}
+						<div
+							id="playlist-selector-{item.identifier}"
+							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
+						>
+							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+							{#each playlists as p}
+								<button
+									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
+									on:click={(e) => handleAddToPlaylist(e, p.id)}
+								>
+									{p.name}
+								</button>
+							{/each}
+							<a
+								href="{base}/library/playlists"
+								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
+							>
+								+ New Playlist
+							</a>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
-{/if}
-
-<!-- Click outside to close playlist selector -->
-{#if showPlaylistSelector}
-	<div
-		class="fixed inset-0 z-10"
-		on:click={() => (showPlaylistSelector = false)}
-		on:keydown={(e) => e.key === 'Escape' && (showPlaylistSelector = false)}
-		role="button"
-		tabindex="-1"
-		aria-label="Close playlist selector"
-	></div>
-{/if}
+</div>

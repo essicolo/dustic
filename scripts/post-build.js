@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Post-build script for GitHub Pages SPA routing
+ * Post-build script
  *
- * GitHub Pages serves 404.html for any route that doesn't have a physical file.
- * For SPA routing to work, we need 404.html to be a copy of index.html,
- * so the app loads and client-side routing can take over.
+ * For Cloudflare Pages: No action needed (Cloudflare handles SPA routing automatically)
+ * For GitHub Pages: Creates 404.html from index.html for SPA routing
  */
 
 import { copyFileSync, existsSync } from 'fs';
@@ -15,11 +14,13 @@ const buildDir = resolve('./build');
 const indexPath = resolve(buildDir, 'index.html');
 const notFoundPath = resolve(buildDir, '404.html');
 
+// Check if using Cloudflare adapter (no index.html in build dir)
 if (!existsSync(indexPath)) {
-	console.error('❌ index.html not found in build directory');
-	process.exit(1);
+	console.log('✅ Using Cloudflare Pages (no post-build action needed)');
+	process.exit(0);
 }
 
+// GitHub Pages: Copy index.html to 404.html for SPA routing
 try {
 	copyFileSync(indexPath, notFoundPath);
 	console.log('✅ Created 404.html for GitHub Pages SPA routing');

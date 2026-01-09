@@ -1,11 +1,11 @@
-name: Deploy to Cloudflare Pages
+name: Version Bump
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build_and_deploy:
+  bump_version:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     permissions:
@@ -40,18 +40,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        run: npm run build
+      - name: Generate version files
+        run: node scripts/generate-version.js
 
       - name: Commit version bump
         run: |
           git add package.json src/lib/version.ts static/version.json
           git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]" || true
           git push || true
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build --project-name=dustic

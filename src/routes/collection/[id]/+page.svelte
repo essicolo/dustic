@@ -45,7 +45,7 @@
 		failedImages.add(identifier);
 		failedImages = failedImages; // Trigger reactivity
 	}
-	let sortBy: 'downloads' | 'date' | 'title' = 'downloads';
+	let sortBy: 'downloads' | 'date' | 'relevance' = 'downloads';
 	let viewMode: 'tiles' | 'list' = 'tiles';
 
 	$: collectionId = $page.params.id || '';
@@ -167,7 +167,7 @@
 	}
 </script>
 
-<div class="p-8">
+<div class="p-4 md:p-8">
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h2 class="text-3xl font-bold">
@@ -207,10 +207,10 @@
 					Newest
 				</button>
 				<button
-					on:click={() => (sortBy = 'title')}
-					class="btn btn-sm {sortBy === 'title' ? 'btn-active' : ''}"
+					on:click={() => (sortBy = 'relevance')}
+					class="btn btn-sm {sortBy === 'relevance' ? 'btn-active' : ''}"
 				>
-					A-Z
+					Relevance
 				</button>
 			</div>
 		</div>

@@ -9,6 +9,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { fade } from 'svelte/transition';
 	import { player } from '$lib/stores/player';
+	import { offline } from '$lib/stores/offline';
 	import { onMount } from 'svelte';
 
 	$: currentPath = $page.url.pathname;
@@ -28,6 +29,9 @@
 	}
 
 	onMount(() => {
+		// Initialize offline storage
+		offline.loadOfflineTracks();
+
 		const handleScroll = () => {
 			// Throttle scroll events to avoid excessive updates
 			if (scrollTimeout) return;

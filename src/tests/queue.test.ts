@@ -14,33 +14,39 @@ describe('Queue Store', () => {
 		mockTracks = [
 			{
 				identifier: 'item1#track1.mp3',
+				filename: 'track1.mp3',
 				title: 'Track 1',
 				artist: 'Artist 1',
 				streamUrl: 'https://example.com/1.mp3',
 				format: 'VBR MP3',
-				size: 1000000,
 				duration: 180,
-				date: '2024-01-01'
+				date: '2024-01-01',
+				collection: [],
+				metadata: {}
 			},
 			{
 				identifier: 'item1#track2.mp3',
+				filename: 'track2.mp3',
 				title: 'Track 2',
 				artist: 'Artist 2',
 				streamUrl: 'https://example.com/2.mp3',
 				format: 'VBR MP3',
-				size: 2000000,
 				duration: 200,
-				date: '2024-01-02'
+				date: '2024-01-02',
+				collection: [],
+				metadata: {}
 			},
 			{
 				identifier: 'item1#track3.mp3',
+				filename: 'track3.mp3',
 				title: 'Track 3',
 				artist: 'Artist 3',
 				streamUrl: 'https://example.com/3.mp3',
 				format: 'VBR MP3',
-				size: 3000000,
 				duration: 220,
-				date: '2024-01-03'
+				date: '2024-01-03',
+				collection: [],
+				metadata: {}
 			}
 		];
 	});

@@ -205,7 +205,6 @@
 				<AudioCard
 					item={{ ...track, tracks: [track] }}
 					type="track"
-					showActions={true}
 					layout="tile"
 				>
 					<div slot="extra-actions" class="mt-1 flex items-center justify-between">
@@ -229,7 +228,6 @@
 				<AudioCard
 					item={{ ...track, tracks: [track] }}
 					type="track"
-					showActions={true}
 					layout="list"
 				>
 					<div slot="extra-actions" class="flex items-center gap-3 mt-2">

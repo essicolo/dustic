@@ -1,15 +1,13 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: 'main'
+    branches: [main]
 
 jobs:
-  build_site:
-    # Skip if this is a version bump commit
+  build_and_deploy:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
@@ -26,28 +24,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version
-        id: bump
         run: |
-          # Get current version
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-
-          # Extract version parts
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-          MAJOR="${VERSION_PARTS[0]}"
-          MINOR="${VERSION_PARTS[1]}"
-          PATCH="${VERSION_PARTS[2]}"
-
-          # Always do patch bump for now (can enhance later with commit message parsing)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
-
-          echo "New version: $NEW_VERSION"
-
-          # Update package.json
+          NEW_PATCH=$((${VERSION_PARTS[2]} + 1))
+          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH"
           npm version $NEW_VERSION --no-git-tag-version
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -62,27 +46,12 @@ jobs:
       - name: Commit version bump
         run: |
           git add package.json src/lib/version.ts static/version.json
-          git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]" || echo "No changes to commit"
-          git push || echo "Nothing to push"
+          git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]" || true
+          git push || true
 
-      - name: Upload Artifacts
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: 'build/'
-
-  deploy:
-    needs: build_site
-    runs-on: ubuntu-latest
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build --project-name=dustic

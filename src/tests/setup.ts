@@ -50,12 +50,16 @@ global.MediaMetadata = class MediaMetadata {
 } as any;
 
 // Mock Media Session API
-global.navigator.mediaSession = {
-	metadata: null,
-	playbackState: 'none',
-	setActionHandler: vi.fn(),
-	setPositionState: vi.fn()
-} as any;
+Object.defineProperty(global.navigator, 'mediaSession', {
+	value: {
+		metadata: null,
+		playbackState: 'none',
+		setActionHandler: vi.fn(),
+		setPositionState: vi.fn()
+	},
+	writable: true,
+	configurable: true
+});
 
 // Mock Audio element
 global.HTMLMediaElement.prototype.load = vi.fn();

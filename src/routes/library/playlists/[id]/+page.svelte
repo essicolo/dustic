@@ -10,8 +10,35 @@
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 
-	// ... other code ...
+	$: playlistId = $page.params.id as string;
+	$: playlist = playlistId ? $library.playlists[playlistId] : undefined;
+
+	let tracks: (Track | null)[] = [];
+	let isLoading = false;
+	let loadingTrack: string | null = null;
+
+	async function batchExecute<T>(
+		tasks: (() => Promise<T>)[],
+		batchSize: number,
+		delayMs: number = 0
+	): Promise<T[]> {
+		const results: T[] = [];
+		for (let i = 0; i < tasks.length; i += batchSize) {
+			const batch = tasks.slice(i, i + batchSize);
+			const batchResults = await Promise.all(batch.map((t) => t()));
+			results.push(...batchResults);
+			if (delayMs > 0 && i + batchSize < tasks.length) {
+				await new Promise((r) => setTimeout(r, delayMs));
+			}
+		}
+		return results;
+	}
+
+	$: if (playlist) {
+		loadTracks();
+	}
 
 	async function loadTracks() {
 		if (!playlist) return;
@@ -57,6 +84,7 @@
 	}
 
 	function deletePlaylist() {
+		if (!playlist) return;
 		if (confirm(`Delete playlist "${playlist.name}"?`)) {
 			library.deletePlaylist(playlistId);
 			goto(`${base}/library`);

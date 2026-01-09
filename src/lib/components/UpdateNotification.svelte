@@ -6,9 +6,9 @@
 	let showUpdatePrompt = false;
 	let checking = false;
 
-	onMount(async () => {
+	onMount(() => {
 		// Check for updates on mount
-		await checkVersion();
+		checkVersion();
 
 		// Check every 5 minutes
 		const interval = setInterval(checkVersion, 5 * 60 * 1000);
@@ -18,6 +18,14 @@
 
 	async function checkVersion() {
 		if (checking) return;
+
+		// Check if snoozed (Issue #13 - persistent snooze)
+		const snoozeUntil = localStorage.getItem('update_snooze_until');
+		if (snoozeUntil && Date.now() < parseInt(snoozeUntil)) {
+			return; // Still snoozed
+		}
+
+		localStorage.removeItem('update_snooze_until');
 		checking = true;
 
 		try {
@@ -70,11 +78,10 @@
 
 	function dismissUpdate() {
 		showUpdatePrompt = false;
-		// Snooze for 1 hour - don't check again during this session
-		const oneHour = 60 * 60 * 1000;
-		setTimeout(() => {
-			checkVersion();
-		}, oneHour);
+
+		// Snooze for 1 hour (Issue #13 - persistent across sessions)
+		const snoozeUntil = Date.now() + 60 * 60 * 1000;
+		localStorage.setItem('update_snooze_until', snoozeUntil.toString());
 	}
 </script>
 

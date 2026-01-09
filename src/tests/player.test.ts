@@ -20,14 +20,16 @@ describe('Player Store', () => {
 		// Create mock track
 		mockTrack = {
 			identifier: 'test-item#test-track.mp3',
+			filename: 'test-track.mp3',
 			title: 'Test Track',
 			artist: 'Test Artist',
 			streamUrl: 'https://example.com/test.mp3',
 			format: 'VBR MP3',
-			size: 1000000,
 			duration: 180,
 			date: '2024-01-01',
-			thumbnailUrl: 'https://example.com/thumb.jpg'
+			thumbnailUrl: 'https://example.com/thumb.jpg',
+			collection: [],
+			metadata: {}
 		};
 	});
 

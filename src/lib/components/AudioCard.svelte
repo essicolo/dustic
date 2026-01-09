@@ -94,10 +94,13 @@
 		if (tracks.length > 0) return tracks;
 		isFetching = true;
 		try {
-			const fetchedTracks =
-				type === 'album'
-					? await getAllTracks(item.identifier)
-					: [await getTrack(item.identifier)];
+			let fetchedTracks: Track[] = [];
+			if (type === 'album') {
+				fetchedTracks = await getAllTracks(item.identifier);
+			} else {
+				const track = await getTrack(item.identifier);
+				if (track) fetchedTracks = [track];
+			}
 			tracks = fetchedTracks;
 			item.tracks = fetchedTracks; // Cache on the item object
 			return tracks;
@@ -115,7 +118,7 @@
 		}
 	}
 
-	async function handleAddToQueue(e: MouseEvent) {
+	async function handleAddToQueue(e: Event) {
 		e.stopPropagation();
 		showActions = false;
 		const tracksToAdd = await ensureTracks();
@@ -124,7 +127,7 @@
 		}
 	}
 
-	async function handleShare(e: MouseEvent) {
+	async function handleShare(e: Event) {
 		e.stopPropagation();
 		showActions = false;
 		const tracksToShare = await ensureTracks();
@@ -133,20 +136,20 @@
 		}
 	}
 
-	function handleToggleFavorite(e: MouseEvent) {
+	function handleToggleFavorite(e: Event) {
 		e.stopPropagation();
 		showActions = false;
 		library.toggleFavorite(item.identifier);
 	}
 
-	function handleAddToPlaylist(e: MouseEvent, playlistId: string) {
+	function handleAddToPlaylist(e: Event, playlistId: string) {
 		e.stopPropagation();
 		showActions = false;
 		library.addToPlaylist(playlistId, item.identifier);
 		showPlaylistSelector = false;
 	}
 
-	function handleRemoveFromQueue(e: MouseEvent) {
+	function handleRemoveFromQueue(e: Event) {
 		e.stopPropagation();
 		showActions = false;
 		dispatch('removeFromQueue');
@@ -262,10 +265,12 @@
 				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
 					<DownloadButton
 						track={tracks?.[0] || item}
-						lazy={true}
+						lazy={!tracks?.length}
 						size={compact ? 'xs' : 'sm'}
 					/>
 				</div>
+
+				<slot name="extra-actions" />
 
 				<button
 					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
@@ -365,13 +370,15 @@
 								class="menu p-2 shadow-2xl bg-base-300 rounded-box w-56"
 							>
 								<li>
-									<DownloadButton
-										track={tracks?.[0] || item}
-										lazy={true}
-										size="sm"
-										showText={true}
-										className="w-full justify-start"
-									/>
+									<div on:click|stopPropagation class="p-0">
+										<DownloadButton
+											track={tracks?.[0] || item}
+											lazy={!tracks?.length}
+											size="sm"
+											showLabel={true}
+											className="w-full justify-start gap-3 px-4 font-normal normal-case"
+										/>
+									</div>
 								</li>
 								<li>
 									<a role="button" tabindex="0" on:click={handleToggleFavorite} on:keydown={handleToggleFavorite} class="flex items-center">

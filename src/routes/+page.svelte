@@ -254,15 +254,16 @@
 			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
 				{#if viewMode === 'tiles'}
 					<div
-						class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:min-w-0 p-1"
+						class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:min-w-0 p-1"
 					>
 						{#each continueListening as track}
-							<AudioCard
-								item={{ ...(track as any), creator: track.artist, tracks: [track] }}
-								type="track"
-								layout="tile"
-								actionsLayout="collapsed"
-							/>
+							<div class="w-64 md:w-auto flex-shrink-0">
+								<AudioCard
+									item={{ ...(track as any), creator: track.artist, tracks: [track] }}
+									type="track"
+									layout="tile"
+								/>
+							</div>
 						{/each}
 					</div>
 				{:else}

@@ -3,6 +3,7 @@
 import { browser } from '$app/environment';
 import type { UserProfile } from '$lib/types';
 import { createDefaultProfile } from './storage';
+import { UserProfileSchema } from '$lib/schemas/archive';
 
 const STORAGE_KEY = 'dustic-profile';
 // Storage schema version - only increment when data structure changes (breaking changes)
@@ -19,10 +20,10 @@ export function loadFromStorage(): UserProfile | null {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) return null;
 
-		const profile = JSON.parse(stored) as any;
+		const rawProfile = JSON.parse(stored) as any;
 
 		// Get schema version (default to 1 for old data)
-		const schemaVersion = profile.schemaVersion || 1;
+		const schemaVersion = rawProfile.schemaVersion || 1;
 
 		// Migrate data if schema changed
 		if (schemaVersion < STORAGE_SCHEMA_VERSION) {
@@ -30,31 +31,34 @@ export function loadFromStorage(): UserProfile | null {
 			// Add migration logic here if schema changes in the future
 		}
 
-		profile.schemaVersion = STORAGE_SCHEMA_VERSION;
+		rawProfile.schemaVersion = STORAGE_SCHEMA_VERSION;
 
 		// Backward compatibility: add missing fields with defaults
-		if (!profile.settings) {
-			profile.settings = {
+		if (!rawProfile.settings) {
+			rawProfile.settings = {
 				volume: 0.7,
 				repeat: 'off',
 				audioQuality: 'medium'
 			};
 		}
-		if (!profile.settings.audioQuality) {
-			profile.settings.audioQuality = 'medium';
+		if (!rawProfile.settings.audioQuality) {
+			rawProfile.settings.audioQuality = 'medium';
 		}
-		if (!profile.playlists) {
-			profile.playlists = {};
+		if (!rawProfile.playlists) {
+			rawProfile.playlists = {};
 		}
-		if (!profile.favorites) {
-			profile.favorites = [];
+		if (!rawProfile.favorites) {
+			rawProfile.favorites = [];
 		}
-		if (!profile.history) {
-			profile.history = [];
+		if (!rawProfile.history) {
+			rawProfile.history = [];
 		}
-		if (!profile.autoplayRules) {
-			profile.autoplayRules = [];
+		if (!rawProfile.autoplayRules) {
+			rawProfile.autoplayRules = [];
 		}
+
+		// Validate with Zod before returning
+		const profile = UserProfileSchema.parse(rawProfile);
 
 		// Save migrated profile
 		saveToStorage(profile);

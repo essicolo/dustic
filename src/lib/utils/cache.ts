@@ -8,6 +8,12 @@ interface CacheEntry<T> {
 
 class Cache {
 	private cache = new Map<string, CacheEntry<any>>();
+	private accessOrder: string[] = []; // LRU tracking (Issue #8)
+	private readonly maxSize: number;
+
+	constructor(maxSize: number = 100) {
+		this.maxSize = maxSize;
+	}
 
 	/**
 	 * Get cached value if it exists and hasn't expired
@@ -20,9 +26,12 @@ class Cache {
 		if (now - entry.timestamp > entry.ttl) {
 			// Expired - remove it
 			this.cache.delete(key);
+			this.removeFromAccessOrder(key);
 			return null;
 		}
 
+		// Update access order for LRU
+		this.updateAccessOrder(key);
 		return entry.data as T;
 	}
 
@@ -30,11 +39,45 @@ class Cache {
 	 * Set a value in the cache with TTL
 	 */
 	set<T>(key: string, data: T, ttl: number = 5 * 60 * 1000): void {
+		// Evict if at capacity
+		if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+			this.evictLRU();
+		}
+
 		this.cache.set(key, {
 			data,
 			timestamp: Date.now(),
 			ttl
 		});
+		this.updateAccessOrder(key);
+	}
+
+	/**
+	 * Evict least recently used entry
+	 */
+	private evictLRU(): void {
+		if (this.accessOrder.length > 0) {
+			const lruKey = this.accessOrder.shift()!;
+			this.cache.delete(lruKey);
+		}
+	}
+
+	/**
+	 * Update access order (move to end)
+	 */
+	private updateAccessOrder(key: string): void {
+		this.removeFromAccessOrder(key);
+		this.accessOrder.push(key);
+	}
+
+	/**
+	 * Remove from access order
+	 */
+	private removeFromAccessOrder(key: string): void {
+		const index = this.accessOrder.indexOf(key);
+		if (index !== -1) {
+			this.accessOrder.splice(index, 1);
+		}
 	}
 
 	/**
@@ -74,8 +117,8 @@ class Cache {
 	}
 }
 
-// Singleton instance
-export const cache = new Cache();
+// Singleton instance with bounded size (Issue #8)
+export const cache = new Cache(100);
 
 // Cleanup expired entries every 5 minutes
 if (typeof window !== 'undefined') {

@@ -7,7 +7,7 @@
 	export let track: Track | ArchiveItem;
 	export let size: 'xs' | 'sm' | 'md' = 'sm';
 	export let lazy = false;
-	export let showText = false;
+	export let showLabel = false;
 	export let className = '';
 
 	let progress = 0;
@@ -50,78 +50,42 @@
 </script>
 
 {#if status === 'fetching'}
-	<button class="btn btn-{size} btn-ghost {className}" class:btn-circle={!showText} disabled title="Preparing download...">
+	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title="Preparing download...">
 		<span class="loading loading-spinner text-primary"></span>
-		{#if showText}
-			<span>Preparing...</span>
-		{/if}
+		{#if showLabel}<span>Preparing...</span>{/if}
 	</button>
 {:else if status === 'downloading'}
 	<!-- Downloading state - subtle progress indicator -->
-	<button
-		class="btn btn-{size} btn-ghost relative {className}"
-		class:btn-circle={!showText}
-		disabled
-		title="Downloading... {progress}%"
-	>
-		{#if !showText}
-			<div
-				class="radial-progress text-xs"
-				style="--value:{progress}; --size:1.5rem; --thickness: 2px;"
-			>
-				<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
-			</div>
-		{:else}
+	<button class="btn btn-{size} btn-ghost relative {showLabel ? '' : 'btn-circle'} {className}" disabled title="Downloading... {progress}%">
+		<div class="radial-progress text-xs" style="--value:{progress}; --size:1.5rem; --thickness: 2px;">
 			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
-			<span>Downloading...</span>
-			<progress class="progress progress-primary w-12" value={progress} max="100"></progress>
-		{/if}
+		</div>
+		{#if showLabel}<span>Downloading... {Math.round(progress)}%</span>{/if}
 	</button>
 {:else if status === 'completed'}
 	<!-- Downloaded state - subtle filled icon -->
 	<button
 		on:click|stopPropagation={handleDownload}
-		class="btn btn-{size} btn-ghost {className}"
-		class:btn-circle={!showText}
+		class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}"
 		title="Downloaded - Click to re-download"
 	>
-		<Icon
-			icon="solar:download-minimalistic-bold"
-			width={size === 'xs' ? 14 : 16}
-			class="text-primary"
-		/>
-		{#if showText}
-			<span>Downloaded</span>
-		{/if}
+		<Icon icon="solar:check-circle-bold" width={size === 'xs' ? 14 : 16} class="text-success" />
+		{#if showLabel}<span>Downloaded</span>{/if}
 	</button>
 {:else if status === 'error'}
-	<button
-		class="btn btn-{size} btn-ghost {className}"
-		class:btn-circle={!showText}
-		disabled
-		title="Download failed"
-	>
-		<Icon
-			icon="solar:danger-triangle-linear"
-			width={size === 'xs' ? 14 : 16}
-			class="text-error"
-		/>
-		{#if showText}
-			<span>Error</span>
-		{/if}
+	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title="Download failed">
+		<Icon icon="solar:danger-triangle-linear" width={size === 'xs' ? 14 : 16} class="text-error" />
+		{#if showLabel}<span>Error</span>{/if}
 	</button>
 {:else}
 	<!-- Not downloaded state - subtle outline icon -->
 	<button
 		on:click|stopPropagation={handleDownload}
-		class="btn btn-{size} btn-ghost {className}"
-		class:btn-circle={!showText}
+		class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}"
 		title="Download for offline"
 	>
 		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
-		{#if showText}
-			<span>Download</span>
-		{/if}
+		{#if showLabel}<span>Download</span>{/if}
 	</button>
 {/if}
 

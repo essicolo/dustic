@@ -3,9 +3,7 @@
 import type {
 	SearchParams,
 	SearchResult,
-	Track,
-	IASearchResponse,
-	IAMetadataResponse
+	Track
 } from '$lib/types';
 import {
 	IA_BASE_URL,
@@ -19,20 +17,43 @@ import { withCache } from '$lib/utils/cache';
 import { fetchWithRetry } from '$lib/utils/retry';
 import type { AudioQuality } from '$lib/types';
 import { browser } from '$app/environment';
+import { offlineStorage } from './offlineStorage';
+import { IASearchResponseSchema, IAMetadataResponseSchema } from '$lib/schemas/archive';
+import type { IAMetadataResponse } from '$lib/schemas/archive';
+import { requestDeduplicator } from '$lib/utils/requestDeduplication';
+
+// Cached quality preference (Issue #9 - avoid repeated localStorage reads)
+let cachedQualityPreference: AudioQuality | null = null;
 
 // Get quality preference from settings (browser only)
 function getQualityPreference(): AudioQuality {
 	if (!browser) return 'medium';
 
+	// Use memory cache
+	if (cachedQualityPreference !== null) {
+		return cachedQualityPreference;
+	}
+
 	try {
 		const stored = localStorage.getItem('dustic-profile');
-		if (!stored) return 'medium';
+		if (!stored) {
+			cachedQualityPreference = 'medium';
+			return 'medium';
+		}
 
 		const profile = JSON.parse(stored);
-		return profile?.settings?.audioQuality || 'medium';
+		const quality: AudioQuality = profile?.settings?.audioQuality || 'medium';
+		cachedQualityPreference = quality;
+		return quality;
 	} catch {
+		cachedQualityPreference = 'medium';
 		return 'medium';
 	}
+}
+
+// Export function to invalidate cache when settings change
+export function invalidateQualityCache(): void {
+	cachedQualityPreference = null;
 }
 
 /**
@@ -93,12 +114,13 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
 
 	try {
-		// Use cache and retry logic for search
-		const data = await withCache<IASearchResponse>(
+		// Use cache and retry logic for search with Zod validation
+		const data = await withCache(
 			`search:${url}`,
 			async () => {
 				const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
-				return response.json();
+				const rawData = await response.json();
+				return IASearchResponseSchema.parse(rawData); // Validate with Zod
 			},
 			3 * 60 * 1000 // Cache for 3 minutes
 		);
@@ -150,30 +172,34 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 export async function getItemMetadata(identifier: string): Promise<IAMetadataResponse> {
 	const url = `${IA_METADATA_URL}/${identifier}`;
 
-	try {
-		// Cache metadata for 10 minutes
-		return await withCache<IAMetadataResponse>(
-			`metadata:${identifier}`,
-			async () => {
-				const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
-				return response.json();
-			},
-			10 * 60 * 1000
-		);
-	} catch (error: any) {
-		console.error('Metadata fetch error:', error);
+	// Request deduplication (Issue #7) + caching + validation
+	return requestDeduplicator.dedupe(`metadata:${identifier}`, async () => {
+		try {
+			// Cache metadata for 1 hour with Zod validation
+			return await withCache(
+				`metadata:${identifier}`,
+				async () => {
+					const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
+					const rawData = await response.json();
+					return IAMetadataResponseSchema.parse(rawData); // Validate with Zod
+				},
+				60 * 60 * 1000 // 1 hour (aggressive caching)
+			);
+		} catch (error: any) {
+			console.error('Metadata fetch error:', error);
 
-		// Provide specific error messages
-		if (error.status === 404) {
-			throw new Error('Item not found on Internet Archive');
-		} else if (error.status === 429) {
-			throw new Error('Too many requests. Please wait a moment and try again.');
-		} else if (error.message?.includes('fetch')) {
-			throw new Error('Network error. Please check your internet connection.');
+			// Provide specific error messages
+			if (error.status === 404) {
+				throw new Error('Item not found on Internet Archive');
+			} else if (error.status === 429) {
+				throw new Error('Too many requests. Please wait a moment and try again.');
+			} else if (error.message?.includes('fetch')) {
+				throw new Error('Network error. Please check your internet connection.');
+			}
+
+			throw new Error('Failed to fetch item metadata');
 		}
-
-		throw new Error('Failed to fetch item metadata');
-	}
+	});
 }
 
 /**
@@ -273,7 +299,7 @@ export function getStreamUrl(identifier: string, filename: string): string {
 	// Use /serve/ endpoint for better streaming performance
 	// Falls back to /download/ if serve is not available
 	const streamUrl = `https://archive.org/serve/${identifier}/${filename}`;
-	return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
+	return `/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
 }
 
 /**
@@ -289,7 +315,7 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
 	}
 	// Route all thumbnail requests through the CORS proxy
-	return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	return `/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
 }
 
 /**
@@ -341,6 +367,15 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 		return track;
 	} catch (error) {
 		console.error(`Error fetching track ${identifier}:`, error);
+		// Try offline fallback
+		try {
+			const offlineTrack = await offlineStorage.getOfflineTrack(identifier);
+			if (offlineTrack) {
+				return offlineTrack;
+			}
+		} catch (offlineError) {
+			console.error('Offline fallback failed:', offlineError);
+		}
 		return null;
 	}
 }
@@ -388,6 +423,27 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 		return tracks;
 	} catch (error) {
 		console.error(`Error fetching tracks for ${identifier}:`, error);
+		// Fallback: search offline storage for tracks belonging to this item
+		try {
+			const allOffline = await offlineStorage.getAllTracks();
+			const itemTracks = allOffline
+				.filter(
+					(t) =>
+						t.track.identifier.startsWith(identifier + '#') || t.track.identifier === identifier
+				)
+				.map((t) => t.track);
+
+			// Sort by index
+			itemTracks.sort((a, b) => {
+				const idxA = parseInt(a.identifier.split('#')[1] || '0');
+				const idxB = parseInt(b.identifier.split('#')[1] || '0');
+				return idxA - idxB;
+			});
+
+			return itemTracks;
+		} catch (offlineError) {
+			console.error('Offline fallback failed:', offlineError);
+		}
 		return [];
 	}
 }

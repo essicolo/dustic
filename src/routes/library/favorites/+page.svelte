@@ -186,10 +186,9 @@
 	{:else if viewMode === 'grid'}
 		<!-- Grid View -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-			{#each filteredTracks as track}
-				<AudioCard item={{ ...track, tracks: [track] }} type="track" showActions={true} layout="tile">
+			{#each filteredTracks as track (track.identifier)}
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="tile">
 					<div slot="extra-actions" class="flex items-center gap-2">
-						<DownloadButton {track} size="sm" />
 						<button
 							on:click={() => removeFavorite(track.identifier)}
 							class="btn btn-ghost btn-sm btn-circle ml-auto"
@@ -204,10 +203,9 @@
 	{:else}
 		<!-- List View -->
 		<div class="space-y-2">
-			{#each filteredTracks as track}
-				<AudioCard item={{ ...track, tracks: [track] }} type="track" showActions={true} layout="list">
+			{#each filteredTracks as track (track.identifier)}
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list">
 					<div slot="extra-actions" class="ml-auto flex items-center gap-2">
-						<DownloadButton {track} size="sm" />
 						<button
 							on:click={() => playTrack(track.identifier)}
 							class="btn btn-sm"

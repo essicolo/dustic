@@ -7,12 +7,7 @@ const dev = process.argv.includes('dev');
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({
-			routes: {
-				include: ['/*'],
-				exclude: ['<all>']
-			}
-		}),
+		adapter: adapter(),
 		paths: {
 			base: dev ? '' : '' // Remove /dustic base path for Cloudflare Pages
 		}

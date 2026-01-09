@@ -18,19 +18,6 @@ const notFoundPath = resolve(buildDir, '404.html');
 // Check if using Cloudflare adapter (no index.html in build dir)
 if (!existsSync(indexPath)) {
 	console.log('✅ Using Cloudflare Pages');
-
-	// Copy functions directory to Cloudflare build output
-	const functionsSource = resolve('./functions');
-	const functionsTarget = resolve(cloudflareDir, 'functions');
-
-	try {
-		cpSync(functionsSource, functionsTarget, { recursive: true });
-		console.log('✅ Copied Cloudflare Functions to build output');
-	} catch (error) {
-		console.error('❌ Failed to copy Functions:', error);
-		process.exit(1);
-	}
-
 	process.exit(0);
 }
 

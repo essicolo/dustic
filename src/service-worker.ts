@@ -25,7 +25,10 @@ async function staleWhileRevalidate(request: Request, cacheName: string, maxAge:
 			await cache.put(request, response.clone());
 		}
 		return response;
-	}).catch(() => cachedResponse); // Fallback to cache on network error
+	}).catch(() => {
+		if (cachedResponse) return cachedResponse;
+		return new Response('Network Error', { status: 503, statusText: 'Service Unavailable' });
+	});
 
 	if (cachedResponse) {
 		const cachedDate = new Date(cachedResponse.headers.get('date') || 0);

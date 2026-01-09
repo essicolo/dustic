@@ -6,11 +6,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Content Security Policy - prevents XSS attacks
 	const csp = [
 		"default-src 'self'",
-		"script-src 'self' 'unsafe-inline'", // Svelte requires unsafe-inline
+		"script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com", // Svelte requires unsafe-inline
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: blob: https://archive.org https://*.archive.org",
 		"media-src 'self' blob: https://archive.org https://*.archive.org",
-		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com",
+		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com https://cloudflareinsights.com",
 		"worker-src 'self' blob:"
 	].join('; ');
 

@@ -299,7 +299,7 @@ export function getStreamUrl(identifier: string, filename: string): string {
 	// Use /serve/ endpoint for better streaming performance
 	// Falls back to /download/ if serve is not available
 	const streamUrl = `https://archive.org/serve/${identifier}/${filename}`;
-	return `/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
+	return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
 }
 
 /**
@@ -315,7 +315,7 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
 	}
 	// Route all thumbnail requests through the CORS proxy
-	return `/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
 }
 
 /**

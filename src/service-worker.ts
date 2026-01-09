@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
 		}
 
 		// Handle proxied requests
-		const targetUrl = url.pathname === '/cors-proxy' ? url.searchParams.get('url') : null;
+		const targetUrl = url.pathname === '/api/cors-proxy' ? url.searchParams.get('url') : null;
 
 		// Route to appropriate cache strategy based on content type
 		// Images: 7 days aggressive caching (Issue #10)

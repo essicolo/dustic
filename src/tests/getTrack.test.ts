@@ -40,10 +40,10 @@ describe('getTrack', () => {
 
 		// Check that URLs are built with the item identifier, not the track identifier
 		const encodedUrl = encodeURIComponent('https://archive.org/serve/test-item/02 - Track 2.mp3');
-		expect(track.streamUrl).toBe(`/cors-proxy?url=${encodedUrl}`);
+		expect(track.streamUrl).toBe(`/api/cors-proxy?url=${encodedUrl}`);
 
 		const encodedThumbUrl = encodeURIComponent('https://archive.org/services/img/test-item');
-		expect(track.thumbnailUrl).toBe(`/cors-proxy?url=${encodedThumbUrl}`);
+		expect(track.thumbnailUrl).toBe(`/api/cors-proxy?url=${encodedThumbUrl}`);
 	});
 
     it('should handle identifiers without track index', async () => {
@@ -58,6 +58,6 @@ describe('getTrack', () => {
 
 		// Check that URLs are built correctly
 		const encodedUrl = encodeURIComponent('https://archive.org/serve/test-item/01 - Track 1.mp3');
-		expect(track.streamUrl).toBe(`/cors-proxy?url=${encodedUrl}`);
+		expect(track.streamUrl).toBe(`/api/cors-proxy?url=${encodedUrl}`);
     });
 });

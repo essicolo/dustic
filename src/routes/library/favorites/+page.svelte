@@ -13,6 +13,8 @@
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { batchExecute } from '$lib/utils/throttle';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
@@ -113,6 +115,10 @@
 	<div class="flex items-center justify-between mb-6">
 		<h2 class="text-2xl md:text-3xl font-bold">Favorites</h2>
 		<div class="flex items-center gap-2 md:gap-3">
+			<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm">
+				<Icon icon="solar:arrow-left-linear" width="18" />
+				Back
+			</button>
 			{#if validTracks.length > 0}
 				<!-- View Mode Toggle -->
 				<div class="btn-group">

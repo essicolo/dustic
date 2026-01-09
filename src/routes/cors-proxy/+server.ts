@@ -1,7 +1,4 @@
-// Cloudflare Pages Function for CORS proxy
-// - URL allowlist for archive.org domains only (SSRF protection - Issue #1)
-// - Range request support for pause/resume (Issue #15)
-// - Aggressive caching headers (7 days images, 1 hour audio)
+import type { RequestHandler } from './$types';
 
 const ALLOWED_DOMAINS = [
 	'archive.org',
@@ -38,9 +35,7 @@ const ALLOWED_DOMAINS = [
 	'ia900009.us.archive.org'
 ];
 
-export async function onRequest(context) {
-	const { request } = context;
-	const url = new URL(request.url);
+export const GET: RequestHandler = async ({ url, request }) => {
 	const targetUrl = url.searchParams.get('url');
 
 	if (!targetUrl) {
@@ -64,7 +59,7 @@ export async function onRequest(context) {
 		// Forward Range header for chunked downloads
 		const headers = new Headers();
 		if (request.headers.has('Range')) {
-			headers.set('Range', request.headers.get('Range'));
+			headers.set('Range', request.headers.get('Range') || '');
 		}
 		headers.set('User-Agent', 'Mozilla/5.0 (compatible; Dustic/1.0)');
 
@@ -87,7 +82,17 @@ export async function onRequest(context) {
 			statusText: response.statusText,
 			headers: responseHeaders
 		});
-	} catch (error) {
+	} catch (error: any) {
 		return new Response(`Proxy error: ${error.message}`, { status: 502 });
 	}
-}
+};
+
+export const OPTIONS: RequestHandler = async () => {
+    return new Response(null, {
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Range, Content-Type'
+        }
+    });
+};

@@ -11,6 +11,7 @@
 	import { player } from '$lib/stores/player';
 	import { offline } from '$lib/stores/offline';
 	import { onMount } from 'svelte';
+	import { browser, dev } from '$app/environment';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -31,6 +32,28 @@
 	onMount(() => {
 		// Initialize offline storage
 		offline.loadOfflineTracks();
+
+		// Register service worker for PWA support
+		if (browser && 'serviceWorker' in navigator) {
+			if (dev) {
+				// Unregister service worker in dev mode to avoid conflicts
+				navigator.serviceWorker.getRegistrations().then((registrations) => {
+					for (const registration of registrations) {
+						registration.unregister();
+						console.log('Service Worker unregistered in dev mode');
+					}
+				});
+			} else {
+				navigator.serviceWorker.register('/service-worker.js', {
+					type: 'classic',
+					scope: '/'
+				}).then((registration) => {
+					console.log('Service Worker registered with scope:', registration.scope);
+				}).catch((error) => {
+					console.error('Service Worker registration failed:', error);
+				});
+			}
+		}
 
 		const handleScroll = () => {
 			// Throttle scroll events to avoid excessive updates

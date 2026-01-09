@@ -1,4 +1,6 @@
 /// <reference types="@sveltejs/kit" />
+/// <reference lib="webworker" />
+
 import { build, files, version } from '$service-worker';
 
 // Create unique cache names for this deployment (Issue #10 - aggressive caching)
@@ -75,14 +77,25 @@ self.addEventListener('fetch', (event) => {
 			if (response) return response;
 		}
 
+		// Handle proxied requests
+		const targetUrl = url.pathname === '/cors-proxy' ? url.searchParams.get('url') : null;
+
 		// Route to appropriate cache strategy based on content type
 		// Images: 7 days aggressive caching (Issue #10)
-		if (url.pathname.includes('/services/img/') || url.pathname.includes('__ia_thumb.jpg')) {
+		if (
+			url.pathname.includes('/services/img/') || 
+			url.pathname.includes('__ia_thumb.jpg') ||
+			(targetUrl && (targetUrl.includes('/services/img/') || targetUrl.includes('__ia_thumb.jpg')))
+		) {
 			return staleWhileRevalidate(event.request, IMAGE_CACHE, 7 * 24 * 60 * 60 * 1000);
 		}
 
 		// Audio streams: 1 hour caching (Issue #10)
-		if (url.pathname.endsWith('.mp3') || url.pathname.includes('/serve/')) {
+		if (
+			url.pathname.endsWith('.mp3') || 
+			url.pathname.includes('/serve/') ||
+			(targetUrl && (targetUrl.endsWith('.mp3') || targetUrl.includes('/serve/')))
+		) {
 			return staleWhileRevalidate(event.request, AUDIO_CACHE, 60 * 60 * 1000);
 		}
 

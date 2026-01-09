@@ -38,7 +38,7 @@ const ALLOWED_DOMAINS = [
 	'ia900009.us.archive.org'
 ];
 
-export async function onRequest(context: any) {
+export async function onRequest(context) {
 	const { request } = context;
 	const url = new URL(request.url);
 	const targetUrl = url.searchParams.get('url');
@@ -87,7 +87,7 @@ export async function onRequest(context: any) {
 			statusText: response.statusText,
 			headers: responseHeaders
 		});
-	} catch (error: any) {
+	} catch (error) {
 		return new Response(`Proxy error: ${error.message}`, { status: 502 });
 	}
 }

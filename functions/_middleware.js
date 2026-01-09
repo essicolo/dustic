@@ -1,6 +1,6 @@
 // Global middleware for security headers (Issue #5 - CSP)
 
-export async function onRequest(context: any) {
+export async function onRequest(context) {
 	const response = await context.next();
 
 	// Content Security Policy - prevents XSS attacks

@@ -314,19 +314,12 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Use higher quality version for better display on modern devices
  */
 export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
-	let imageUrl: string;
-	if (size === 'large') {
-		// Try to get high-res version first (may be on a CDN and cause opaque responses)
-		imageUrl = `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
-	} else {
-		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
-	}
-	// Try direct access (Archive.org supports CORS for images)
-	// The CORS proxy doesn't work on Cloudflare Pages
-	return imageUrl;
+	// Archive.org services/img endpoint should support CORS
+	// Test direct access first before adding proxy
+	const imageUrl = `https://archive.org/services/img/${identifier}`;
 
-	// Proxy version (disabled - doesn't work on Cloudflare Pages):
-	// return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	console.log('[IA] Thumbnail URL:', imageUrl);
+	return imageUrl;
 }
 
 /**

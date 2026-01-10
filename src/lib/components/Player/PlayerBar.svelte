@@ -290,9 +290,10 @@
 
 		<!-- Right: Actions/Volume/Queue -->
 		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
-			<!-- Mobile: Favorite + Queue only (keep it minimal) -->
+			<!-- Mobile: Download + Favorite (essential for offline listening) -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}
+					<DownloadButton track={$player.currentTrack} size="sm" />
 					<button
 						on:click={toggleFavorite}
 						class="btn btn-ghost btn-sm btn-circle"

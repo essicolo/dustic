@@ -291,17 +291,17 @@
 		<!-- Right: Actions/Volume/Queue -->
 		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
 			<!-- Mobile: Download + Favorite (essential for offline listening) -->
-			<div class="md:hidden flex items-center gap-1">
+			<div class="md:hidden flex items-center gap-0.5">
 				{#if $player.currentTrack}
-					<DownloadButton track={$player.currentTrack} size="md" />
+					<DownloadButton track={$player.currentTrack} size="sm" />
 					<button
 						on:click={toggleFavorite}
-						class="btn btn-ghost btn-md btn-circle"
+						class="btn btn-ghost btn-sm btn-circle"
 						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
 					>
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-							width="20"
+							width="18"
 							className={isFavorite ? 'text-red-500' : ''}
 						/>
 					</button>

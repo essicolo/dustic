@@ -298,8 +298,8 @@
 								{formatDuration(track.duration)}
 							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+							<!-- Actions - Always visible on mobile, hover on desktop -->
+							<div class="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
 								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
 									<DownloadButton {track} size="sm" lazy={false} />
 								</div>

@@ -29,9 +29,22 @@
 		isSidebarOpen = false;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		// Initialize offline storage
 		offline.loadOfflineTracks();
+
+		// Initialize Eruda mobile debugging console
+		// Enable with ?debug=1 in URL or always in production for debugging
+		if (browser) {
+			const urlParams = new URLSearchParams(window.location.search);
+			const enableDebug = urlParams.get('debug') === '1' || !dev;
+
+			if (enableDebug) {
+				const eruda = await import('eruda');
+				eruda.default.init();
+				console.log('[Eruda] Mobile debugging console initialized');
+			}
+		}
 
 		// Register service worker for PWA support
 		if (browser && 'serviceWorker' in navigator) {

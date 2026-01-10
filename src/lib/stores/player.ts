@@ -35,9 +35,38 @@ function createPlayerStore() {
 
 	// Audio element reference (will be set from component)
 	let audioElement: HTMLAudioElement | null = null;
+	let iosAudioUnlocked = false;
 
 	return {
 		subscribe,
+
+		// iOS audio unlock - must be called synchronously in a user gesture
+		unlockIOSAudio(): Promise<boolean> {
+			if (iosAudioUnlocked || !audioElement) {
+				return Promise.resolve(iosAudioUnlocked);
+			}
+
+			// Create a minimal silent audio source
+			const silentWav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
+			audioElement.src = silentWav;
+			audioElement.load();
+
+			return audioElement.play()
+				.then(() => {
+					audioElement.pause();
+					audioElement.currentTime = 0;
+					audioElement.src = '';
+					iosAudioUnlocked = true;
+					console.log('[iOS] Audio unlocked successfully');
+					return true;
+				})
+				.catch((err) => {
+					console.log('[iOS] Audio unlock failed:', err.message);
+					audioElement.src = '';
+					return false;
+				});
+		},
 
 		// Set the audio element reference
 		setAudioElement(element: HTMLAudioElement) {

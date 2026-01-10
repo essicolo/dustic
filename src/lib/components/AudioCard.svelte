@@ -111,6 +111,11 @@
 
 	async function handlePlay(e?: MouseEvent | KeyboardEvent) {
 		e?.stopPropagation();
+
+		// CRITICAL: Unlock iOS audio synchronously BEFORE any await
+		// This must happen in the user gesture context
+		player.unlockIOSAudio();
+
 		const tracksToPlay = await ensureTracks();
 		if (tracksToPlay?.length > 0) {
 			queue.setQueue(tracksToPlay, 0);

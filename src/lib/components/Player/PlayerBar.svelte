@@ -12,7 +12,6 @@
 	import { base } from '$app/paths';
 
 	let audioElement: HTMLAudioElement;
-	let iosAudioUnlocked = false;
 	let showPlaylistSelector = false;
 
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
@@ -27,39 +26,6 @@
 
 	onMount(() => {
 		player.setAudioElement(audioElement);
-
-		// iOS audio unlock - must happen on first user interaction
-		// This allows subsequent async play() calls to work
-		const unlockAudioOnFirstTouch = () => {
-			if (iosAudioUnlocked || !audioElement) return;
-
-			// Play and immediately pause to unlock iOS audio
-			// We don't need any audio source - just calling play() is enough
-			const playPromise = audioElement.play();
-
-			if (playPromise !== undefined) {
-				playPromise
-					.then(() => {
-						audioElement.pause();
-						iosAudioUnlocked = true;
-						console.log('iOS audio context unlocked');
-					})
-					.catch((err) => {
-						// Expected to fail initially, will unlock on next try
-						console.log('Audio unlock pending user interaction');
-					});
-			}
-
-			// Remove listeners after first attempt
-			if (iosAudioUnlocked) {
-				document.removeEventListener('touchend', unlockAudioOnFirstTouch);
-				document.removeEventListener('click', unlockAudioOnFirstTouch);
-			}
-		};
-
-		// Listen for first user interaction (iOS requires touchend or click)
-		document.addEventListener('touchend', unlockAudioOnFirstTouch, { once: true });
-		document.addEventListener('click', unlockAudioOnFirstTouch, { once: true });
 
 		// Keyboard shortcuts
 		window.addEventListener('keydown', handleKeyPress);
@@ -101,7 +67,7 @@
 		switch (e.code) {
 			case 'Space':
 				e.preventDefault();
-				player.togglePlay();
+				handlePlayButtonClick();
 				break;
 			case 'ArrowLeft':
 				e.preventDefault();
@@ -163,6 +129,12 @@
 			const baseId = $player.currentTrack.identifier.split('#')[0];
 			library.toggleFavorite(baseId);
 		}
+	}
+
+	function handlePlayButtonClick() {
+		// Unlock iOS audio on first click
+		player.unlockIOSAudio();
+		player.togglePlay();
 	}
 
 	let shareMessage = '';
@@ -288,7 +260,7 @@
 			</button>
 
 			<button
-				on:click={() => player.togglePlay()}
+				on:click={handlePlayButtonClick}
 				class="btn btn-circle btn-primary btn-md"
 				disabled={!$player.currentTrack}
 			>

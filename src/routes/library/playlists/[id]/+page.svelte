@@ -8,28 +8,37 @@
 	import { getTrack } from '$lib/services/internetArchive';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
-	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
-	import { batchExecute } from '$lib/utils/throttle';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 
-	$: playlistId = $page.params.id;
-	$: playlist = $library.playlists[playlistId];
+	$: playlistId = $page.params.id as string;
+	$: playlist = playlistId ? $library.playlists[playlistId] : undefined;
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
 	let loadingTrack: string | null = null;
 
+	async function batchExecute<T>(
+		tasks: (() => Promise<T>)[],
+		batchSize: number,
+		delayMs: number = 0
+	): Promise<T[]> {
+		const results: T[] = [];
+		for (let i = 0; i < tasks.length; i += batchSize) {
+			const batch = tasks.slice(i, i + batchSize);
+			const batchResults = await Promise.all(batch.map((t) => t()));
+			results.push(...batchResults);
+			if (delayMs > 0 && i + batchSize < tasks.length) {
+				await new Promise((r) => setTimeout(r, delayMs));
+			}
+		}
+		return results;
+	}
+
 	$: if (playlist) {
 		loadTracks();
 	}
-
-	onMount(() => {
-		// Redirect if playlist doesn't exist
-		if (!playlist) {
-			goto(`${base}/library`);
-		}
-	});
 
 	async function loadTracks() {
 		if (!playlist) return;
@@ -40,7 +49,8 @@
 		// Load track data in batches
 		const trackTasks = trackIds.map((id) => async () => {
 			try {
-				return await getTrack(id);
+				const track = await getTrack(id);
+				return track ? { ...track, lazy: false } : null; // Explicitly set lazy to false here as well
 			} catch {
 				return null;
 			}
@@ -74,6 +84,7 @@
 	}
 
 	function deletePlaylist() {
+		if (!playlist) return;
 		if (confirm(`Delete playlist "${playlist.name}"?`)) {
 			library.deletePlaylist(playlistId);
 			goto(`${base}/library`);
@@ -138,78 +149,7 @@
 			<div class="space-y-2">
 				{#each tracks as track, index}
 					{#if track}
-						<div
-							class="card bg-base-200 hover:bg-base-300 transition-colors group"
-							class:ring-2={isCurrentTrack(track.identifier)}
-							class:ring-primary={isCurrentTrack(track.identifier)}
-						>
-							<div class="card-body p-4">
-								<div class="flex items-center gap-3">
-									<!-- Number -->
-									<div class="text-base-content/50 w-8 text-center flex-shrink-0">
-										{#if isCurrentTrack(track.identifier) && $player.isPlaying}
-											<PlayingIndicator size="sm" />
-										{:else}
-											{index + 1}
-										{/if}
-									</div>
-
-									<!-- Album Art -->
-									<a href="/item/{track.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-										{#if track.thumbnailUrl}
-											<img
-												src={track.thumbnailUrl}
-												alt={track.title}
-												class="w-12 h-12 rounded object-cover bg-base-300"
-											/>
-										{:else}
-											<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
-												<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-											</div>
-										{/if}
-									</a>
-
-									<!-- Info -->
-									<a href="/item/{track.identifier}" class="flex-1 min-w-0 hover:text-primary transition-colors">
-										<h3
-											class="font-medium truncate"
-											class:text-primary={isCurrentTrack(track.identifier)}
-										>
-											{track.title}
-										</h3>
-										<p class="text-sm text-base-content/70 truncate">{track.artist}</p>
-									</a>
-
-									<!-- Actions -->
-									<div class="flex items-center gap-1">
-										<button
-											on:click={() => playTrack(track.identifier, index)}
-											class="btn btn-ghost btn-sm btn-circle"
-											disabled={loadingTrack === track.identifier}
-											title={isCurrentTrack(track.identifier) ? 'Playing' : 'Play'}
-										>
-											{#if loadingTrack === track.identifier}
-												<span class="loading loading-spinner loading-sm"></span>
-											{:else if isCurrentTrack(track.identifier)}
-												<Icon icon="solar:pause-bold" width="18" />
-											{:else}
-												<Icon icon="solar:play-bold" width="18" />
-											{/if}
-										</button>
-
-										<DownloadButton {track} size="sm" />
-
-										<button
-											on:click={() => removeFromPlaylist(track.identifier)}
-											class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100"
-											title="Remove from playlist"
-										>
-											<Icon icon="solar:close-circle-linear" width="18" />
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
+						<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list" />
 					{/if}
 				{/each}
 			</div>

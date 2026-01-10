@@ -4,11 +4,32 @@
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track, SearchParams } from '$lib/types';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
+	import { offline } from '$lib/stores/offline';
+
+	let downloadingIds = new Set<string>();
+
+	async function lazyDownload(identifier: string) {
+		if (downloadingIds.has(identifier)) return;
+		downloadingIds.add(identifier);
+		try {
+			const track = await getTrack(identifier);
+			if (track) {
+				await offline.downloadTrack(track);
+			}
+		} catch (err) {
+			console.error('Lazy download failed:', err);
+		} finally {
+			downloadingIds.delete(identifier);
+			downloadingIds = new Set(downloadingIds);
+		}
+	}
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute, debounce } from '$lib/utils/throttle';
+	import { browser } from '$app/environment';
 
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
@@ -34,11 +55,13 @@
 
 	// Read query params on mount
 	onMount(() => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const q = urlParams.get('q');
-		if (q) {
-			searchQuery = q;
-			handleSearch();
+		if (browser) {
+			const urlParams = new URLSearchParams(window.location.search);
+			const q = urlParams.get('q');
+			if (q) {
+				searchQuery = q;
+				handleSearch();
+			}
 		}
 	});
 
@@ -238,7 +261,7 @@
 
 	<!-- Mobile Filter Toggle -->
 	<div class="md:hidden mb-4">
-		<button on:click={toggleFilters} class="btn btn-outline btn-sm w-full">
+		<button on:click={toggleFilters} class="btn btn-outline btn-sm w-full {selectedCollections.length > 0 || sortBy !== 'relevance' ? 'btn-primary' : ''}">
 			<Icon icon="solar:filter-bold" width="20" />
 			<span>Filters</span>
 			{#if selectedCollections.length > 0 || sortBy !== 'relevance'}
@@ -431,78 +454,7 @@
 				<!-- Results Grid -->
 				<div class="space-y-2 mb-6">
 					{#each results as item}
-						<div
-							class="card bg-base-200 hover:bg-base-300 transition-colors group"
-							class:ring-2={isCurrentTrack(item.identifier)}
-							class:ring-primary={isCurrentTrack(item.identifier)}
-						>
-							<div class="card-body p-4">
-								<div class="flex items-center gap-3 max-w-full">
-									<!-- Album Art - Clickable -->
-									<a href="/item/{item.identifier}" class="flex-shrink-0 hover:opacity-80 transition-opacity">
-										{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
-											<img
-												src={item.thumbnailUrl}
-												alt={item.title}
-												class="w-12 h-12 rounded object-cover bg-base-300"
-												on:error={() => handleImageError(item.identifier)}
-											/>
-										{:else}
-											<div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
-												<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-											</div>
-										{/if}
-									</a>
-
-									<!-- Info - Clickable -->
-									<a href="/item/{item.identifier}" class="flex-1 min-w-0 overflow-hidden hover:text-primary transition-colors">
-										<h3
-											class="font-medium truncate"
-											class:text-primary={isCurrentTrack(item.identifier)}
-										>
-											{item.title}
-										</h3>
-										<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-										{#if item.date}
-											<p class="text-xs text-base-content/50 mt-1 truncate">{item.date}</p>
-										{/if}
-									</a>
-									<div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
-										<button
-											on:click={() => playTrack(item.identifier)}
-											class="btn btn-sm btn-circle"
-											class:btn-primary={!isCurrentTrack(item.identifier)}
-											class:btn-ghost={isCurrentTrack(item.identifier)}
-											disabled={loadingTrack === item.identifier}
-											title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-										>
-											{#if loadingTrack === item.identifier}
-												<span class="loading loading-spinner loading-xs"></span>
-											{:else if isCurrentTrack(item.identifier)}
-												<Icon icon="solar:pause-bold" width="18" />
-											{:else}
-												<Icon icon="solar:play-bold" width="18" />
-											{/if}
-										</button>
-										<button
-											on:click={() => addToQueue(item.identifier)}
-											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
-											disabled={loadingTrack === item.identifier}
-											title="Add to queue"
-										>
-											<Icon icon="solar:add-circle-linear" width="18" />
-										</button>
-										<button
-											on:click={() => handleShare(item)}
-											class="btn btn-ghost btn-sm btn-circle hidden md:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
-											title="Share track"
-										>
-											<Icon icon="solar:share-linear" width="18" />
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
+						<AudioCard item={item} type="album" layout="list" />
 					{/each}
 				</div>
 

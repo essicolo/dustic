@@ -208,7 +208,32 @@ export const isDownloading = derived(offline, ($offline) => (identifier: string)
 	return progress?.status === 'downloading';
 });
 
-// Derived store for checking if track is offline
-export const isOfflineAvailable = derived(offline, ($offline) => (identifier: string) => {
-	return $offline.offlineTracks.some((t) => t.track.identifier === identifier);
+// Derived store for Set-based lookups (Issue #6 - O(1) instead of O(n))
+export const offlineTrackSet = derived(offline, ($offline) => {
+	const set = new Set<string>();
+	$offline.offlineTracks.forEach((t) => {
+		const trackId = t.track.identifier;
+		set.add(trackId);
+
+		// Also add base ID variants for "foo" and "foo#0" equivalence
+		const baseId = trackId.split('#')[0];
+		const index = trackId.includes('#') ? parseInt(trackId.split('#')[1]) : 0;
+		if (index === 0) {
+			set.add(baseId);
+		}
+	});
+	return set;
+});
+
+// Optimized offline availability check with Set (Issue #6)
+export const isOfflineAvailable = derived(offlineTrackSet, ($set) => (identifier: string) => {
+	if ($set.has(identifier)) return true;
+
+	// Check base ID variant
+	const baseId = identifier.split('#')[0];
+	const index = identifier.includes('#') ? parseInt(identifier.split('#')[1]) : 0;
+	if (index === 0 && $set.has(baseId)) return true;
+	if (!identifier.includes('#') && $set.has(`${baseId}#0`)) return true;
+
+	return false;
 });

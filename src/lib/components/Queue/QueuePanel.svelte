@@ -6,9 +6,11 @@
 	import { base } from '$app/paths';
 	import { getTrack } from '$lib/services/internetArchive';
 	import Icon from '$lib/components/Icon.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 
 	let isOpen = false;
 	let showSaveDialog = false;
+	let selectedPlaylistId: string | 'new' = 'new';
 	let playlistName = '';
 	let playlistDescription = '';
 	let showPlaylistSelectorForTrack: string | null = null;
@@ -35,6 +37,7 @@
 	}
 
 	function openSaveDialog() {
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 		showSaveDialog = true;
@@ -42,18 +45,24 @@
 
 	function cancelSave() {
 		showSaveDialog = false;
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 	}
 
 	function saveAsPlaylist() {
-		if (!playlistName.trim()) return;
-
 		// Get all track IDs from queue
 		const trackIds = $queue.tracks.map(track => track.identifier);
+		let id: string;
 
-		// Create playlist
-		const id = library.createPlaylist(playlistName.trim(), playlistDescription.trim());
+		if (selectedPlaylistId === 'new') {
+			// Create new playlist
+			if (!playlistName.trim()) return;
+			id = library.createPlaylist(playlistName.trim(), playlistDescription.trim());
+		} else {
+			// Use existing playlist
+			id = selectedPlaylistId;
+		}
 
 		// Add all tracks
 		trackIds.forEach(trackId => {
@@ -62,6 +71,7 @@
 
 		// Reset and close
 		showSaveDialog = false;
+		selectedPlaylistId = 'new';
 		playlistName = '';
 		playlistDescription = '';
 
@@ -87,7 +97,7 @@
 
 <!-- Queue Toggle Button -->
 <button on:click={togglePanel} class="btn btn-ghost btn-sm btn-circle relative" title="Queue">
-	<Icon icon="solar:playlist-linear" width="20" />
+	<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
 	{#if queueCount > 0}
 		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
 			{queueCount}
@@ -120,7 +130,7 @@
 							class="btn btn-primary btn-sm"
 							title="Save queue as playlist"
 						>
-							<Icon icon="solar:playlist-minimalistic-2-bold" width="16" />
+							<Icon icon="solar:list-heart-bold" width="16" />
 							Save
 						</button>
 						<button on:click={clearQueue} class="btn btn-ghost btn-sm">Clear</button>
@@ -134,41 +144,67 @@
 			<!-- Save as Playlist Dialog -->
 			{#if showSaveDialog}
 				<div class="p-4 bg-base-300/80 border-b border-base-content/10">
-					<h3 class="font-semibold mb-3">Save Queue as Playlist</h3>
+					<h3 class="font-semibold mb-3">Save Queue to Playlist</h3>
 					<div class="space-y-3">
+						<!-- Playlist Selector -->
 						<div class="form-control">
-							<label class="label" for="queue-playlist-name">
-								<span class="label-text text-xs">Playlist Name</span>
+							<label class="label" for="queue-playlist-select">
+								<span class="label-text text-xs">Select Playlist</span>
 							</label>
-							<input
-								id="queue-playlist-name"
-								type="text"
-								bind:value={playlistName}
-								placeholder="My Queue"
-								class="input input-sm input-bordered"
-								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
-							/>
+							<select
+								id="queue-playlist-select"
+								bind:value={selectedPlaylistId}
+								class="select select-sm select-bordered w-full"
+							>
+								<option value="new">+ Create New Playlist</option>
+								{#each playlists as playlist}
+									<option value={playlist.id}>{playlist.name} ({playlist.tracks.length})</option>
+								{/each}
+							</select>
 						</div>
-						<div class="form-control">
-							<label class="label" for="queue-playlist-description">
-								<span class="label-text text-xs">Description (optional)</span>
-							</label>
-							<input
-								id="queue-playlist-description"
-								type="text"
-								bind:value={playlistDescription}
-								placeholder="From my queue"
-								class="input input-sm input-bordered"
-								on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
-							/>
-						</div>
+
+						{#if selectedPlaylistId === 'new'}
+							<!-- New Playlist Form -->
+							<div class="form-control">
+								<label class="label" for="queue-playlist-name">
+									<span class="label-text text-xs">Playlist Name</span>
+								</label>
+								<input
+									id="queue-playlist-name"
+									type="text"
+									bind:value={playlistName}
+									placeholder="My Queue"
+									class="input input-sm input-bordered"
+									on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+									autofocus
+								/>
+							</div>
+							<div class="form-control">
+								<label class="label" for="queue-playlist-description">
+									<span class="label-text text-xs">Description (optional)</span>
+								</label>
+								<input
+									id="queue-playlist-description"
+									type="text"
+									bind:value={playlistDescription}
+									placeholder="From my queue"
+									class="input input-sm input-bordered"
+									on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
+								/>
+							</div>
+						{/if}
+
 						<div class="flex gap-2">
 							<button
 								on:click={saveAsPlaylist}
-								disabled={!playlistName.trim()}
+								disabled={selectedPlaylistId === 'new' && !playlistName.trim()}
 								class="btn btn-primary btn-sm flex-1"
 							>
-								Save ({$queue.tracks.length} tracks)
+								{#if selectedPlaylistId === 'new'}
+									Create & Add ({$queue.tracks.length})
+								{:else}
+									Add ({$queue.tracks.length})
+								{/if}
 							</button>
 							<button on:click={cancelSave} class="btn btn-ghost btn-sm">
 								Cancel
@@ -188,6 +224,7 @@
 								src={$currentTrack.thumbnailUrl}
 								alt={$currentTrack.title}
 								class="w-12 h-12 rounded bg-base-100"
+								crossorigin="anonymous"
 							/>
 						{:else}
 							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center">
@@ -219,61 +256,18 @@
 				{:else}
 					<div class="divide-y divide-base-content/10">
 						{#each upcomingTracks as track, index}
-							<div class="p-3 hover:bg-base-300/50 group">
-								<div class="flex items-center gap-2">
-									<button
-										on:click={() => playTrackAt($queue.currentIndex + 1 + index)}
-										class="btn btn-ghost btn-xs"
-										title="Play"
-									>
-										<Icon icon="solar:play-bold" width="14" />
-									</button>
-
-									<div class="flex-1 min-w-0">
-										<div class="font-medium truncate text-sm">{track.title}</div>
-										<div class="text-xs text-base-content/70 truncate">{track.artist}</div>
-									</div>
-
-									<div class="relative">
-										<button
-											on:click={() => togglePlaylistSelector(track.identifier)}
-											class="btn btn-ghost btn-xs"
-											title="Add to playlist"
-										>
-											<Icon icon="solar:add-circle-bold" width="14" />
-										</button>
-
-										{#if showPlaylistSelectorForTrack === track.identifier}
-											<div class="absolute right-0 mt-1 w-48 bg-base-200 rounded-lg shadow-xl z-10 border border-base-content/10 max-h-60 overflow-y-auto">
-												{#if playlists.length === 0}
-													<div class="p-3 text-center text-sm text-base-content/50">
-														No playlists yet
-													</div>
-												{:else}
-													{#each playlists as playlist}
-														<button
-															on:click={() => addToPlaylist(track.identifier, playlist.id)}
-															class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm flex items-center justify-between gap-2"
-														>
-															<span class="truncate">{playlist.name}</span>
-															<span class="text-xs text-base-content/50">{playlist.tracks.length}</span>
-														</button>
-													{/each}
-												{/if}
-											</div>
-										{/if}
-									</div>
-
-									<button
-										on:click={() => removeTrack($queue.currentIndex + 1 + index)}
-										class="btn btn-ghost btn-xs"
-										title="Remove"
-									>
-										<Icon icon="solar:close-circle-bold" width="14" />
-									</button>
-								</div>
-							</div>
-						{/each}
+						<div class="p-1">
+							<AudioCard
+								item={track}
+								type="track"
+								layout="list"
+								compact={true}
+								actionsLayout="collapsed"
+								showRemoveFromQueue={true}
+								on:removeFromQueue={() => removeTrack($queue.currentIndex + 1 + index)}
+							/>
+						</div>
+					{/each}
 					</div>
 				{/if}
 			</div>

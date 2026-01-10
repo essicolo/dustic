@@ -7,10 +7,23 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { shareTrack } from '$lib/utils/share';
+	import { base } from '$app/paths';
 
 	let audioElement: HTMLAudioElement;
 	let iosAudioUnlocked = false;
+	let showPlaylistSelector = false;
+
+	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
+
+	function handleAddToPlaylist(playlistId: string) {
+		if ($player.currentTrack) {
+			const baseId = $player.currentTrack.identifier.split('#')[0];
+			library.addToPlaylist(playlistId, baseId);
+			showPlaylistSelector = false;
+		}
+	}
 
 	onMount(() => {
 		player.setAudioElement(audioElement);
@@ -47,17 +60,40 @@
 
 		// Keyboard shortcuts
 		window.addEventListener('keydown', handleKeyPress);
+		window.addEventListener('click', handleClickOutside);
 	});
 
 	onDestroy(() => {
-		window.removeEventListener('keydown', handleKeyPress);
+		if (browser) {
+			window.removeEventListener('keydown', handleKeyPress);
+			window.removeEventListener('click', handleClickOutside);
 
-		// Clean up iOS unlock listeners if still present
-		const unlockAudio = () => {};
-		document.removeEventListener('touchstart', unlockAudio);
-		document.removeEventListener('touchend', unlockAudio);
-		document.removeEventListener('click', unlockAudio);
+			// Clean up iOS unlock listeners if still present
+			const unlockAudio = () => {};
+			document.removeEventListener('touchstart', unlockAudio);
+			document.removeEventListener('touchend', unlockAudio);
+			document.removeEventListener('click', unlockAudio);
+		}
 	});
+
+	function handleClickOutside(event: MouseEvent) {
+		if (showPlaylistSelector) {
+			const target = event.target as HTMLElement;
+
+			const desktopSelector = document.getElementById('desktop-player-playlist-selector');
+			const desktopButton = document.getElementById('desktop-player-playlist-btn');
+
+			const mobileSelector = document.getElementById('mobile-player-playlist-selector');
+			const mobileButton = document.getElementById('mobile-player-playlist-btn');
+
+			const isDesktopClick = (desktopSelector && desktopSelector.contains(target)) || (desktopButton && desktopButton.contains(target));
+			const isMobileClick = (mobileSelector && mobileSelector.contains(target)) || (mobileButton && mobileButton.contains(target));
+
+			if (!isDesktopClick && !isMobileClick) {
+				showPlaylistSelector = false;
+			}
+		}
+	}
 
 	function handleKeyPress(e: KeyboardEvent) {
 		// Ignore if typing in input fields
@@ -285,7 +321,7 @@
 
 		<!-- Right: Actions/Volume/Queue -->
 		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
-			<!-- Mobile: Favorite + Download + Queue -->
+			<!-- Mobile: Favorite + Download + Playlist + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}
 					<button
@@ -299,11 +335,47 @@
 							className={isFavorite ? 'text-red-500' : ''}
 						/>
 					</button>
+					
+					<!-- Mobile Playlist Button -->
+					<div class="relative">
+						<button
+							id="mobile-player-playlist-btn"
+							class="btn btn-ghost btn-sm btn-circle"
+							title="Add to Playlist"
+							on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
+						>
+							<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
+						</button>
+						{#if showPlaylistSelector}
+							<div
+								id="mobile-player-playlist-selector"
+								class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
+							>
+								<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+								{#each playlists as p}
+									<button
+										class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
+										on:click={(e) => { e.stopPropagation(); handleAddToPlaylist(p.id); }}
+									>
+										{p.name}
+									</button>
+								{/each}
+								<a
+									href="{base}/library/playlists"
+									class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
+									on:click={() => (showPlaylistSelector = false)}
+								>
+									+ New Playlist
+								</a>
+							</div>
+						{/if}
+					</div>
+
 					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
 			</div>
 
-			<!-- Desktop: Download/Favorite/Share -->
+			<!-- Desktop: Download/Favorite/Playlist/Share -->
 			<div class="hidden md:flex items-center gap-1">
 				{#if $player.currentTrack}
 					<DownloadButton track={$player.currentTrack} size="sm" />
@@ -319,6 +391,42 @@
 						className={isFavorite ? 'text-red-500' : ''}
 					/>
 				</button>
+
+				<!-- Desktop Playlist Button -->
+				<div class="relative">
+					<button
+						id="desktop-player-playlist-btn"
+						class="btn btn-ghost btn-sm btn-circle"
+						title="Add to Playlist"
+						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
+					>
+						<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
+					</button>
+					{#if showPlaylistSelector}
+						<div
+							id="desktop-player-playlist-selector"
+							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
+						>
+							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+							{#each playlists as p}
+								<button
+									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
+									on:click={(e) => { e.stopPropagation(); handleAddToPlaylist(p.id); }}
+								>
+									{p.name}
+								</button>
+							{/each}
+							<a
+								href="{base}/library/playlists"
+								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
+								on:click={() => (showPlaylistSelector = false)}
+							>
+								+ New Playlist
+							</a>
+						</div>
+					{/if}
+				</div>
+
 				<button
 					on:click={handleShare}
 					class="btn btn-ghost btn-sm btn-circle"

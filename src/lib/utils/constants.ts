@@ -5,6 +5,8 @@ export const IA_SEARCH_URL = `${IA_BASE_URL}/advancedsearch.php`;
 export const IA_METADATA_URL = `${IA_BASE_URL}/metadata`;
 export const IA_DOWNLOAD_URL = `${IA_BASE_URL}/download`;
 
+export const PLACEHOLDER_THUMBNAIL_URL = 'https://archive.org/images/g_logo_mw.png';
+
 export const POPULAR_COLLECTIONS = [
 	{ id: 'etree', name: 'Live Music Archive', icon: '' },
 	{ id: 'audio_music', name: 'Music', icon: '' },

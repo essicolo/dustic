@@ -6,6 +6,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let fileInput: HTMLInputElement;
@@ -17,11 +18,15 @@
 
 	onMount(() => {
 		// Warn on page close if unsaved changes
-		window.addEventListener('beforeunload', handleBeforeUnload);
+		if (browser) {
+			window.addEventListener('beforeunload', handleBeforeUnload);
+		}
 	});
 
 	onDestroy(() => {
-		window.removeEventListener('beforeunload', handleBeforeUnload);
+		if (browser) {
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+		}
 	});
 
 	function handleBeforeUnload(e: BeforeUnloadEvent) {
@@ -33,7 +38,7 @@
 
 	function handleExport() {
 		const profile: UserProfile = {
-			version: '1.0.0',
+			schemaVersion: 1,
 			exported: Date.now(),
 			favorites: $library.favorites,
 			playlists: $library.playlists,
@@ -41,7 +46,8 @@
 			autoplayRules: $autoplayStore.rules,
 			settings: {
 				volume: $player.volume,
-				repeat: $player.repeat
+				repeat: $player.repeat,
+				audioQuality: 'medium' // Default to medium on export if not explicitly stored
 			}
 		};
 

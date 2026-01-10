@@ -3,9 +3,12 @@
 import { browser } from '$app/environment';
 import type { UserProfile } from '$lib/types';
 import { createDefaultProfile } from './storage';
+import { UserProfileSchema } from '$lib/schemas/archive';
 
 const STORAGE_KEY = 'dustic-profile';
-const STORAGE_VERSION = '1.0.0';
+// Storage schema version - only increment when data structure changes (breaking changes)
+// This is SEPARATE from app version and should rarely change
+const STORAGE_SCHEMA_VERSION = 1;
 
 /**
  * Load profile from localStorage
@@ -17,19 +20,48 @@ export function loadFromStorage(): UserProfile | null {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) return null;
 
-		const profile = JSON.parse(stored) as UserProfile;
+		const rawProfile = JSON.parse(stored) as any;
 
-		// Version check - clear if schema changed
-		if (profile.version !== STORAGE_VERSION) {
-			console.warn('Profile version mismatch, clearing storage');
-			localStorage.removeItem(STORAGE_KEY);
-			return null;
+		// Get schema version (default to 1 for old data)
+		const schemaVersion = rawProfile.schemaVersion || 1;
+
+		// Migrate data if schema changed
+		if (schemaVersion < STORAGE_SCHEMA_VERSION) {
+			console.log(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
+			// Add migration logic here if schema changes in the future
 		}
 
-		// Backward compatibility: add audioQuality if missing
-		if (!profile.settings.audioQuality) {
-			profile.settings.audioQuality = 'medium';
+		rawProfile.schemaVersion = STORAGE_SCHEMA_VERSION;
+
+		// Backward compatibility: add missing fields with defaults
+		if (!rawProfile.settings) {
+			rawProfile.settings = {
+				volume: 0.7,
+				repeat: 'off',
+				audioQuality: 'medium'
+			};
 		}
+		if (!rawProfile.settings.audioQuality) {
+			rawProfile.settings.audioQuality = 'medium';
+		}
+		if (!rawProfile.playlists) {
+			rawProfile.playlists = {};
+		}
+		if (!rawProfile.favorites) {
+			rawProfile.favorites = [];
+		}
+		if (!rawProfile.history) {
+			rawProfile.history = [];
+		}
+		if (!rawProfile.autoplayRules) {
+			rawProfile.autoplayRules = [];
+		}
+
+		// Validate with Zod before returning
+		const profile = UserProfileSchema.parse(rawProfile);
+
+		// Save migrated profile
+		saveToStorage(profile);
 
 		return profile;
 	} catch (error) {
@@ -47,7 +79,7 @@ export function saveToStorage(profile: UserProfile): void {
 	try {
 		const toSave = {
 			...profile,
-			version: STORAGE_VERSION,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now()
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));

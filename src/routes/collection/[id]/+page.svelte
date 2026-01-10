@@ -6,7 +6,27 @@
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
+	import { offline } from '$lib/stores/offline';
+
+	let downloadingIds = new Set<string>();
+
+	async function lazyDownload(identifier: string) {
+		if (downloadingIds.has(identifier)) return;
+		downloadingIds.add(identifier);
+		try {
+			const track = await getTrack(identifier);
+			if (track) {
+				await offline.downloadTrack(track);
+			}
+		} catch (err) {
+			console.error('Lazy download failed:', err);
+		} finally {
+			downloadingIds.delete(identifier);
+			downloadingIds = new Set(downloadingIds);
+		}
+	}
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -25,15 +45,25 @@
 		failedImages.add(identifier);
 		failedImages = failedImages; // Trigger reactivity
 	}
-	let sortBy: 'downloads' | 'date' | 'title' = 'downloads';
+	let sortBy: 'downloads' | 'date' | 'relevance' = 'downloads';
+	let viewMode: 'tiles' | 'list' = 'tiles';
 
 	$: collectionId = $page.params.id || '';
 	$: collectionInfo =
 		POPULAR_COLLECTIONS.find((c) => c.id === collectionId) || { name: collectionId, icon: '📁' };
 
 	onMount(() => {
+		const savedView = localStorage.getItem(`collection-view-${collectionId}`);
+		if (savedView === 'tiles' || savedView === 'list') {
+			viewMode = savedView;
+		}
 		loadCollection();
 	});
+
+	function setViewMode(mode: 'tiles' | 'list') {
+		viewMode = mode;
+		localStorage.setItem(`collection-view-${collectionId}`, mode);
+	}
 
 	async function loadCollection() {
 		isLoading = true;
@@ -137,7 +167,7 @@
 	}
 </script>
 
-<div class="p-8">
+<div class="p-4 md:p-8">
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h2 class="text-3xl font-bold">
@@ -158,30 +188,47 @@
 		{/if}
 	</div>
 
-	<!-- Sort Options -->
-	<div class="mb-6 flex items-center gap-2">
-		<span class="text-sm text-base-content/70">Sort:</span>
+	<!-- Controls -->
+	<div class="flex items-center justify-between mb-6">
+		<!-- Sort Options -->
+		<div class="flex items-center gap-2">
+			<span class="text-sm text-base-content/70">Sort:</span>
+			<div class="btn-group">
+				<button
+					on:click={() => (sortBy = 'downloads')}
+					class="btn btn-sm {sortBy === 'downloads' ? 'btn-active' : ''}"
+				>
+					Popular
+				</button>
+				<button
+					on:click={() => (sortBy = 'date')}
+					class="btn btn-sm {sortBy === 'date' ? 'btn-active' : ''}"
+				>
+					Newest
+				</button>
+				<button
+					on:click={() => (sortBy = 'relevance')}
+					class="btn btn-sm {sortBy === 'relevance' ? 'btn-active' : ''}"
+				>
+					Relevance
+				</button>
+			</div>
+		</div>
+		<!-- View Mode Toggle -->
 		<div class="btn-group">
 			<button
-				on:click={() => (sortBy = 'downloads')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'downloads'}
+				on:click={() => setViewMode('tiles')}
+				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
+				title="Tiles view"
 			>
-				Popular
+				<Icon icon="solar:widget-5-bold" width="18" />
 			</button>
 			<button
-				on:click={() => (sortBy = 'date')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'date'}
+				on:click={() => setViewMode('list')}
+				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
+				title="List view"
 			>
-				Newest
-			</button>
-			<button
-				on:click={() => (sortBy = 'title')}
-				class="btn btn-sm"
-				class:btn-active={sortBy === 'title'}
-			>
-				A-Z
+				<Icon icon="solar:list-bold" width="18" />
 			</button>
 		</div>
 	</div>
@@ -200,94 +247,27 @@
 			{/each}
 		</div>
 	{:else if results.length > 0}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-			{#each results as item}
-				<div
-					class="card bg-base-200 hover:bg-base-300 transition-colors group relative"
-					class:ring-2={isCurrentTrack(item.identifier)}
-					class:ring-primary={isCurrentTrack(item.identifier)}
-				>
-					<div class="card-body p-3">
-						<!-- Thumbnail - Clickable -->
-						<a href="/item/{item.identifier}" class="block mb-3 hover:opacity-80 transition-opacity relative">
-							{#if item.thumbnailUrl && !failedImages.has(item.identifier)}
-								<img
-									src={item.thumbnailUrl}
-									alt={item.title}
-									class="w-full aspect-square object-cover rounded bg-base-300"
-									on:error={() => handleImageError(item.identifier)}
-								/>
-							{:else}
-								<div
-									class="w-full aspect-square flex items-center justify-center bg-base-300 rounded"
-								>
-									<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-								</div>
-							{/if}
-
-							<!-- Play button overlay - show on hover -->
-							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded">
-								<button
-									on:click|preventDefault|stopPropagation={() => playTrack(item.identifier)}
-									class="btn btn-circle btn-primary btn-lg shadow-lg"
-									disabled={loadingTrack === item.identifier}
-									title={isCurrentTrack(item.identifier) ? 'Playing' : 'Play'}
-								>
-									{#if loadingTrack === item.identifier}
-										<span class="loading loading-spinner loading-md"></span>
-									{:else if isCurrentTrack(item.identifier)}
-										<Icon icon="solar:pause-bold" width="24" className="text-primary-content" />
-									{:else}
-										<Icon icon="solar:play-bold" width="24" className="text-primary-content" />
-									{/if}
-								</button>
-							</div>
-						</a>
-
-						<!-- Info - Clickable -->
-						<a href="/item/{item.identifier}" class="block hover:text-primary transition-colors mb-2 min-w-0">
-							<h3
-								class="font-medium flex items-center gap-2 min-w-0"
-								class:text-primary={isCurrentTrack(item.identifier)}
-							>
-								<span class="truncate min-w-0 flex-1">{item.title}</span>
-								{#if isCurrentTrack(item.identifier) && $player.isPlaying}
-									<span class="flex-shrink-0">
-										<PlayingIndicator size="sm" />
-									</span>
-								{/if}
-							</h3>
-							<p class="text-sm text-base-content/70 truncate">{item.artist}</p>
-							{#if item.date}
-								<p class="text-xs text-base-content/50 mt-0.5">{item.date}</p>
-							{/if}
-						</a>
-
-						<!-- Actions - show on hover -->
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-							<!-- Contextual menu -->
-							<div class="dropdown dropdown-end">
-								<button tabindex="0" class="btn btn-ghost btn-sm btn-circle" title="More actions">
-									<Icon icon="solar:menu-dots-bold" width="16" />
-								</button>
-								<ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-lg shadow-lg z-10 w-48 p-2 border border-base-300">
-									<li>
-										<button
-											on:click={() => addToQueue(item.identifier)}
-											disabled={loadingTrack === item.identifier}
-											class="flex items-center gap-2"
-										>
-											<Icon icon="solar:add-circle-linear" width="16" />
-											<span>Add to queue</span>
-										</button>
-									</li>
-								</ul>
-							</div>
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
+		{#if viewMode === 'tiles'}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+				{#each results as item}
+					<AudioCard
+						item={{ ...(item as any), creator: item.artist }}
+						type="album"
+						layout="tile"
+					/>
+				{/each}
+			</div>
+		{:else}
+			<div class="space-y-2 mb-6">
+				{#each results as item}
+					<AudioCard
+						item={{ ...(item as any), creator: item.artist }}
+						type="album"
+						layout="list"
+					/>
+				{/each}
+			</div>
+		{/if}
 
 		<!-- Pagination -->
 		{#if totalPages > 1}

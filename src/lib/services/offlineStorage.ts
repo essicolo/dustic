@@ -8,6 +8,35 @@ const DB_VERSION = 1;
 const STORE_NAME = 'tracks';
 const CACHE_NAME = 'dustic-audio-cache';
 
+// Blob URL lifecycle manager (Issue #4 - prevents memory leaks)
+class BlobURLManager {
+	private urls = new Set<string>();
+
+	constructor() {
+		if (browser) {
+			window.addEventListener('beforeunload', () => this.revokeAll());
+		}
+	}
+
+	track(url: string): void {
+		this.urls.add(url);
+	}
+
+	revoke(url: string): void {
+		if (this.urls.has(url)) {
+			URL.revokeObjectURL(url);
+			this.urls.delete(url);
+		}
+	}
+
+	revokeAll(): void {
+		this.urls.forEach(url => URL.revokeObjectURL(url));
+		this.urls.clear();
+	}
+}
+
+const blobManager = new BlobURLManager();
+
 export interface OfflineTrack {
 	track: Track;
 	downloadedAt: number;
@@ -79,7 +108,7 @@ class OfflineStorage {
 			}
 
 			// Combine chunks into a single blob
-			const blob = new Blob(chunks, { type: 'audio/mpeg' });
+			const blob = new Blob(chunks as any[], { type: 'audio/mpeg' });
 			const fileSize = blob.size;
 
 			// Store in Cache API
@@ -89,6 +118,7 @@ class OfflineStorage {
 
 			// Create blob URL for offline playback
 			const blobUrl = URL.createObjectURL(blob);
+			blobManager.track(blobUrl);
 
 			// Save metadata to IndexedDB
 			const offlineTrack: OfflineTrack = {
@@ -181,7 +211,7 @@ class OfflineStorage {
 
 		// Revoke blob URL
 		if (offlineTrack.blobUrl) {
-			URL.revokeObjectURL(offlineTrack.blobUrl);
+			blobManager.revoke(offlineTrack.blobUrl);
 		}
 
 		// Delete from IndexedDB
@@ -228,7 +258,7 @@ class OfflineStorage {
 		const tracks = await this.getAllTracks();
 		for (const offlineTrack of tracks) {
 			if (offlineTrack.blobUrl) {
-				URL.revokeObjectURL(offlineTrack.blobUrl);
+				blobManager.revoke(offlineTrack.blobUrl);
 			}
 		}
 
@@ -253,11 +283,54 @@ class OfflineStorage {
 		const offlineTrack = await this.getTrack(identifier);
 		if (!offlineTrack) return null;
 
-		// Return track with blob URL for offline playback
-		return {
-			...offlineTrack.track,
-			streamUrl: offlineTrack.blobUrl || offlineTrack.track.streamUrl
-		};
+		// Check if we need to regenerate the blob URL (e.g., after page reload)
+		if (offlineTrack.blobUrl) {
+            // Check if the blob URL is still valid is tricky without trying to fetch it.
+            // But usually, on a fresh page load, the old blob URLs from IndexedDB are invalid.
+            // We can try to fetch it, if it fails, regenerate.
+            try {
+                const res = await fetch(offlineTrack.blobUrl);
+                if (res.ok) {
+                    return {
+                        ...offlineTrack.track,
+                        streamUrl: offlineTrack.blobUrl
+                    };
+                }
+            } catch (e) {
+                // Ignore and regenerate
+            }
+		}
+
+        // Regenerate Blob URL from Cache API
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const response = await cache.match(offlineTrack.track.streamUrl);
+            
+            if (response) {
+                const blob = await response.blob();
+                const newBlobUrl = URL.createObjectURL(blob);
+                blobManager.track(newBlobUrl);
+
+                // Update in DB so we don't always regenerate (though per session we might want to)
+                // Note: updating DB with a session-specific URL isn't persistent across sessions,
+                // but helps within the session if we call this multiple times.
+                // However, for simplicity, we just return it here or we can update it.
+                // Let's update it in memory/DB to cache it for this session.
+
+                const updatedTrack = { ...offlineTrack, blobUrl: newBlobUrl };
+                await this.saveTrack(updatedTrack);
+
+                return {
+                    ...offlineTrack.track,
+                    streamUrl: newBlobUrl
+                };
+            }
+        } catch (err) {
+            console.error('Failed to regenerate blob URL from cache', err);
+        }
+
+		// Fallback to original URL (might work if online, or fail if offline)
+		return offlineTrack.track;
 	}
 }
 

@@ -16,6 +16,14 @@ export interface Track {
 	metadata: Record<string, any>; // raw IA metadata
 }
 
+export interface ArchiveItem {
+	identifier: string;
+	title: string;
+	creator?: string;
+	[key: string]: any;
+	tracks?: Track[];
+}
+
 export interface Playlist {
 	id: string; // uuid
 	name: string;
@@ -42,7 +50,7 @@ export interface AutoplayRule {
 export type AudioQuality = 'lowest' | 'medium' | 'best';
 
 export interface UserProfile {
-	version: string; // Schema version for compatibility
+	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
 	favorites: string[]; // Track identifiers
 	playlists: Record<string, Playlist>;

@@ -6,7 +6,7 @@
 	import { library } from '$lib/stores/library';
 	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
-	import Icon from '$lib/components/Icon.svelte';
+	import Icon from '@iconify/svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
@@ -273,9 +273,7 @@
 							on:keydown={(e) => e.key === 'Enter' && playTrack(track, index)}
 							role="button"
 							tabindex="0"
-							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group cursor-pointer"
-							class:bg-base-300={isCurrentTrack(track.identifier)}
-							class:text-primary={isCurrentTrack(track.identifier)}
+							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group cursor-pointer {isCurrentTrack(track.identifier) ? 'bg-base-300 text-primary' : ''}"
 						>
 							<!-- Track Number / Play Icon -->
 							<div class="w-8 text-center flex-shrink-0">
@@ -303,7 +301,7 @@
 							<!-- Actions -->
 							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
 								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
-									<DownloadButton {track} size="sm" />
+									<DownloadButton {track} size="sm" lazy={false} />
 								</div>
 								<button
 									on:click|stopPropagation={() => queue.addToEnd(track)}

@@ -25,7 +25,7 @@
 	export let layout: 'tile' | 'list' = 'tile';
 	export let compact = false;
 	export let showRemoveFromQueue = false;
-	export let actionsLayout: 'full' | 'collapsed' = 'full';
+	export let actionsLayout: 'full' | 'collapsed' | 'auto' = 'auto';
 
 	const dispatch = createEventDispatcher();
 
@@ -35,6 +35,11 @@
 	let tracks: Track[] = item.tracks || [];
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
+
+	// Auto-collapse actions on mobile in list view for better space usage
+	$: effectiveActionsLayout = actionsLayout === 'auto'
+		? (layout === 'list' ? 'collapsed' : 'full')
+		: actionsLayout;
 
 	// --- Portal Action for Dropdown ---
 	function portal(node: HTMLElement) {
@@ -252,8 +257,8 @@
 			? 'flex-row items-center justify-between'
 			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
 	>
-		<div class="flex-grow min-w-0">
-			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}">
+		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
+			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
 			</h2>
 			<p class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'}">
@@ -266,7 +271,7 @@
 				? 'flex-shrink-0 flex-nowrap'
 				: 'justify-between mt-auto -ml-2'}"
 		>
-			{#if actionsLayout === 'full'}
+			{#if effectiveActionsLayout === 'full'}
 				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
 					<DownloadButton
 						track={tracks?.[0] || item}

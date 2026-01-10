@@ -7,10 +7,12 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { shareTrack } from '$lib/utils/share';
 	import { base } from '$app/paths';
 
 	let audioElement: HTMLAudioElement;
+	let iosAudioUnlocked = false;
 	let showPlaylistSelector = false;
 
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
@@ -26,30 +28,64 @@
 	onMount(() => {
 		player.setAudioElement(audioElement);
 
+		// iOS audio unlock - required for iOS Safari/PWA
+		const unlockAudio = () => {
+			if (iosAudioUnlocked) return;
+
+			// Play silent audio to unlock audio context on iOS
+			audioElement.muted = true;
+			const playPromise = audioElement.play();
+
+			if (playPromise !== undefined) {
+				playPromise.then(() => {
+					audioElement.pause();
+					audioElement.currentTime = 0;
+					audioElement.muted = false;
+					iosAudioUnlocked = true;
+
+					// Remove listeners after unlock
+					document.removeEventListener('touchstart', unlockAudio);
+					document.removeEventListener('touchend', unlockAudio);
+					document.removeEventListener('click', unlockAudio);
+				}).catch(() => {
+					// Unlock failed, will retry on next interaction
+				});
+			}
+		};
+
+		// Listen for any user interaction to unlock audio on iOS
+		document.addEventListener('touchstart', unlockAudio, { once: false });
+		document.addEventListener('touchend', unlockAudio, { once: false });
+		document.addEventListener('click', unlockAudio, { once: false });
+
 		// Keyboard shortcuts
 		window.addEventListener('keydown', handleKeyPress);
 		window.addEventListener('click', handleClickOutside);
 	});
 
-    import { browser } from '$app/environment';
-
-    onDestroy(() => {
-        if (browser) {
-            window.removeEventListener('keydown', handleKeyPress);
+	onDestroy(() => {
+		if (browser) {
+			window.removeEventListener('keydown', handleKeyPress);
 			window.removeEventListener('click', handleClickOutside);
-        }
-    });
+
+			// Clean up iOS unlock listeners if still present
+			const unlockAudio = () => {};
+			document.removeEventListener('touchstart', unlockAudio);
+			document.removeEventListener('touchend', unlockAudio);
+			document.removeEventListener('click', unlockAudio);
+		}
+	});
 
 	function handleClickOutside(event: MouseEvent) {
 		if (showPlaylistSelector) {
 			const target = event.target as HTMLElement;
-			
+
 			const desktopSelector = document.getElementById('desktop-player-playlist-selector');
 			const desktopButton = document.getElementById('desktop-player-playlist-btn');
-			
+
 			const mobileSelector = document.getElementById('mobile-player-playlist-selector');
 			const mobileButton = document.getElementById('mobile-player-playlist-btn');
-			
+
 			const isDesktopClick = (desktopSelector && desktopSelector.contains(target)) || (desktopButton && desktopButton.contains(target));
 			const isMobileClick = (mobileSelector && mobileSelector.contains(target)) || (mobileButton && mobileButton.contains(target));
 
@@ -151,7 +187,12 @@
 </script>
 
 <!-- Hidden audio element - MUST always be mounted -->
-<audio bind:this={audioElement} preload="auto"></audio>
+<audio
+	bind:this={audioElement}
+	preload="auto"
+	playsinline
+	webkit-playsinline
+></audio>
 
 {#if $player.currentTrack}
 <!-- Player Bar -->
@@ -176,9 +217,9 @@
 	</div>
 
 	<!-- Main row - CSS Grid for true centering -->
-	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+	<div class="grid items-center gap-2 w-full" style="grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start overflow-hidden max-w-full">
+		<div class="min-w-0 justify-self-start overflow-hidden w-full">
 			{#if $player.currentTrack}
 				<!-- Mobile: compact with thumbnail -->
 				<div class="md:hidden flex items-center gap-2 min-w-0 overflow-hidden">
@@ -279,7 +320,7 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end max-w-full">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
 			<!-- Mobile: Favorite + Download + Playlist + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}

@@ -299,7 +299,14 @@ export function getStreamUrl(identifier: string, filename: string): string {
 	// Use /serve/ endpoint for better streaming performance
 	// Falls back to /download/ if serve is not available
 	const streamUrl = `https://archive.org/serve/${identifier}/${filename}`;
-	return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
+
+	// Try direct streaming first (Archive.org supports CORS)
+	// The CORS proxy doesn't work on Cloudflare Pages
+	console.log('[IA] Stream URL:', streamUrl);
+	return streamUrl;
+
+	// Proxy version (disabled - doesn't work on Cloudflare Pages):
+	// return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
 }
 
 /**
@@ -314,8 +321,12 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 	} else {
 		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
 	}
-	// Route all thumbnail requests through the CORS proxy
-	return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	// Try direct access (Archive.org supports CORS for images)
+	// The CORS proxy doesn't work on Cloudflare Pages
+	return imageUrl;
+
+	// Proxy version (disabled - doesn't work on Cloudflare Pages):
+	// return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
 }
 
 /**

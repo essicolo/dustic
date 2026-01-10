@@ -10,9 +10,40 @@
 	import { shareTrack } from '$lib/utils/share';
 
 	let audioElement: HTMLAudioElement;
+	let iosAudioUnlocked = false;
 
 	onMount(() => {
 		player.setAudioElement(audioElement);
+
+		// iOS audio unlock - required for iOS Safari/PWA
+		const unlockAudio = () => {
+			if (iosAudioUnlocked) return;
+
+			// Play silent audio to unlock audio context on iOS
+			audioElement.muted = true;
+			const playPromise = audioElement.play();
+
+			if (playPromise !== undefined) {
+				playPromise.then(() => {
+					audioElement.pause();
+					audioElement.currentTime = 0;
+					audioElement.muted = false;
+					iosAudioUnlocked = true;
+
+					// Remove listeners after unlock
+					document.removeEventListener('touchstart', unlockAudio);
+					document.removeEventListener('touchend', unlockAudio);
+					document.removeEventListener('click', unlockAudio);
+				}).catch(() => {
+					// Unlock failed, will retry on next interaction
+				});
+			}
+		};
+
+		// Listen for any user interaction to unlock audio on iOS
+		document.addEventListener('touchstart', unlockAudio, { once: false });
+		document.addEventListener('touchend', unlockAudio, { once: false });
+		document.addEventListener('click', unlockAudio, { once: false });
 
 		// Keyboard shortcuts
 		window.addEventListener('keydown', handleKeyPress);
@@ -20,6 +51,12 @@
 
 	onDestroy(() => {
 		window.removeEventListener('keydown', handleKeyPress);
+
+		// Clean up iOS unlock listeners if still present
+		const unlockAudio = () => {};
+		document.removeEventListener('touchstart', unlockAudio);
+		document.removeEventListener('touchend', unlockAudio);
+		document.removeEventListener('click', unlockAudio);
 	});
 
 	function handleKeyPress(e: KeyboardEvent) {
@@ -114,7 +151,12 @@
 </script>
 
 <!-- Hidden audio element - MUST always be mounted -->
-<audio bind:this={audioElement} preload="auto"></audio>
+<audio
+	bind:this={audioElement}
+	preload="auto"
+	playsinline
+	webkit-playsinline
+></audio>
 
 {#if $player.currentTrack}
 <!-- Player Bar -->

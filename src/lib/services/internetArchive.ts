@@ -321,12 +321,10 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 	} else {
 		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
 	}
-	// Try direct access (Archive.org supports CORS for images)
-	// The CORS proxy doesn't work on Cloudflare Pages
-	return imageUrl;
 
-	// Proxy version (disabled - doesn't work on Cloudflare Pages):
-	// return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	// Use weserv.nl image proxy to handle CORS for thumbnails
+	// Archive.org images don't support CORS, and our /api/cors-proxy doesn't work on Cloudflare Pages
+	return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&default=https://placehold.co/512x512/1f2937/white?text=No+Image`;
 }
 
 /**

@@ -314,17 +314,12 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Use higher quality version for better display on modern devices
  */
 export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
-	let imageUrl: string;
-	if (size === 'large') {
-		// Try to get high-res version first (may be on a CDN and cause opaque responses)
-		imageUrl = `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
-	} else {
-		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
-	}
+	// Archive.org services/img endpoint should support CORS
+	// Test direct access first before adding proxy
+	const imageUrl = `https://archive.org/services/img/${identifier}`;
 
-	// Use weserv.nl image proxy to handle CORS for thumbnails
-	// Archive.org images don't support CORS, and our /api/cors-proxy doesn't work on Cloudflare Pages
-	return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&default=https://placehold.co/512x512/1f2937/white?text=No+Image`;
+	console.log('[IA] Thumbnail URL:', imageUrl);
+	return imageUrl;
 }
 
 /**

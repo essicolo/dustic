@@ -32,7 +32,10 @@
 		const unlockAudio = () => {
 			if (iosAudioUnlocked) return;
 
-			// Play silent audio to unlock audio context on iOS
+			// Create a silent data URL (0.1 second of silence)
+			const silentAudio = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCEhISEhIS4uLi4uLjw8PDw8PElJSUlJSVZWVhYWVmNjY2NjY3Bwc3Bwc31 9fX19fYqKioqKipePj4+Pj6SkpKSkpLGxsbGxsb6+vr6+vsvLy8vLy9fX19fX1+Tk5OTk5PHx8fHx8f//////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQCgAAAAAAAAAYzBNtNWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7QMQAAANUMZQBBAYMAAAmAAAABAAAAGMEAAABAAAEuYWYABAAAAAoAAANIAABBwEA//sQZAAAAlAAcApAAIIIAR//7cQQMzAAABBwAAAAAACAAAQUAgAAAAALgYEAA4lQAYP/8gAAAA//8QBA//+gEP//QgAABABA//+ABAAAAAIAAAAAEPgAAAABAAAAAQAgAABAAAAAIAAAgAAEAAAABAQAAEAAAAABAAAAQAAAQAAAAAAAACAA//sQZAqP8AAAf4AAAAgAAA0gAAABAAAB/gAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQZLOP8AAAf4AAAAgAAA0gAAABAAAB/gAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+
+			audioElement.src = silentAudio;
 			audioElement.muted = true;
 			const playPromise = audioElement.play();
 
@@ -41,6 +44,7 @@
 					audioElement.pause();
 					audioElement.currentTime = 0;
 					audioElement.muted = false;
+					audioElement.src = ''; // Clear the silent audio
 					iosAudioUnlocked = true;
 
 					// Remove listeners after unlock
@@ -49,6 +53,7 @@
 					document.removeEventListener('click', unlockAudio);
 				}).catch(() => {
 					// Unlock failed, will retry on next interaction
+					audioElement.src = '';
 				});
 			}
 		};
@@ -321,7 +326,7 @@
 
 		<!-- Right: Actions/Volume/Queue -->
 		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
-			<!-- Mobile: Favorite + Download + Playlist + Queue -->
+			<!-- Mobile: Favorite + Queue only (keep it minimal) -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}
 					<button
@@ -335,43 +340,6 @@
 							className={isFavorite ? 'text-red-500' : ''}
 						/>
 					</button>
-					
-					<!-- Mobile Playlist Button -->
-					<div class="relative">
-						<button
-							id="mobile-player-playlist-btn"
-							class="btn btn-ghost btn-sm btn-circle"
-							title="Add to Playlist"
-							on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
-						>
-							<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
-						</button>
-						{#if showPlaylistSelector}
-							<div
-								id="mobile-player-playlist-selector"
-								class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
-							>
-								<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
-								{#each playlists as p}
-									<button
-										class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
-										on:click={(e) => { e.stopPropagation(); handleAddToPlaylist(p.id); }}
-									>
-										{p.name}
-									</button>
-								{/each}
-								<a
-									href="{base}/library/playlists"
-									class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
-									on:click={() => (showPlaylistSelector = false)}
-								>
-									+ New Playlist
-								</a>
-							</div>
-						{/if}
-					</div>
-
-					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
 			</div>
 

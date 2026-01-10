@@ -28,40 +28,38 @@
 	onMount(() => {
 		player.setAudioElement(audioElement);
 
-		// iOS audio unlock - required for iOS Safari/PWA
-		const unlockAudio = () => {
-			if (iosAudioUnlocked) return;
+		// iOS audio unlock - must happen on first user interaction
+		// This allows subsequent async play() calls to work
+		const unlockAudioOnFirstTouch = () => {
+			if (iosAudioUnlocked || !audioElement) return;
 
-			// Create a silent data URL (0.1 second of silence)
-			const silentAudio = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCEhISEhIS4uLi4uLjw8PDw8PElJSUlJSVZWVhYWVmNjY2NjY3Bwc3Bwc31 9fX19fYqKioqKipePj4+Pj6SkpKSkpLGxsbGxsb6+vr6+vsvLy8vLy9fX19fX1+Tk5OTk5PHx8fHx8f//////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQCgAAAAAAAAAYzBNtNWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7QMQAAANUMZQBBAYMAAAmAAAABAAAAGMEAAABAAAEuYWYABAAAAAoAAANIAABBwEA//sQZAAAAlAAcApAAIIIAR//7cQQMzAAABBwAAAAAACAAAQUAgAAAAALgYEAA4lQAYP/8gAAAA//8QBA//+gEP//QgAABABA//+ABAAAAAIAAAAAEPgAAAABAAAAAQAgAABAAAAAIAAAgAAEAAAABAQAAEAAAAABAAAAQAAAQAAAAAAAACAA//sQZAqP8AAAf4AAAAgAAA0gAAABAAAB/gAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQZLOP8AAAf4AAAAgAAA0gAAABAAAB/gAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
-
-			audioElement.src = silentAudio;
-			audioElement.muted = true;
+			// Play and immediately pause to unlock iOS audio
+			// We don't need any audio source - just calling play() is enough
 			const playPromise = audioElement.play();
 
 			if (playPromise !== undefined) {
-				playPromise.then(() => {
-					audioElement.pause();
-					audioElement.currentTime = 0;
-					audioElement.muted = false;
-					audioElement.src = ''; // Clear the silent audio
-					iosAudioUnlocked = true;
+				playPromise
+					.then(() => {
+						audioElement.pause();
+						iosAudioUnlocked = true;
+						console.log('iOS audio context unlocked');
+					})
+					.catch((err) => {
+						// Expected to fail initially, will unlock on next try
+						console.log('Audio unlock pending user interaction');
+					});
+			}
 
-					// Remove listeners after unlock
-					document.removeEventListener('touchstart', unlockAudio);
-					document.removeEventListener('touchend', unlockAudio);
-					document.removeEventListener('click', unlockAudio);
-				}).catch(() => {
-					// Unlock failed, will retry on next interaction
-					audioElement.src = '';
-				});
+			// Remove listeners after first attempt
+			if (iosAudioUnlocked) {
+				document.removeEventListener('touchend', unlockAudioOnFirstTouch);
+				document.removeEventListener('click', unlockAudioOnFirstTouch);
 			}
 		};
 
-		// Listen for any user interaction to unlock audio on iOS
-		document.addEventListener('touchstart', unlockAudio, { once: false });
-		document.addEventListener('touchend', unlockAudio, { once: false });
-		document.addEventListener('click', unlockAudio, { once: false });
+		// Listen for first user interaction (iOS requires touchend or click)
+		document.addEventListener('touchend', unlockAudioOnFirstTouch, { once: true });
+		document.addEventListener('click', unlockAudioOnFirstTouch, { once: true });
 
 		// Keyboard shortcuts
 		window.addEventListener('keydown', handleKeyPress);
@@ -72,12 +70,6 @@
 		if (browser) {
 			window.removeEventListener('keydown', handleKeyPress);
 			window.removeEventListener('click', handleClickOutside);
-
-			// Clean up iOS unlock listeners if still present
-			const unlockAudio = () => {};
-			document.removeEventListener('touchstart', unlockAudio);
-			document.removeEventListener('touchend', unlockAudio);
-			document.removeEventListener('click', unlockAudio);
 		}
 	});
 

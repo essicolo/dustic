@@ -6,11 +6,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Content Security Policy - prevents XSS attacks
 	const csp = [
 		"default-src 'self'",
-		"script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com", // Svelte requires unsafe-inline
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com", // unsafe-eval needed for Eruda debugger
 		"style-src 'self' 'unsafe-inline'",
-		"img-src 'self' data: blob: https://archive.org https://*.archive.org",
+		"font-src 'self' data:", // data: needed for Eruda icon fonts
+		"img-src 'self' data: blob: https://archive.org https://*.archive.org https://images.weserv.nl", // Added weserv.nl for thumbnail proxy
 		"media-src 'self' blob: https://archive.org https://*.archive.org",
-		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com https://cloudflareinsights.com",
+		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com https://cloudflareinsights.com https://images.weserv.nl",
 		"worker-src 'self' blob:"
 	].join('; ');
 

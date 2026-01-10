@@ -314,12 +314,15 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Use higher quality version for better display on modern devices
  */
 export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
-	// Archive.org services/img endpoint should support CORS
-	// Test direct access first before adding proxy
+	// Archive.org images don't support CORS, use weserv.nl proxy
 	const imageUrl = `https://archive.org/services/img/${identifier}`;
 
-	console.log('[IA] Thumbnail URL:', imageUrl);
-	return imageUrl;
+	// Use weserv.nl to proxy the image with CORS support
+	// It also provides image optimization and fallback handling
+	const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&output=jpg&default=${encodeURIComponent('https://placehold.co/512x512/1f2937/white?text=No+Image')}`;
+
+	console.log('[IA] Thumbnail URL:', proxyUrl);
+	return proxyUrl;
 }
 
 /**

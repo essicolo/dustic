@@ -181,9 +181,9 @@
 	</div>
 
 	<!-- Main row - CSS Grid for true centering -->
-	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+	<div class="grid items-center gap-2 w-full" style="grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start overflow-hidden max-w-full">
+		<div class="min-w-0 justify-self-start overflow-hidden w-full">
 			{#if $player.currentTrack}
 				<!-- Mobile: compact with thumbnail -->
 				<div class="md:hidden flex items-center gap-2 min-w-0 overflow-hidden">
@@ -284,7 +284,7 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end max-w-full">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
 			<!-- Mobile: Favorite + Download + Queue -->
 			<div class="md:hidden flex items-center gap-1">
 				{#if $player.currentTrack}

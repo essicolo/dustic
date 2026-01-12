@@ -230,17 +230,21 @@
 		};
 	});
 
-	// Reposition menu on scroll/resize when open
-	$: if (showActions && actionsMenu) {
-		const handleScrollResize = () => positionActionsMenu();
-		window.addEventListener('scroll', handleScrollResize, true);
-		window.addEventListener('resize', handleScrollResize);
+	// Track scroll/resize handler for cleanup
+	let scrollResizeHandler: (() => void) | null = null;
 
-		// Cleanup when showActions becomes false
-		return () => {
-			window.removeEventListener('scroll', handleScrollResize, true);
-			window.removeEventListener('resize', handleScrollResize);
-		};
+	// Reposition menu on scroll/resize when open
+	$: {
+		if (showActions && actionsMenu) {
+			scrollResizeHandler = () => positionActionsMenu();
+			window.addEventListener('scroll', scrollResizeHandler, true);
+			window.addEventListener('resize', scrollResizeHandler);
+		} else if (scrollResizeHandler) {
+			// Cleanup when showActions becomes false
+			window.removeEventListener('scroll', scrollResizeHandler, true);
+			window.removeEventListener('resize', scrollResizeHandler);
+			scrollResizeHandler = null;
+		}
 	}
 </script>
 

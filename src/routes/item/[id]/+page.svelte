@@ -200,15 +200,6 @@
 					{/if}
 				</div>
 
-				<!-- Description -->
-				{#if itemMetadata.description}
-					<div class="mb-6 text-sm text-base-content/70 max-w-2xl">
-						<p class="line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
-					</div>
-				{/if}
-
 				<!-- Actions -->
 				<div class="flex flex-wrap items-center gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
@@ -249,12 +240,19 @@
 					</button>
 				</div>
 
-				<!-- Description/Metadata -->
+				<!-- Description -->
 				{#if itemMetadata.description}
-					<div class="mt-6">
-						<p class="text-sm text-base-content/70 line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
+					{@const desc = Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
+					<div class="mt-6 text-sm text-base-content/70 max-w-3xl">
+						{#if desc.includes('<') && desc.includes('>')}
+							<!-- Render as HTML if it contains HTML tags -->
+							<div class="prose prose-sm max-w-none [&>*]:line-clamp-4">
+								{@html desc}
+							</div>
+						{:else}
+							<!-- Plain text -->
+							<p class="line-clamp-4">{desc}</p>
+						{/if}
 					</div>
 				{/if}
 
@@ -262,8 +260,14 @@
 				{#if itemMetadata.subject}
 					{@const subjects = Array.isArray(itemMetadata.subject) ? itemMetadata.subject : [itemMetadata.subject]}
 					<div class="flex flex-wrap gap-2 mt-4">
-						{#each subjects.slice(0, 5) as subject}
-							<span class="badge badge-sm">{subject}</span>
+						{#each subjects.slice(0, 10) as subject}
+							<button
+								class="badge badge-sm hover:badge-primary transition-colors cursor-pointer"
+								on:click={() => goto(`${base}/search?q=subject:"${encodeURIComponent(subject)}"`)}
+								title="Search for more in {subject}"
+							>
+								{subject}
+							</button>
 						{/each}
 					</div>
 				{/if}

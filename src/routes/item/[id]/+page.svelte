@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let itemId = '';
 	let tracks: Track[] = [];
@@ -43,7 +44,7 @@
 			itemMetadata = metadata.metadata;
 
 			if (tracks.length === 0) {
-				error = 'No audio files found in this item';
+				error = 'No playable audio files found. This item may only contain metadata or non-audio files.';
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
@@ -163,9 +164,16 @@
 				<h1 class="text-3xl md:text-4xl font-bold mb-3">{itemMetadata.title || 'Untitled'}</h1>
 
 				{#if itemMetadata.creator}
-					<p class="text-xl text-base-content/80 mb-4">
+					<button
+						class="text-xl text-base-content/80 mb-4 hover:text-primary transition-colors text-left"
+						on:click={() => {
+							const creator = Array.isArray(itemMetadata.creator) ? itemMetadata.creator[0] : itemMetadata.creator;
+							goto(`${base}/search?q=creator:"${encodeURIComponent(creator)}"`);
+						}}
+						title="Search for more by this artist"
+					>
 						{Array.isArray(itemMetadata.creator) ? itemMetadata.creator.join(', ') : itemMetadata.creator}
-					</p>
+					</button>
 				{/if}
 
 				<!-- Stats -->
@@ -191,15 +199,6 @@
 						</div>
 					{/if}
 				</div>
-
-				<!-- Description -->
-				{#if itemMetadata.description}
-					<div class="mb-6 text-sm text-base-content/70 max-w-2xl">
-						<p class="line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
-					</div>
-				{/if}
 
 				<!-- Actions -->
 				<div class="flex flex-wrap items-center gap-2">
@@ -239,14 +238,30 @@
 					>
 						<Icon icon="solar:share-linear" width="24" />
 					</button>
+					<a
+						href="https://archive.org/details/{itemId}"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-ghost btn-circle"
+						title="View on Internet Archive"
+					>
+						<Icon icon="solar:link-circle-linear" width="24" />
+					</a>
 				</div>
 
-				<!-- Description/Metadata -->
+				<!-- Description -->
 				{#if itemMetadata.description}
-					<div class="mt-6">
-						<p class="text-sm text-base-content/70 line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
+					{@const desc = Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
+					<div class="mt-6 text-sm text-base-content/70 max-w-3xl">
+						{#if desc.includes('<') && desc.includes('>')}
+							<!-- Render as HTML if it contains HTML tags -->
+							<div class="prose prose-sm max-w-none [&>*]:line-clamp-4">
+								{@html desc}
+							</div>
+						{:else}
+							<!-- Plain text -->
+							<p class="line-clamp-4">{desc}</p>
+						{/if}
 					</div>
 				{/if}
 
@@ -254,8 +269,14 @@
 				{#if itemMetadata.subject}
 					{@const subjects = Array.isArray(itemMetadata.subject) ? itemMetadata.subject : [itemMetadata.subject]}
 					<div class="flex flex-wrap gap-2 mt-4">
-						{#each subjects.slice(0, 5) as subject}
-							<span class="badge badge-sm">{subject}</span>
+						{#each subjects.slice(0, 10) as subject}
+							<button
+								class="badge badge-sm hover:badge-primary transition-colors cursor-pointer"
+								on:click={() => goto(`${base}/search?q=subject:"${encodeURIComponent(subject)}"`)}
+								title="Search for more in {subject}"
+							>
+								{subject}
+							</button>
 						{/each}
 					</div>
 				{/if}
@@ -289,7 +310,15 @@
 							<div class="flex-1 min-w-0">
 								<p class="font-medium truncate">{track.title}</p>
 								{#if track.artist && track.artist !== itemMetadata.creator}
-									<p class="text-sm text-base-content/60 truncate">{track.artist}</p>
+									<button
+										class="text-sm text-base-content/60 truncate hover:text-primary transition-colors text-left"
+										on:click|stopPropagation={() => {
+											goto(`${base}/search?q=creator:"${encodeURIComponent(track.artist)}"`);
+										}}
+										title="Search for more by this artist"
+									>
+										{track.artist}
+									</button>
 								{/if}
 							</div>
 
@@ -298,8 +327,8 @@
 								{formatDuration(track.duration)}
 							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+							<!-- Actions - Always visible on mobile, hover on desktop -->
+							<div class="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
 								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
 									<DownloadButton {track} size="sm" lazy={false} />
 								</div>

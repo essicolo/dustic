@@ -14,6 +14,8 @@
 	let playlistName = '';
 	let playlistDescription = '';
 	let showPlaylistSelectorForTrack: string | null = null;
+	let draggedIndex: number | null = null;
+	let dragOverIndex: number | null = null;
 
 	function togglePanel() {
 		isOpen = !isOpen;
@@ -87,6 +89,36 @@
 	function addToPlaylist(trackId: string, playlistId: string) {
 		library.addToPlaylist(playlistId, trackId);
 		showPlaylistSelectorForTrack = null;
+	}
+
+	function handleDragStart(event: DragEvent, index: number) {
+		draggedIndex = $queue.currentIndex + 1 + index;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+		}
+	}
+
+	function handleDragOver(event: DragEvent, index: number) {
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+		dragOverIndex = $queue.currentIndex + 1 + index;
+	}
+
+	function handleDrop(event: DragEvent, index: number) {
+		event.preventDefault();
+		const toIndex = $queue.currentIndex + 1 + index;
+		if (draggedIndex !== null && draggedIndex !== toIndex) {
+			queue.reorder(draggedIndex, toIndex);
+		}
+		draggedIndex = null;
+		dragOverIndex = null;
+	}
+
+	function handleDragEnd() {
+		draggedIndex = null;
+		dragOverIndex = null;
 	}
 
 	$: upcomingTracks = $queue.tracks.slice($queue.currentIndex + 1);
@@ -256,16 +288,34 @@
 				{:else}
 					<div class="divide-y divide-base-content/10">
 						{#each upcomingTracks as track, index}
-						<div class="p-1">
-							<AudioCard
-								item={track}
-								type="track"
-								layout="list"
-								compact={true}
-								actionsLayout="collapsed"
-								showRemoveFromQueue={true}
-								on:removeFromQueue={() => removeTrack($queue.currentIndex + 1 + index)}
-							/>
+						<div
+							class="p-1 cursor-move hover:bg-base-300/50 transition-colors"
+							class:bg-base-300={dragOverIndex === $queue.currentIndex + 1 + index && draggedIndex !== $queue.currentIndex + 1 + index}
+							class:opacity-50={draggedIndex === $queue.currentIndex + 1 + index}
+							draggable="true"
+							on:dragstart={(e) => handleDragStart(e, index)}
+							on:dragover={(e) => handleDragOver(e, index)}
+							on:drop={(e) => handleDrop(e, index)}
+							on:dragend={handleDragEnd}
+							role="button"
+							tabindex="0"
+						>
+							<div class="flex items-center gap-2">
+								<div class="text-base-content/40 flex-shrink-0">
+									<Icon icon="solar:hamburger-menu-linear" width="16" />
+								</div>
+								<div class="flex-1 min-w-0">
+									<AudioCard
+										item={track}
+										type="track"
+										layout="list"
+										compact={true}
+										actionsLayout="collapsed"
+										showRemoveFromQueue={true}
+										on:removeFromQueue={() => removeTrack($queue.currentIndex + 1 + index)}
+									/>
+								</div>
+							</div>
 						</div>
 					{/each}
 					</div>

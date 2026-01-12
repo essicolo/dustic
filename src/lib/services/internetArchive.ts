@@ -255,6 +255,14 @@ export function getAllAudioFiles(
 		const format = file.format.toLowerCase();
 		const name = file.name.toLowerCase();
 
+		// Exclude Mac OS metadata files
+		// __MACOSX folders contain resource forks and metadata
+		if (file.name.includes('__MACOSX/')) return false;
+
+		// Files starting with ._ are Mac OS resource fork files
+		const filename = file.name.split('/').pop() || '';
+		if (filename.startsWith('._')) return false;
+
 		// Check if format matches known audio formats
 		if (AUDIO_FORMATS.includes(format)) return true;
 

@@ -21,6 +21,12 @@
 	let shareMessage = '';
 	let showShareToast = false;
 	let isDownloadingAll = false;
+	let showPlaylistSelector = false;
+	let selectedPlaylistId: string | 'new' = 'new';
+	let newPlaylistName = '';
+	let newPlaylistDescription = '';
+
+	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 
 	$: itemId = $page.params.id || '';
 
@@ -66,8 +72,42 @@
 		}
 	}
 
-	function toggleFavorite() {
-		library.toggleFavorite(itemId);
+	function openPlaylistSelector() {
+		showPlaylistSelector = true;
+		selectedPlaylistId = 'new';
+		newPlaylistName = '';
+		newPlaylistDescription = '';
+	}
+
+	function addAllToPlaylist() {
+		if (tracks.length === 0) return;
+
+		let playlistId: string;
+
+		if (selectedPlaylistId === 'new') {
+			if (!newPlaylistName.trim()) return;
+			playlistId = library.createPlaylist(newPlaylistName.trim(), newPlaylistDescription.trim());
+		} else {
+			playlistId = selectedPlaylistId;
+		}
+
+		// Add all tracks to the playlist
+		tracks.forEach(track => {
+			library.addToPlaylist(playlistId, track.identifier);
+		});
+
+		// Show success message
+		shareMessage = `Added ${tracks.length} track${tracks.length !== 1 ? 's' : ''} to playlist`;
+		showShareToast = true;
+		setTimeout(() => {
+			showShareToast = false;
+		}, 3000);
+
+		// Close selector
+		showPlaylistSelector = false;
+		selectedPlaylistId = 'new';
+		newPlaylistName = '';
+		newPlaylistDescription = '';
 	}
 
 	async function handleShare(track: Track) {
@@ -221,15 +261,12 @@
 						{/if}
 					</button>
 					<button
-						on:click={toggleFavorite}
-						class="btn btn-ghost btn-circle"
-						title={$library.favorites.includes(itemId) ? 'Remove from favorites' : 'Add to favorites'}
+						on:click={openPlaylistSelector}
+						class="btn btn-outline gap-2"
+						title="Add all tracks to playlist"
 					>
-						<Icon
-							icon={$library.favorites.includes(itemId) ? 'solar:heart-bold' : 'solar:heart-linear'}
-							width="24"
-							className={$library.favorites.includes(itemId) ? 'text-red-500' : ''}
-						/>
+						<Icon icon="solar:list-heart-bold" width="20" />
+						<span>Add to Playlist</span>
 					</button>
 					<button
 						on:click={() => handleShare(tracks[0])}
@@ -349,6 +386,99 @@
 							</div>
 						</div>
 					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Playlist Selector Modal -->
+	{#if showPlaylistSelector}
+		<div
+			class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+			on:click={() => showPlaylistSelector = false}
+			on:keydown={(e) => e.key === 'Escape' && (showPlaylistSelector = false)}
+			role="button"
+			tabindex="-1"
+			aria-label="Close playlist selector"
+		>
+			<div
+				class="bg-base-200 rounded-lg p-6 max-w-md w-full"
+				on:click={(e) => e.stopPropagation()}
+				on:keydown={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+			>
+				<h3 class="text-lg font-bold mb-4">Add {tracks.length} Track{tracks.length !== 1 ? 's' : ''} to Playlist</h3>
+
+				<div class="space-y-4">
+					<!-- Playlist Selector -->
+					<div class="form-control">
+						<label class="label" for="playlist-select">
+							<span class="label-text">Select Playlist</span>
+						</label>
+						<select
+							id="playlist-select"
+							bind:value={selectedPlaylistId}
+							class="select select-bordered w-full"
+						>
+							<option value="new">+ Create New Playlist</option>
+							{#each playlists as playlist}
+								<option value={playlist.id}>{playlist.name} ({playlist.tracks.length} tracks)</option>
+							{/each}
+						</select>
+					</div>
+
+					{#if selectedPlaylistId === 'new'}
+						<!-- New Playlist Form -->
+						<div class="form-control">
+							<label class="label" for="playlist-name">
+								<span class="label-text">Playlist Name</span>
+							</label>
+							<input
+								id="playlist-name"
+								type="text"
+								bind:value={newPlaylistName}
+								placeholder="My Playlist"
+								class="input input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
+								autofocus
+							/>
+						</div>
+						<div class="form-control">
+							<label class="label" for="playlist-description">
+								<span class="label-text">Description (optional)</span>
+							</label>
+							<input
+								id="playlist-description"
+								type="text"
+								bind:value={newPlaylistDescription}
+								placeholder="Optional description"
+								class="input input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
+							/>
+						</div>
+					{/if}
+
+					<!-- Actions -->
+					<div class="flex gap-2 justify-end">
+						<button
+							on:click={() => showPlaylistSelector = false}
+							class="btn btn-ghost"
+						>
+							Cancel
+						</button>
+						<button
+							on:click={addAllToPlaylist}
+							disabled={selectedPlaylistId === 'new' && !newPlaylistName.trim()}
+							class="btn btn-primary"
+						>
+							{#if selectedPlaylistId === 'new'}
+								Create & Add
+							{:else}
+								Add to Playlist
+							{/if}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -44,7 +44,7 @@
 			itemMetadata = metadata.metadata;
 
 			if (tracks.length === 0) {
-				error = 'No audio files found in this item';
+				error = 'No playable audio files found. This item may only contain metadata or non-audio files.';
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
@@ -238,6 +238,15 @@
 					>
 						<Icon icon="solar:share-linear" width="24" />
 					</button>
+					<a
+						href="https://archive.org/details/{itemId}"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-ghost btn-circle"
+						title="View on Internet Archive"
+					>
+						<Icon icon="solar:link-circle-linear" width="24" />
+					</a>
 				</div>
 
 				<!-- Description -->

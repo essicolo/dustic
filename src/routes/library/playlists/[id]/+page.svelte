@@ -18,6 +18,8 @@
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
 	let loadingTrack: string | null = null;
+	let draggedIndex: number | null = null;
+	let dragOverIndex: number | null = null;
 
 	async function batchExecute<T>(
 		tasks: (() => Promise<T>)[],
@@ -94,6 +96,36 @@
 	function isCurrentTrack(identifier: string): boolean {
 		return $player.currentTrack?.identifier === identifier;
 	}
+
+	function handleDragStart(event: DragEvent, index: number) {
+		draggedIndex = index;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+		}
+	}
+
+	function handleDragOver(event: DragEvent, index: number) {
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+		dragOverIndex = index;
+	}
+
+	function handleDrop(event: DragEvent, index: number) {
+		event.preventDefault();
+		if (draggedIndex !== null && draggedIndex !== index) {
+			library.reorderPlaylistTracks(playlistId, draggedIndex, index);
+			loadTracks(); // Reload to reflect new order
+		}
+		draggedIndex = null;
+		dragOverIndex = null;
+	}
+
+	function handleDragEnd() {
+		draggedIndex = null;
+		dragOverIndex = null;
+	}
 </script>
 
 {#if playlist}
@@ -149,7 +181,27 @@
 			<div class="space-y-2">
 				{#each tracks as track, index}
 					{#if track}
-						<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list" />
+						<div
+							class="cursor-move hover:bg-base-300/30 rounded-lg transition-colors"
+							class:bg-base-300={dragOverIndex === index && draggedIndex !== index}
+							class:opacity-50={draggedIndex === index}
+							draggable="true"
+							on:dragstart={(e) => handleDragStart(e, index)}
+							on:dragover={(e) => handleDragOver(e, index)}
+							on:drop={(e) => handleDrop(e, index)}
+							on:dragend={handleDragEnd}
+							role="button"
+							tabindex="0"
+						>
+							<div class="flex items-center gap-2">
+								<div class="text-base-content/40 flex-shrink-0 pl-2">
+									<Icon icon="solar:hamburger-menu-linear" width="16" />
+								</div>
+								<div class="flex-1 min-w-0">
+									<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list" />
+								</div>
+							</div>
+						</div>
 					{/if}
 				{/each}
 			</div>

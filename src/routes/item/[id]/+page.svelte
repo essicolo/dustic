@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let itemId = '';
 	let tracks: Track[] = [];
@@ -163,9 +164,16 @@
 				<h1 class="text-3xl md:text-4xl font-bold mb-3">{itemMetadata.title || 'Untitled'}</h1>
 
 				{#if itemMetadata.creator}
-					<p class="text-xl text-base-content/80 mb-4">
+					<button
+						class="text-xl text-base-content/80 mb-4 hover:text-primary transition-colors text-left"
+						on:click={() => {
+							const creator = Array.isArray(itemMetadata.creator) ? itemMetadata.creator[0] : itemMetadata.creator;
+							goto(`${base}/search?q=creator:"${encodeURIComponent(creator)}"`);
+						}}
+						title="Search for more by this artist"
+					>
 						{Array.isArray(itemMetadata.creator) ? itemMetadata.creator.join(', ') : itemMetadata.creator}
-					</p>
+					</button>
 				{/if}
 
 				<!-- Stats -->
@@ -289,7 +297,15 @@
 							<div class="flex-1 min-w-0">
 								<p class="font-medium truncate">{track.title}</p>
 								{#if track.artist && track.artist !== itemMetadata.creator}
-									<p class="text-sm text-base-content/60 truncate">{track.artist}</p>
+									<button
+										class="text-sm text-base-content/60 truncate hover:text-primary transition-colors text-left"
+										on:click|stopPropagation={() => {
+											goto(`${base}/search?q=creator:"${encodeURIComponent(track.artist)}"`);
+										}}
+										title="Search for more by this artist"
+									>
+										{track.artist}
+									</button>
 								{/if}
 							</div>
 

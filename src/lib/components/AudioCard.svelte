@@ -294,9 +294,19 @@
 			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
 			</h2>
-			<p class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'}">
+			<button
+				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
+				on:click={(e) => {
+					e.stopPropagation();
+					const artist = (item as any).artist || item.creator || '';
+					if (artist && artist !== 'Unknown Artist') {
+						goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+					}
+				}}
+				title="Search for more by this artist"
+			>
 				{(item as any).artist || item.creator || 'Unknown Artist'}
-			</p>
+			</button>
 		</div>
 
 		<div

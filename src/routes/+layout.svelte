@@ -34,10 +34,10 @@
 		offline.loadOfflineTracks();
 
 		// Initialize Eruda mobile debugging console
-		// Enable with ?debug=1 in URL or always in production for debugging
+		// Enable only with ?debug=1 in URL
 		if (browser) {
 			const urlParams = new URLSearchParams(window.location.search);
-			const enableDebug = urlParams.get('debug') === '1' || !dev;
+			const enableDebug = urlParams.get('debug') === '1';
 
 			if (enableDebug) {
 				const eruda = await import('eruda');

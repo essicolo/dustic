@@ -2,7 +2,9 @@ import type { Track } from '$lib/types';
 import { browser } from '$app/environment';
 
 export async function shareTrack(track: Track): Promise<{ success: boolean; message: string }> {
-	const url = `https://archive.org/details/${track.identifier}`;
+	// Extract base identifier (remove chapter index if present)
+	const baseIdentifier = track.identifier.split('#')[0];
+	const url = `https://dustic.app/item/${baseIdentifier}`;
 	const title = `${track.title} - ${track.artist}`;
 
 	// Try Web Share API first (works on mobile)
@@ -10,7 +12,7 @@ export async function shareTrack(track: Track): Promise<{ success: boolean; mess
 		try {
 			await navigator.share({
 				title,
-				text: `Listen to ${title} on Internet Archive`,
+				text: `Listen to ${title} on Dustic`,
 				url
 			});
 			return { success: true, message: 'Shared successfully' };

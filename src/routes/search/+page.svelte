@@ -75,6 +75,16 @@
 			results = [];
 			totalResults = 0;
 			isTyping = false;
+			error = '';
+			return;
+		}
+
+		// Basic query validation - check for unclosed quotes
+		const quoteCount = (searchQuery.match(/"/g) || []).length;
+		if (quoteCount % 2 !== 0) {
+			error = 'Invalid search query: unclosed quote. Please check your syntax.';
+			results = [];
+			totalResults = 0;
 			return;
 		}
 
@@ -97,11 +107,8 @@
 			const result = await searchAPI(params);
 			results = result.items;
 			totalResults = result.total;
-
-			// Show warning if no results found
-			if (result.items.length === 0 && result.total === 0) {
-				error = 'No results found. Try different keywords or remove filters.';
-			}
+			// Clear any previous errors on successful search
+			error = '';
 		} catch (e: any) {
 			// Provide more specific error messages
 			if (e.message?.includes('Too many requests')) {

@@ -79,15 +79,6 @@
 			return;
 		}
 
-		// Basic query validation - check for unclosed quotes
-		const quoteCount = (searchQuery.match(/"/g) || []).length;
-		if (quoteCount % 2 !== 0) {
-			error = 'Invalid search query: unclosed quote. Please check your syntax.';
-			results = [];
-			totalResults = 0;
-			return;
-		}
-
 		isSearching = true;
 		isTyping = false;
 		error = '';
@@ -110,17 +101,16 @@
 			// Clear any previous errors on successful search
 			error = '';
 		} catch (e: any) {
-			// Provide more specific error messages
-			if (e.message?.includes('Too many requests')) {
-				error = 'Too many requests. Please wait a moment and try again.';
-			} else if (e.message?.includes('experiencing issues')) {
-				error = 'Internet Archive is experiencing issues. Please try again later.';
-			} else if (e.message?.includes('Network error')) {
+			// Log error for debugging but don't show aggressive UI alerts
+			console.warn('[Search] Failed:', e.message || e);
+
+			// Only show error for severe issues that the user needs to know about
+			// (like network errors), not for API rejections or flaky responses
+			if (e.message?.includes('Network error') || e.message?.includes('network')) {
 				error = 'Network error. Please check your internet connection.';
-			} else {
-				error = 'Search failed. The Internet Archive may be slow or unavailable. Please try again.';
 			}
-			console.error('Search error:', e);
+			// For other errors (API issues, malformed queries, etc.), silently fail
+			// The user can retry, and the empty results UI will show
 		} finally {
 			isSearching = false;
 		}

@@ -75,6 +75,16 @@
 			results = [];
 			totalResults = 0;
 			isTyping = false;
+			error = '';
+			return;
+		}
+
+		// Basic query validation - check for unclosed quotes
+		const quoteCount = (searchQuery.match(/"/g) || []).length;
+		if (quoteCount % 2 !== 0) {
+			error = 'Invalid search query: unclosed quote. Please check your syntax.';
+			results = [];
+			totalResults = 0;
 			return;
 		}
 

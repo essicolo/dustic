@@ -49,6 +49,10 @@
 	let showShareToast = false;
 	let failedImages = new Set<string>(); // Track failed image loads
 
+	// Track previous filter values to prevent unnecessary searches
+	let prevCollections: string[] = [];
+	let prevSortBy: string = 'relevance';
+
 	function handleImageError(identifier: string) {
 		failedImages.add(identifier);
 		failedImages = failedImages; // Trigger reactivity
@@ -93,9 +97,23 @@
 			const result = await searchAPI(params);
 			results = result.items;
 			totalResults = result.total;
-		} catch (e) {
-			error = 'Search failed. Please try again.';
-			console.error(e);
+
+			// Show warning if no results found
+			if (result.items.length === 0 && result.total === 0) {
+				error = 'No results found. Try different keywords or remove filters.';
+			}
+		} catch (e: any) {
+			// Provide more specific error messages
+			if (e.message?.includes('Too many requests')) {
+				error = 'Too many requests. Please wait a moment and try again.';
+			} else if (e.message?.includes('experiencing issues')) {
+				error = 'Internet Archive is experiencing issues. Please try again later.';
+			} else if (e.message?.includes('Network error')) {
+				error = 'Network error. Please check your internet connection.';
+			} else {
+				error = 'Search failed. The Internet Archive may be slow or unavailable. Please try again.';
+			}
+			console.error('Search error:', e);
 		} finally {
 			isSearching = false;
 		}
@@ -215,8 +233,13 @@
 
 	$: totalPages = Math.ceil(totalResults / pageSize);
 	$: {
-		// Re-search when filters change
-		if (selectedCollections || sortBy) {
+		// Re-search when filters change (compare previous values to detect actual changes)
+		const collectionsChanged = JSON.stringify(selectedCollections) !== JSON.stringify(prevCollections);
+		const sortChanged = sortBy !== prevSortBy;
+
+		if (collectionsChanged || sortChanged) {
+			prevCollections = [...selectedCollections];
+			prevSortBy = sortBy;
 			currentPage = 1;
 			if (searchQuery.trim()) {
 				handleSearch();

@@ -44,9 +44,14 @@
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
+	let showSearchHelp = false;
 	let shareMessage = '';
 	let showShareToast = false;
 	let failedImages = new Set<string>(); // Track failed image loads
+
+	// Track previous filter values to prevent unnecessary searches
+	let prevCollections: string[] = [];
+	let prevSortBy: string = 'relevance';
 
 	function handleImageError(identifier: string) {
 		failedImages.add(identifier);
@@ -70,6 +75,7 @@
 			results = [];
 			totalResults = 0;
 			isTyping = false;
+			error = '';
 			return;
 		}
 
@@ -92,9 +98,19 @@
 			const result = await searchAPI(params);
 			results = result.items;
 			totalResults = result.total;
-		} catch (e) {
-			error = 'Search failed. Please try again.';
-			console.error(e);
+			// Clear any previous errors on successful search
+			error = '';
+		} catch (e: any) {
+			// Log error for debugging but don't show aggressive UI alerts
+			console.warn('[Search] Failed:', e.message || e);
+
+			// Only show error for severe issues that the user needs to know about
+			// (like network errors), not for API rejections or flaky responses
+			if (e.message?.includes('Network error') || e.message?.includes('network')) {
+				error = 'Network error. Please check your internet connection.';
+			}
+			// For other errors (API issues, malformed queries, etc.), silently fail
+			// The user can retry, and the empty results UI will show
 		} finally {
 			isSearching = false;
 		}
@@ -214,8 +230,13 @@
 
 	$: totalPages = Math.ceil(totalResults / pageSize);
 	$: {
-		// Re-search when filters change
-		if (selectedCollections || sortBy) {
+		// Re-search when filters change (compare previous values to detect actual changes)
+		const collectionsChanged = JSON.stringify(selectedCollections) !== JSON.stringify(prevCollections);
+		const sortChanged = sortBy !== prevSortBy;
+
+		if (collectionsChanged || sortChanged) {
+			prevCollections = [...selectedCollections];
+			prevSortBy = sortBy;
 			currentPage = 1;
 			if (searchQuery.trim()) {
 				handleSearch();
@@ -235,7 +256,7 @@
 				bind:value={searchQuery}
 				on:input={onSearchInput}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-				placeholder="Search for music, audiobooks, podcasts..."
+				placeholder='Try: jazz, creator:"Miles Davis", subject:"live concert"'
 				class="input input-bordered w-full pr-12"
 				autocomplete="off"
 				enterkeyhint="search"
@@ -256,6 +277,28 @@
 			<p class="text-sm text-base-content/60 mt-2">
 				Found {totalResults.toLocaleString()} results
 			</p>
+		{/if}
+
+		<!-- Search Help -->
+		<button
+			on:click={() => showSearchHelp = !showSearchHelp}
+			class="text-xs text-base-content/50 hover:text-base-content/80 mt-2 flex items-center gap-1"
+		>
+			<Icon icon={showSearchHelp ? 'solar:minus-circle-linear' : 'solar:info-circle-linear'} width="14" />
+			<span>{showSearchHelp ? 'Hide' : 'Show'} search tips</span>
+		</button>
+
+		{#if showSearchHelp}
+			<div class="mt-2 p-3 bg-base-200 rounded-lg text-xs space-y-2">
+				<p class="font-semibold text-sm">Search Tips:</p>
+				<ul class="space-y-1 list-disc list-inside text-base-content/70">
+					<li><code class="bg-base-300 px-1 rounded">creator:"Artist Name"</code> - Search by artist</li>
+					<li><code class="bg-base-300 px-1 rounded">subject:"jazz"</code> - Search by genre/subject</li>
+					<li><code class="bg-base-300 px-1 rounded">"exact phrase"</code> - Search for exact phrase</li>
+					<li><code class="bg-base-300 px-1 rounded">title:album AND creator:artist</code> - Combine searches</li>
+				</ul>
+				<p class="text-base-content/60 pt-1">💡 Use collection filters for better results (Live Music, Audiobooks, etc.)</p>
+			</div>
 		{/if}
 	</div>
 

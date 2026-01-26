@@ -35,9 +35,39 @@ function createPlayerStore() {
 
 	// Audio element reference (will be set from component)
 	let audioElement: HTMLAudioElement | null = null;
+	let iosAudioUnlocked = false;
 
 	return {
 		subscribe,
+
+		// iOS audio unlock - must be called synchronously in a user gesture
+		unlockIOSAudio(): void {
+			if (iosAudioUnlocked || !audioElement) {
+				return;
+			}
+
+			// Simply calling play() on iOS, even if it fails, unlocks the audio context
+			// This must be called synchronously within a user gesture event handler
+			const playPromise = audioElement.play();
+
+			if (playPromise !== undefined) {
+				playPromise
+					.then(() => {
+						// Play started successfully (shouldn't happen with no src)
+						audioElement.pause();
+						iosAudioUnlocked = true;
+						console.log('[iOS] Audio unlocked via play');
+					})
+					.catch(() => {
+						// Expected to fail - but this unlocks iOS audio context
+						iosAudioUnlocked = true;
+						console.log('[iOS] Audio context unlocked (expected failure)');
+					});
+			} else {
+				// Older browsers without promise-based play()
+				iosAudioUnlocked = true;
+			}
+		},
 
 		// Set the audio element reference
 		setAudioElement(element: HTMLAudioElement) {
@@ -83,8 +113,28 @@ function createPlayerStore() {
 			});
 
 			element.addEventListener('error', (e) => {
-				console.error('Audio error:', e);
+				const error = element.error;
+				console.error('[Player] Audio error event:', {
+					code: error?.code,
+					message: error?.message,
+					MEDIA_ERR_ABORTED: error?.code === 1,
+					MEDIA_ERR_NETWORK: error?.code === 2,
+					MEDIA_ERR_DECODE: error?.code === 3,
+					MEDIA_ERR_SRC_NOT_SUPPORTED: error?.code === 4
+				});
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+			});
+
+			element.addEventListener('loadeddata', () => {
+				console.log('[Player] Audio loadeddata - ready to play');
+			});
+
+			element.addEventListener('waiting', () => {
+				console.log('[Player] Audio waiting - buffering...');
+			});
+
+			element.addEventListener('stalled', () => {
+				console.log('[Player] Audio stalled - network issue?');
 			});
 
 			// Set initial volume
@@ -94,9 +144,15 @@ function createPlayerStore() {
 		// Play a track
 		play(track: Track) {
 			if (!audioElement) {
-				console.error('Audio element not set');
+				console.error('[Player] Audio element not set');
 				return;
 			}
+
+			console.log('[Player] Starting playback:', {
+				title: track.title,
+				streamUrl: track.streamUrl,
+				iosUnlocked: iosAudioUnlocked
+			});
 
 			update((state) => ({
 				...state,
@@ -139,12 +195,27 @@ function createPlayerStore() {
 				});
 			}
 
+			console.log('[Player] Setting audio src and loading...');
 			audioElement.src = track.streamUrl;
 			audioElement.load();
-			audioElement.play().catch((error) => {
-				console.error('Play error:', error);
-				update((state) => ({ ...state, isLoading: false }));
-			});
+
+			console.log('[Player] Calling play()...');
+			const playPromise = audioElement.play();
+
+			if (playPromise !== undefined) {
+				playPromise
+					.then(() => {
+						console.log('[Player] Play started successfully');
+					})
+					.catch((error) => {
+						console.error('[Player] Play error:', {
+							name: error.name,
+							message: error.message,
+							code: error.code
+						});
+						update((state) => ({ ...state, isLoading: false }));
+					});
+			}
 		},
 
 		// Resume playback

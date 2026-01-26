@@ -25,7 +25,7 @@
 	export let layout: 'tile' | 'list' = 'tile';
 	export let compact = false;
 	export let showRemoveFromQueue = false;
-	export let actionsLayout: 'full' | 'collapsed' = 'full';
+	export let actionsLayout: 'full' | 'collapsed' | 'auto' = 'auto';
 
 	const dispatch = createEventDispatcher();
 
@@ -35,6 +35,11 @@
 	let tracks: Track[] = item.tracks || [];
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
+
+	// Auto-collapse actions on mobile in list view for better space usage
+	$: effectiveActionsLayout = actionsLayout === 'auto'
+		? (layout === 'list' ? 'collapsed' : 'full')
+		: actionsLayout;
 
 	// --- Portal Action for Dropdown ---
 	function portal(node: HTMLElement) {
@@ -54,11 +59,31 @@
 		if (!actionsButton || !actionsMenu) return;
 
 		const btnRect = actionsButton.getBoundingClientRect();
-		const top = btnRect.bottom + window.scrollY + 4;
-		const right = window.innerWidth - btnRect.right - window.scrollX;
+		const menuWidth = 224; // w-56 = 14rem = 224px
+		const gap = 4;
 
+		// Calculate available space
+		const spaceRight = window.innerWidth - btnRect.right;
+		const spaceLeft = btnRect.left;
+
+		// Position vertically below the button
+		const top = btnRect.bottom + window.scrollY + gap;
 		actionsMenu.style.top = `${top}px`;
-		actionsMenu.style.right = `${right}px`;
+
+		// Position horizontally - prefer right-aligned but check for overflow
+		if (spaceRight >= menuWidth) {
+			// Enough space on the right, align menu's right edge with button's right edge
+			actionsMenu.style.right = `${window.innerWidth - btnRect.right}px`;
+			actionsMenu.style.left = 'auto';
+		} else if (spaceLeft >= menuWidth) {
+			// Not enough space on right, align menu's left edge with button's left edge
+			actionsMenu.style.left = `${btnRect.left + window.scrollX}px`;
+			actionsMenu.style.right = 'auto';
+		} else {
+			// Not enough space on either side, center the menu
+			actionsMenu.style.left = `${Math.max(gap, btnRect.left + window.scrollX - menuWidth / 2)}px`;
+			actionsMenu.style.right = 'auto';
+		}
 	}
 
 	function toggleActions(event: MouseEvent) {
@@ -111,6 +136,11 @@
 
 	async function handlePlay(e?: MouseEvent | KeyboardEvent) {
 		e?.stopPropagation();
+
+		// CRITICAL: Unlock iOS audio synchronously BEFORE any await
+		// This must happen in the user gesture context
+		player.unlockIOSAudio();
+
 		const tracksToPlay = await ensureTracks();
 		if (tracksToPlay?.length > 0) {
 			queue.setQueue(tracksToPlay, 0);
@@ -199,6 +229,23 @@
 			document.removeEventListener('click', closeOnClickOutside);
 		};
 	});
+
+	// Track scroll/resize handler for cleanup
+	let scrollResizeHandler: (() => void) | null = null;
+
+	// Reposition menu on scroll/resize when open
+	$: {
+		if (showActions && actionsMenu) {
+			scrollResizeHandler = () => positionActionsMenu();
+			window.addEventListener('scroll', scrollResizeHandler, true);
+			window.addEventListener('resize', scrollResizeHandler);
+		} else if (scrollResizeHandler) {
+			// Cleanup when showActions becomes false
+			window.removeEventListener('scroll', scrollResizeHandler, true);
+			window.removeEventListener('resize', scrollResizeHandler);
+			scrollResizeHandler = null;
+		}
+	}
 </script>
 
 <div
@@ -247,13 +294,23 @@
 			? 'flex-row items-center justify-between'
 			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
 	>
-		<div class="flex-grow min-w-0">
-			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}">
+		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
+			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
 			</h2>
-			<p class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'}">
+			<button
+				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
+				on:click={(e) => {
+					e.stopPropagation();
+					const artist = (item as any).artist || item.creator || '';
+					if (artist && artist !== 'Unknown Artist') {
+						goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+					}
+				}}
+				title="Search for more by this artist"
+			>
 				{(item as any).artist || item.creator || 'Unknown Artist'}
-			</p>
+			</button>
 		</div>
 
 		<div
@@ -261,7 +318,7 @@
 				? 'flex-shrink-0 flex-nowrap'
 				: 'justify-between mt-auto -ml-2'}"
 		>
-			{#if actionsLayout === 'full'}
+			{#if effectiveActionsLayout === 'full'}
 				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
 					<DownloadButton
 						track={tracks?.[0] || item}

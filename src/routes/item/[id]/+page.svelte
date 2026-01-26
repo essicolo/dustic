@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let itemId = '';
 	let tracks: Track[] = [];
@@ -20,6 +21,12 @@
 	let shareMessage = '';
 	let showShareToast = false;
 	let isDownloadingAll = false;
+	let showPlaylistSelector = false;
+	let selectedPlaylistId: string | 'new' = 'new';
+	let newPlaylistName = '';
+	let newPlaylistDescription = '';
+
+	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 
 	$: itemId = $page.params.id || '';
 
@@ -43,7 +50,7 @@
 			itemMetadata = metadata.metadata;
 
 			if (tracks.length === 0) {
-				error = 'No audio files found in this item';
+				error = 'No playable audio files found. This item may only contain metadata or non-audio files.';
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
@@ -65,8 +72,42 @@
 		}
 	}
 
-	function toggleFavorite() {
-		library.toggleFavorite(itemId);
+	function openPlaylistSelector() {
+		showPlaylistSelector = true;
+		selectedPlaylistId = 'new';
+		newPlaylistName = '';
+		newPlaylistDescription = '';
+	}
+
+	function addAllToPlaylist() {
+		if (tracks.length === 0) return;
+
+		let playlistId: string;
+
+		if (selectedPlaylistId === 'new') {
+			if (!newPlaylistName.trim()) return;
+			playlistId = library.createPlaylist(newPlaylistName.trim(), newPlaylistDescription.trim());
+		} else {
+			playlistId = selectedPlaylistId;
+		}
+
+		// Add all tracks to the playlist
+		tracks.forEach(track => {
+			library.addToPlaylist(playlistId, track.identifier);
+		});
+
+		// Show success message
+		shareMessage = `Added ${tracks.length} track${tracks.length !== 1 ? 's' : ''} to playlist`;
+		showShareToast = true;
+		setTimeout(() => {
+			showShareToast = false;
+		}, 3000);
+
+		// Close selector
+		showPlaylistSelector = false;
+		selectedPlaylistId = 'new';
+		newPlaylistName = '';
+		newPlaylistDescription = '';
 	}
 
 	async function handleShare(track: Track) {
@@ -163,9 +204,16 @@
 				<h1 class="text-3xl md:text-4xl font-bold mb-3">{itemMetadata.title || 'Untitled'}</h1>
 
 				{#if itemMetadata.creator}
-					<p class="text-xl text-base-content/80 mb-4">
+					<button
+						class="text-xl text-base-content/80 mb-4 hover:text-primary transition-colors text-left"
+						on:click={() => {
+							const creator = Array.isArray(itemMetadata.creator) ? itemMetadata.creator[0] : itemMetadata.creator;
+							goto(`${base}/search?q=creator:"${encodeURIComponent(creator)}"`);
+						}}
+						title="Search for more by this artist"
+					>
 						{Array.isArray(itemMetadata.creator) ? itemMetadata.creator.join(', ') : itemMetadata.creator}
-					</p>
+					</button>
 				{/if}
 
 				<!-- Stats -->
@@ -192,15 +240,6 @@
 					{/if}
 				</div>
 
-				<!-- Description -->
-				{#if itemMetadata.description}
-					<div class="mb-6 text-sm text-base-content/70 max-w-2xl">
-						<p class="line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
-					</div>
-				{/if}
-
 				<!-- Actions -->
 				<div class="flex flex-wrap items-center gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
@@ -222,15 +261,12 @@
 						{/if}
 					</button>
 					<button
-						on:click={toggleFavorite}
-						class="btn btn-ghost btn-circle"
-						title={$library.favorites.includes(itemId) ? 'Remove from favorites' : 'Add to favorites'}
+						on:click={openPlaylistSelector}
+						class="btn btn-outline gap-2"
+						title="Add all tracks to playlist"
 					>
-						<Icon
-							icon={$library.favorites.includes(itemId) ? 'solar:heart-bold' : 'solar:heart-linear'}
-							width="24"
-							className={$library.favorites.includes(itemId) ? 'text-red-500' : ''}
-						/>
+						<Icon icon="solar:list-heart-bold" width="20" />
+						<span>Add to Playlist</span>
 					</button>
 					<button
 						on:click={() => handleShare(tracks[0])}
@@ -239,14 +275,30 @@
 					>
 						<Icon icon="solar:share-linear" width="24" />
 					</button>
+					<a
+						href="https://archive.org/details/{itemId}"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-ghost btn-circle"
+						title="View on Internet Archive"
+					>
+						<Icon icon="solar:link-circle-linear" width="24" />
+					</a>
 				</div>
 
-				<!-- Description/Metadata -->
+				<!-- Description -->
 				{#if itemMetadata.description}
-					<div class="mt-6">
-						<p class="text-sm text-base-content/70 line-clamp-3">
-							{Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
-						</p>
+					{@const desc = Array.isArray(itemMetadata.description) ? itemMetadata.description[0] : itemMetadata.description}
+					<div class="mt-6 text-sm text-base-content/70 max-w-3xl">
+						{#if desc.includes('<') && desc.includes('>')}
+							<!-- Render as HTML if it contains HTML tags -->
+							<div class="prose prose-sm max-w-none [&>*]:line-clamp-4">
+								{@html desc}
+							</div>
+						{:else}
+							<!-- Plain text -->
+							<p class="line-clamp-4">{desc}</p>
+						{/if}
 					</div>
 				{/if}
 
@@ -254,8 +306,14 @@
 				{#if itemMetadata.subject}
 					{@const subjects = Array.isArray(itemMetadata.subject) ? itemMetadata.subject : [itemMetadata.subject]}
 					<div class="flex flex-wrap gap-2 mt-4">
-						{#each subjects.slice(0, 5) as subject}
-							<span class="badge badge-sm">{subject}</span>
+						{#each subjects.slice(0, 10) as subject}
+							<button
+								class="badge badge-sm hover:badge-primary transition-colors cursor-pointer"
+								on:click={() => goto(`${base}/search?q=subject:"${encodeURIComponent(subject)}"`)}
+								title="Search for more in {subject}"
+							>
+								{subject}
+							</button>
 						{/each}
 					</div>
 				{/if}
@@ -289,7 +347,15 @@
 							<div class="flex-1 min-w-0">
 								<p class="font-medium truncate">{track.title}</p>
 								{#if track.artist && track.artist !== itemMetadata.creator}
-									<p class="text-sm text-base-content/60 truncate">{track.artist}</p>
+									<button
+										class="text-sm text-base-content/60 truncate hover:text-primary transition-colors text-left"
+										on:click|stopPropagation={() => {
+											goto(`${base}/search?q=creator:"${encodeURIComponent(track.artist)}"`);
+										}}
+										title="Search for more by this artist"
+									>
+										{track.artist}
+									</button>
 								{/if}
 							</div>
 
@@ -298,8 +364,8 @@
 								{formatDuration(track.duration)}
 							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+							<!-- Actions - Always visible on mobile, hover on desktop -->
+							<div class="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
 								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
 									<DownloadButton {track} size="sm" lazy={false} />
 								</div>
@@ -320,6 +386,99 @@
 							</div>
 						</div>
 					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Playlist Selector Modal -->
+	{#if showPlaylistSelector}
+		<div
+			class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+			on:click={() => showPlaylistSelector = false}
+			on:keydown={(e) => e.key === 'Escape' && (showPlaylistSelector = false)}
+			role="button"
+			tabindex="-1"
+			aria-label="Close playlist selector"
+		>
+			<div
+				class="bg-base-200 rounded-lg p-6 max-w-md w-full"
+				on:click={(e) => e.stopPropagation()}
+				on:keydown={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+			>
+				<h3 class="text-lg font-bold mb-4">Add {tracks.length} Track{tracks.length !== 1 ? 's' : ''} to Playlist</h3>
+
+				<div class="space-y-4">
+					<!-- Playlist Selector -->
+					<div class="form-control">
+						<label class="label" for="playlist-select">
+							<span class="label-text">Select Playlist</span>
+						</label>
+						<select
+							id="playlist-select"
+							bind:value={selectedPlaylistId}
+							class="select select-bordered w-full"
+						>
+							<option value="new">+ Create New Playlist</option>
+							{#each playlists as playlist}
+								<option value={playlist.id}>{playlist.name} ({playlist.tracks.length} tracks)</option>
+							{/each}
+						</select>
+					</div>
+
+					{#if selectedPlaylistId === 'new'}
+						<!-- New Playlist Form -->
+						<div class="form-control">
+							<label class="label" for="playlist-name">
+								<span class="label-text">Playlist Name</span>
+							</label>
+							<input
+								id="playlist-name"
+								type="text"
+								bind:value={newPlaylistName}
+								placeholder="My Playlist"
+								class="input input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
+								autofocus
+							/>
+						</div>
+						<div class="form-control">
+							<label class="label" for="playlist-description">
+								<span class="label-text">Description (optional)</span>
+							</label>
+							<input
+								id="playlist-description"
+								type="text"
+								bind:value={newPlaylistDescription}
+								placeholder="Optional description"
+								class="input input-bordered"
+								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
+							/>
+						</div>
+					{/if}
+
+					<!-- Actions -->
+					<div class="flex gap-2 justify-end">
+						<button
+							on:click={() => showPlaylistSelector = false}
+							class="btn btn-ghost"
+						>
+							Cancel
+						</button>
+						<button
+							on:click={addAllToPlaylist}
+							disabled={selectedPlaylistId === 'new' && !newPlaylistName.trim()}
+							class="btn btn-primary"
+						>
+							{#if selectedPlaylistId === 'new'}
+								Create & Add
+							{:else}
+								Add to Playlist
+							{/if}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

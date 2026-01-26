@@ -87,8 +87,14 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		const formatQuery = format.map((f) => `format:(${f})`).join(' OR ');
 		q += ` AND (${formatQuery})`;
 	} else {
-		// Require at least one audio format to filter out metadata-only items
-		const commonFormats = ['mp3', 'ogg', 'flac', 'vbr mp3', '128kbps mp3', 'VBR', 'Ogg Vorbis'];
+		// More permissive format filter to avoid excluding valid audio items
+		// Archive.org's format indexing is inconsistent, so we include many variants
+		const commonFormats = [
+			'mp3', 'ogg', 'flac', 'm4a', 'aac', 'wav',
+			'vbr mp3', '128kbps mp3', '192kbps mp3', '256kbps mp3', '320kbps mp3',
+			'VBR', 'Ogg Vorbis', 'FLAC', 'MP3', 'AAC', 'M4A',
+			'64kbps mp3', 'Shorten', 'Apple Lossless Audio'
+		];
 		const formatFilter = commonFormats.map((f) => `format:"${f}"`).join(' OR ');
 		q += ` AND (${formatFilter})`;
 	}
@@ -112,6 +118,10 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	}
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+
+	// Log search query for debugging
+	console.log('[IA Search] Query:', q);
+	console.log('[IA Search] URL:', url);
 
 	try {
 		// Use cache and retry logic for search with Zod validation
@@ -144,6 +154,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 			metadata: doc
 		}));
 
+		console.log(`[IA Search] Found ${data.response.numFound} results, returning ${items.length} items`);
+
 		return {
 			items,
 			total: data.response.numFound,
@@ -156,13 +168,17 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		// Provide specific error messages
 		if (error.status === 429) {
 			throw new Error('Too many requests. Please wait a moment and try again.');
+		} else if (error.status === 503 || error.status === 504) {
+			throw new Error('Internet Archive is experiencing high load. Please try again in a moment.');
 		} else if (error.status >= 500) {
 			throw new Error('Internet Archive is experiencing issues. Please try again later.');
-		} else if (error.message?.includes('fetch')) {
+		} else if (error.message?.includes('fetch') || error.message?.includes('network')) {
 			throw new Error('Network error. Please check your internet connection.');
+		} else if (error.message?.includes('timeout')) {
+			throw new Error('Request timed out. Internet Archive may be slow. Please try again.');
 		}
 
-		throw new Error('Failed to search Internet Archive');
+		throw new Error('Failed to search Internet Archive. The service may be temporarily unavailable.');
 	}
 }
 
@@ -255,6 +271,14 @@ export function getAllAudioFiles(
 		const format = file.format.toLowerCase();
 		const name = file.name.toLowerCase();
 
+		// Exclude Mac OS metadata files
+		// __MACOSX folders contain resource forks and metadata
+		if (file.name.includes('__MACOSX/')) return false;
+
+		// Files starting with ._ are Mac OS resource fork files
+		const filename = file.name.split('/').pop() || '';
+		if (filename.startsWith('._')) return false;
+
 		// Check if format matches known audio formats
 		if (AUDIO_FORMATS.includes(format)) return true;
 
@@ -299,7 +323,14 @@ export function getStreamUrl(identifier: string, filename: string): string {
 	// Use /serve/ endpoint for better streaming performance
 	// Falls back to /download/ if serve is not available
 	const streamUrl = `https://archive.org/serve/${identifier}/${filename}`;
-	return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
+
+	// Try direct streaming first (Archive.org supports CORS)
+	// The CORS proxy doesn't work on Cloudflare Pages
+	console.log('[IA] Stream URL:', streamUrl);
+	return streamUrl;
+
+	// Proxy version (disabled - doesn't work on Cloudflare Pages):
+	// return `/api/cors-proxy?url=${encodeURIComponent(streamUrl)}`;
 }
 
 /**
@@ -307,15 +338,15 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Use higher quality version for better display on modern devices
  */
 export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
-	let imageUrl: string;
-	if (size === 'large') {
-		// Try to get high-res version first (may be on a CDN and cause opaque responses)
-		imageUrl = `https://archive.org/download/${identifier}/__ia_thumb.jpg`;
-	} else {
-		imageUrl = `${IA_BASE_URL}/services/img/${identifier}`;
-	}
-	// Route all thumbnail requests through the CORS proxy
-	return `/api/cors-proxy?url=${encodeURIComponent(imageUrl)}`;
+	// Archive.org images don't support CORS, use weserv.nl proxy
+	const imageUrl = `https://archive.org/services/img/${identifier}`;
+
+	// Use weserv.nl to proxy the image with CORS support
+	// It also provides image optimization and fallback handling
+	const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&output=jpg&default=${encodeURIComponent('https://placehold.co/512x512/1f2937/white?text=No+Image')}`;
+
+	console.log('[IA] Thumbnail URL:', proxyUrl);
+	return proxyUrl;
 }
 
 /**

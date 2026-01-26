@@ -7,6 +7,7 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { shareTrack } from '$lib/utils/share';
 	import { base } from '$app/paths';
 
@@ -31,25 +32,23 @@
 		window.addEventListener('click', handleClickOutside);
 	});
 
-    import { browser } from '$app/environment';
-
-    onDestroy(() => {
-        if (browser) {
-            window.removeEventListener('keydown', handleKeyPress);
+	onDestroy(() => {
+		if (browser) {
+			window.removeEventListener('keydown', handleKeyPress);
 			window.removeEventListener('click', handleClickOutside);
-        }
-    });
+		}
+	});
 
 	function handleClickOutside(event: MouseEvent) {
 		if (showPlaylistSelector) {
 			const target = event.target as HTMLElement;
-			
+
 			const desktopSelector = document.getElementById('desktop-player-playlist-selector');
 			const desktopButton = document.getElementById('desktop-player-playlist-btn');
-			
+
 			const mobileSelector = document.getElementById('mobile-player-playlist-selector');
 			const mobileButton = document.getElementById('mobile-player-playlist-btn');
-			
+
 			const isDesktopClick = (desktopSelector && desktopSelector.contains(target)) || (desktopButton && desktopButton.contains(target));
 			const isMobileClick = (mobileSelector && mobileSelector.contains(target)) || (mobileButton && mobileButton.contains(target));
 
@@ -68,7 +67,7 @@
 		switch (e.code) {
 			case 'Space':
 				e.preventDefault();
-				player.togglePlay();
+				handlePlayButtonClick();
 				break;
 			case 'ArrowLeft':
 				e.preventDefault();
@@ -132,6 +131,12 @@
 		}
 	}
 
+	function handlePlayButtonClick() {
+		// Unlock iOS audio on first click
+		player.unlockIOSAudio();
+		player.togglePlay();
+	}
+
 	let shareMessage = '';
 	let showShareToast = false;
 
@@ -151,7 +156,12 @@
 </script>
 
 <!-- Hidden audio element - MUST always be mounted -->
-<audio bind:this={audioElement} preload="auto"></audio>
+<audio
+	bind:this={audioElement}
+	preload="auto"
+	playsinline
+	webkit-playsinline
+></audio>
 
 {#if $player.currentTrack}
 <!-- Player Bar -->
@@ -176,9 +186,9 @@
 	</div>
 
 	<!-- Main row - CSS Grid for true centering -->
-	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+	<div class="grid items-center gap-2 w-full" style="grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);">
 		<!-- Left: Track info -->
-		<div class="min-w-0 justify-self-start overflow-hidden max-w-full">
+		<div class="min-w-0 justify-self-start overflow-hidden w-full">
 			{#if $player.currentTrack}
 				<!-- Mobile: compact with thumbnail -->
 				<div class="md:hidden flex items-center gap-2 min-w-0 overflow-hidden">
@@ -250,7 +260,7 @@
 			</button>
 
 			<button
-				on:click={() => player.togglePlay()}
+				on:click={handlePlayButtonClick}
 				class="btn btn-circle btn-primary btn-md"
 				disabled={!$player.currentTrack}
 			>
@@ -279,10 +289,11 @@
 		</div>
 
 		<!-- Right: Actions/Volume/Queue -->
-		<div class="flex items-center gap-1 md:gap-2 justify-self-end max-w-full">
-			<!-- Mobile: Favorite + Download + Playlist + Queue -->
-			<div class="md:hidden flex items-center gap-1">
+		<div class="flex items-center gap-1 md:gap-2 justify-self-end w-full justify-end">
+			<!-- Mobile: Download + Favorite (essential for offline listening) -->
+			<div class="md:hidden flex items-center gap-0.5">
 				{#if $player.currentTrack}
+					<DownloadButton track={$player.currentTrack} size="sm" />
 					<button
 						on:click={toggleFavorite}
 						class="btn btn-ghost btn-sm btn-circle"
@@ -294,43 +305,6 @@
 							className={isFavorite ? 'text-red-500' : ''}
 						/>
 					</button>
-					
-					<!-- Mobile Playlist Button -->
-					<div class="relative">
-						<button
-							id="mobile-player-playlist-btn"
-							class="btn btn-ghost btn-sm btn-circle"
-							title="Add to Playlist"
-							on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
-						>
-							<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
-						</button>
-						{#if showPlaylistSelector}
-							<div
-								id="mobile-player-playlist-selector"
-								class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
-							>
-								<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
-								{#each playlists as p}
-									<button
-										class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
-										on:click={(e) => { e.stopPropagation(); handleAddToPlaylist(p.id); }}
-									>
-										{p.name}
-									</button>
-								{/each}
-								<a
-									href="{base}/library/playlists"
-									class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
-									on:click={() => (showPlaylistSelector = false)}
-								>
-									+ New Playlist
-								</a>
-							</div>
-						{/if}
-					</div>
-
-					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
 			</div>
 

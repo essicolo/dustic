@@ -335,7 +335,27 @@ export function getAllAudioFiles(
 		return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
 	});
 
-	return audioFiles.map(file => ({
+	// Deduplicate: Keep only the best format for each unique track
+	// Archive.org items often have the same tracks in multiple formats (MP3, FLAC, OGG, etc.)
+	// We group by base filename (without extension) and keep only the first (best priority) format
+	const seenTracks = new Map<string, typeof audioFiles[0]>();
+
+	for (const file of audioFiles) {
+		// Extract base name without extension for grouping
+		// e.g., "01-Storm.flac" and "01-Storm.mp3" both become "01-Storm"
+		const baseName = file.name.replace(/\.[^.]+$/, '');
+
+		// Keep only the first occurrence (highest priority format)
+		if (!seenTracks.has(baseName)) {
+			seenTracks.set(baseName, file);
+		}
+	}
+
+	const deduplicatedFiles = Array.from(seenTracks.values());
+
+	console.log(`[IA] Found ${audioFiles.length} audio files, deduplicated to ${deduplicatedFiles.length} tracks`);
+
+	return deduplicatedFiles.map(file => ({
 		filename: file.name,
 		format: file.format || file.name.split('.').pop() || 'mp3',
 		duration: parseDuration(file.length)

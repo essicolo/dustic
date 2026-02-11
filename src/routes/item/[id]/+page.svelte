@@ -12,6 +12,7 @@
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { browser } from '$app/environment';
 
 	let itemId = '';
 	let tracks: Track[] = [];
@@ -25,6 +26,17 @@
 	let selectedPlaylistId: string | 'new' = 'new';
 	let newPlaylistName = '';
 	let newPlaylistDescription = '';
+
+	// Smart back navigation
+	function goBack() {
+		if (browser && window.history.length > 1) {
+			// Use browser history to go back
+			window.history.back();
+		} else {
+			// Fallback to home if no history
+			goto(base || '/');
+		}
+	}
 
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 
@@ -164,7 +176,7 @@
 
 <div class="p-4 md:p-8 max-w-6xl mx-auto">
 	<!-- Back Button -->
-	<button on:click={() => goto('/')} class="btn btn-ghost btn-sm mb-6">
+	<button on:click={goBack} class="btn btn-ghost btn-sm mb-6">
 		<Icon icon="solar:arrow-left-linear" width="20" />
 		<span>Back</span>
 	</button>

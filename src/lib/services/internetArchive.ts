@@ -237,6 +237,33 @@ function getFormatPriority(quality: AudioQuality): string[] {
 }
 
 /**
+ * Parse duration from Archive.org's length field
+ * Handles multiple formats: seconds as string ("1322.5"), MM:SS ("22:32"), HH:MM:SS ("1:22:32")
+ */
+function parseDuration(lengthString?: string): number | undefined {
+	if (!lengthString) return undefined;
+
+	// Check if it's in time format (contains colon)
+	if (lengthString.includes(':')) {
+		const parts = lengthString.split(':').map(p => parseInt(p, 10));
+
+		if (parts.length === 2) {
+			// MM:SS format
+			const [minutes, seconds] = parts;
+			return minutes * 60 + seconds;
+		} else if (parts.length === 3) {
+			// HH:MM:SS format
+			const [hours, minutes, seconds] = parts;
+			return hours * 3600 + minutes * 60 + seconds;
+		}
+	}
+
+	// Otherwise, assume it's seconds as a string
+	const parsed = parseFloat(lengthString);
+	return isNaN(parsed) ? undefined : parsed;
+}
+
+/**
  * Get the best audio file from an item's file list based on quality preference
  */
 export function getBestAudioFile(
@@ -311,7 +338,7 @@ export function getAllAudioFiles(
 	return audioFiles.map(file => ({
 		filename: file.name,
 		format: file.format || file.name.split('.').pop() || 'mp3',
-		duration: file.length ? parseFloat(file.length) : undefined
+		duration: parseDuration(file.length)
 	}));
 }
 
@@ -483,6 +510,9 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
  * Extract a readable chapter title from filename
  */
 function extractChapterTitle(filename: string, chapterNumber: number, albumTitle?: string): string {
+	// Log for debugging duplicate titles
+	console.log(`[extractChapterTitle] Processing: "${filename}" (index ${chapterNumber})`);
+
 	// Remove file extension
 	const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
 
@@ -497,7 +527,9 @@ function extractChapterTitle(filename: string, chapterNumber: number, albumTitle
 	for (const pattern of patterns) {
 		const match = nameWithoutExt.match(pattern);
 		if (match && match[2]) {
-			return match[2].trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+			const title = match[2].trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+			console.log(`[extractChapterTitle] Extracted: "${title}"`);
+			return title;
 		}
 	}
 
@@ -506,8 +538,11 @@ function extractChapterTitle(filename: string, chapterNumber: number, albumTitle
 
 	// If it's just a number or very short, prefix with "Chapter"
 	if (cleaned.length < 5 || /^\d+$/.test(cleaned)) {
-		return `Chapter ${chapterNumber}`;
+		const title = `Chapter ${chapterNumber}`;
+		console.log(`[extractChapterTitle] Using chapter number: "${title}"`);
+		return title;
 	}
 
+	console.log(`[extractChapterTitle] Using cleaned filename: "${cleaned}"`);
 	return cleaned;
 }

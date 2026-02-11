@@ -20,6 +20,7 @@
 	let showHeader = true;
 	let lastScrollY = 0;
 	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+	let collectionsExpanded = true; // Collections section collapsible state
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -27,6 +28,10 @@
 
 	function closeSidebar() {
 		isSidebarOpen = false;
+	}
+
+	function toggleCollections() {
+		collectionsExpanded = !collectionsExpanded;
 	}
 
 	onMount(async () => {
@@ -163,35 +168,6 @@
 					Home
 				</a>
 				<a
-					href="{base}/search"
-					on:click={closeSidebar}
-					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === `${base}/search`}
-					class:text-primary-content={currentPath === `${base}/search`}
-				>
-					Search
-				</a>
-
-				<div class="border-t border-base-300 my-3"></div>
-
-				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
-					Collections
-				</div>
-				{#each POPULAR_COLLECTIONS as collection}
-					<a
-						href="{base}/collection/{collection.id}"
-						on:click={closeSidebar}
-						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
-						class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
-						class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
-					>
-						{collection.name}
-					</a>
-				{/each}
-
-				<div class="border-t border-base-300 my-3"></div>
-
-				<a
 					href="{base}/library"
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
@@ -200,6 +176,54 @@
 				>
 					Library
 				</a>
+				<a
+					href="{base}/search"
+					on:click={closeSidebar}
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class:bg-primary={currentPath === `${base}/search`}
+					class:text-primary-content={currentPath === `${base}/search`}
+				>
+					Search
+				</a>
+				<a
+					href="{base}/curated"
+					on:click={closeSidebar}
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+					class:bg-primary={currentPath.startsWith(`${base}/curated`)}
+					class:text-primary-content={currentPath.startsWith(`${base}/curated`)}
+				>
+					<div class="flex items-center gap-2">
+						<span>Curated</span>
+						<Icon icon="solar:star-bold" width="14" class="text-primary" />
+					</div>
+				</a>
+
+				<div class="border-t border-base-300 my-3"></div>
+
+				<!-- Collapsible Collections Section -->
+				<button
+					on:click={toggleCollections}
+					class="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider hover:text-base-content/60 transition-colors"
+				>
+					<span>Collections</span>
+					<Icon icon={collectionsExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" />
+				</button>
+				{#if collectionsExpanded}
+					{#each POPULAR_COLLECTIONS as collection}
+						<a
+							href="{base}/collection/{collection.id}"
+							on:click={closeSidebar}
+							class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
+							class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
+							class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
+						>
+							{collection.name}
+						</a>
+					{/each}
+				{/if}
+
+				<div class="border-t border-base-300 my-3"></div>
+
 				<a
 					href="{base}/settings"
 					on:click={closeSidebar}

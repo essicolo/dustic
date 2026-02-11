@@ -197,6 +197,18 @@
 						<Icon icon="solar:star-bold" width="14" class="text-primary" />
 					</div>
 				</a>
+				<a
+					href="https://dustic.bearblog.dev/"
+					target="_blank"
+					rel="noopener noreferrer"
+					on:click={closeSidebar}
+					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+				>
+					<div class="flex items-center gap-2">
+						<span>Magazine</span>
+						<Icon icon="solar:arrow-right-up-linear" width="14" class="text-base-content/40" />
+					</div>
+				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
 

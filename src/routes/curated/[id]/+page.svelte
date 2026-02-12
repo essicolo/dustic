@@ -136,14 +136,6 @@
 			{/if}
 		</div>
 
-		<!-- Info Box -->
-		<div class="alert alert-info mb-6">
-			<Icon icon="solar:info-circle-bold" width="20" />
-			<div class="text-sm">
-				This is a human-curated playlist created by the Dustic team to showcase quality audio from the Internet Archive.
-			</div>
-		</div>
-
 		<!-- Tracks -->
 		{#if tracks.length > 0}
 			<div class="space-y-2">

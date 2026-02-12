@@ -59,7 +59,8 @@
 		if (!actionsButton || !actionsMenu) return;
 
 		const btnRect = actionsButton.getBoundingClientRect();
-		const menuWidth = 224; // w-56 = 14rem = 224px
+		// Get actual menu width instead of using fixed value
+		const menuWidth = actionsMenu.offsetWidth || 224;
 		const gap = 4;
 
 		// Calculate available space
@@ -80,8 +81,9 @@
 			actionsMenu.style.left = `${btnRect.left + window.scrollX}px`;
 			actionsMenu.style.right = 'auto';
 		} else {
-			// Not enough space on either side, center the menu
-			actionsMenu.style.left = `${Math.max(gap, btnRect.left + window.scrollX - menuWidth / 2)}px`;
+			// Not enough space on either side, align to viewport with padding
+			const left = Math.max(gap, Math.min(btnRect.left + window.scrollX, window.innerWidth - menuWidth - gap));
+			actionsMenu.style.left = `${left}px`;
 			actionsMenu.style.right = 'auto';
 		}
 	}
@@ -424,7 +426,7 @@
 							class="fixed z-[99]"
 						>
 							<ul
-								class="menu p-2 shadow-2xl bg-base-300 rounded-box w-56"
+								class="menu p-2 shadow-2xl bg-base-300 rounded-box min-w-[14rem] w-max max-w-xs"
 							>
 								<li>
 									<div on:click|stopPropagation class="p-0">

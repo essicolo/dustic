@@ -1,6 +1,6 @@
 {
   "name": "dustic",
-  "version": "0.0.79",
+  "version": "0.0.80",
   "private": true,
   "scripts": {
     "dev": "vite dev",

@@ -1,25 +1,5 @@
 [
   {
-    "id": "jazz-classics",
-    "name": "Jazz Classics",
-    "description": "Essential jazz recordings from the Internet Archive. Curated by the Dustic team to showcase the best of jazz history.",
-    "curator": "Dustic Team",
-    "tracks": [
-      {
-        "identifier": "78_my-melancholy-baby_artie-shaw-and-his-orchestra-artie-shaw-george-a-norton-ernie_gbia0001757",
-        "note": "Artie Shaw's iconic clarinet work"
-      },
-      {
-        "identifier": "78_sing-sing-sing_benny-goodman-and-his-orchestra-louis-prima_gbia0022846",
-        "note": "Benny Goodman's legendary swing piece"
-      },
-      {
-        "identifier": "78_take-the-a-train_duke-ellington-and-his-famous-orchestra-billy-strayhorn_gbia0031439",
-        "note": "Duke Ellington's signature tune"
-      }
-    ]
-  },
-  {
   "id": "classic-curse",
   "name": "Western classic curse",
   "description": "Orchestral rituals, danses and incantations - the playlist proposes a journey from ancient stillness through Spanish fire, Latin American nights and modernist darkness.",
@@ -126,29 +106,5 @@
       "note": "Ludwig van Beethoven: Moonlight Sonata, Adagio sostenuto — Gulda — the spell dissolves into moonlight"
     }
   ]
-},
-  {
-    "id": "vintage-blues",
-    "name": "Vintage Blues",
-    "description": "Early blues recordings that shaped American music. These tracks are carefully selected by human curators to represent the roots of the blues genre.",
-    "curator": "Dustic Team",
-    "tracks": [
-      {
-        "identifier": "78_st-louis-blues_bessie-smith-louis-armstrong-fred-longshaw-w-c-handy_gbia0028059",
-        "note": "Bessie Smith & Louis Armstrong collaboration"
-      }
-    ]
-  },
-  {
-    "id": "early-americana",
-    "name": "Early Americana",
-    "description": "Folk songs and traditional American music from the early 20th century, curated by humans to preserve musical heritage.",
-    "curator": "Dustic Team",
-    "tracks": [
-      {
-        "identifier": "78_home-on-the-range_bing-crosby-john-scott-trotter-and-his-orchestra-dr-brewster-higl_gbia0015328",
-        "note": "Bing Crosby's classic Western song"
-      }
-    ]
-  }
+}
 ]

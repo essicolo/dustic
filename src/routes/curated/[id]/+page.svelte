@@ -7,6 +7,7 @@
 	import { getTrack } from '$lib/services/internetArchive';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
@@ -28,8 +29,30 @@
 	let tracks: Track[] = [];
 	let isLoading = false;
 	let error = '';
+	let viewMode: 'grid' | 'list' = 'list';
+	let showOfflineOnly = false;
 
 	$: playlistId = $page.params.id;
+	$: filteredTracks = showOfflineOnly
+		? tracks.filter((t) => $offline.downloadedTracks[t.identifier])
+		: tracks;
+
+	// Load view preference from localStorage
+	onMount(() => {
+		if (browser) {
+			const savedView = localStorage.getItem('curated-view');
+			if (savedView === 'grid' || savedView === 'list') {
+				viewMode = savedView;
+			}
+		}
+	});
+
+	function setViewMode(mode: 'grid' | 'list') {
+		viewMode = mode;
+		if (browser) {
+			localStorage.setItem('curated-view', mode);
+		}
+	}
 
 	// Smart back navigation
 	function goBack() {
@@ -78,9 +101,9 @@
 	}
 
 	async function playAll() {
-		if (tracks.length === 0) return;
-		queue.setQueue(tracks, 0);
-		player.play(tracks[0]);
+		if (filteredTracks.length === 0) return;
+		queue.setQueue(filteredTracks, 0);
+		player.play(filteredTracks[0]);
 	}
 
 	onMount(() => {
@@ -89,11 +112,55 @@
 </script>
 
 <div class="p-4 md:p-8 max-w-6xl mx-auto">
-	<!-- Back Button -->
-	<button on:click={goBack} class="btn btn-ghost btn-sm mb-6">
-		<Icon icon="solar:arrow-left-linear" width="20" />
-		<span>Back</span>
-	</button>
+	<!-- Header with controls -->
+	<div class="flex items-center justify-between mb-6">
+		<button on:click={goBack} class="btn btn-ghost btn-sm">
+			<Icon icon="solar:arrow-left-linear" width="20" />
+			<span>Back</span>
+		</button>
+
+		{#if tracks.length > 0}
+			<div class="flex items-center gap-2 md:gap-3">
+				<!-- View Mode Toggle -->
+				<div class="btn-group">
+					<button
+						on:click={() => setViewMode('grid')}
+						class="btn btn-sm"
+						class:btn-active={viewMode === 'grid'}
+						title="Grid view"
+					>
+						<Icon icon="solar:widget-5-bold" width="18" />
+					</button>
+					<button
+						on:click={() => setViewMode('list')}
+						class="btn btn-sm"
+						class:btn-active={viewMode === 'list'}
+						title="List view"
+					>
+						<Icon icon="solar:list-bold" width="18" />
+					</button>
+				</div>
+
+				<!-- Offline only toggle - Desktop -->
+				<label class="label cursor-pointer gap-2 hidden md:flex">
+					<Icon icon="solar:download-minimalistic-bold" width="20" />
+					<span class="label-text">Offline only</span>
+					<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
+				</label>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Mobile: Offline toggle -->
+	{#if tracks.length > 0}
+		<div class="md:hidden mb-4">
+			<label class="label cursor-pointer gap-2 justify-start">
+				<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
+				<Icon icon="solar:download-minimalistic-bold" width="20" />
+				<span class="label-text">Offline only</span>
+			</label>
+		</div>
+	{/if}
 
 	{#if error}
 		<div class="alert alert-error mb-4">
@@ -121,7 +188,13 @@
 						<Icon icon="solar:user-circle-bold" width="16" />
 						<span>Curated by {playlist.curator}</span>
 						<span class="mx-2">•</span>
-						<span>{tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}</span>
+						<span>
+							{#if showOfflineOnly && filteredTracks.length !== tracks.length}
+								{filteredTracks.length} of {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+							{:else}
+								{tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+							{/if}
+						</span>
 					</div>
 				</div>
 			</div>
@@ -137,9 +210,33 @@
 		</div>
 
 		<!-- Tracks -->
-		{#if tracks.length > 0}
+		{#if tracks.length === 0}
+			<div class="text-center py-20 text-base-content/50">
+				<p class="text-lg">No tracks available in this playlist</p>
+			</div>
+		{:else if filteredTracks.length === 0}
+			<div class="text-center py-20 text-base-content/50">
+				<p class="text-lg">No offline tracks in this playlist</p>
+				<p class="text-sm mt-2">Download some tracks to see them here</p>
+			</div>
+		{:else if viewMode === 'grid'}
+			<!-- Grid View -->
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+				{#each filteredTracks as track, index}
+					<div class="relative">
+						<AudioCard item={track} type="album" layout="grid" />
+						{#if playlist.tracks[index]?.note}
+							<div class="text-xs text-base-content/50 italic mt-1 px-2">
+								{playlist.tracks[index].note}
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<!-- List View -->
 			<div class="space-y-2">
-				{#each tracks as track, index}
+				{#each filteredTracks as track, index}
 					<div class="relative">
 						<AudioCard item={track} type="album" layout="list" />
 						{#if playlist.tracks[index]?.note}
@@ -149,10 +246,6 @@
 						{/if}
 					</div>
 				{/each}
-			</div>
-		{:else}
-			<div class="text-center py-20 text-base-content/50">
-				<p class="text-lg">No tracks available in this playlist</p>
 			</div>
 		{/if}
 	{/if}

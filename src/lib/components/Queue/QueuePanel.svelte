@@ -312,6 +312,8 @@
 										compact={true}
 										actionsLayout="collapsed"
 										showRemoveFromQueue={true}
+										inQueue={true}
+										queueIndex={$queue.currentIndex + 1 + index}
 										on:removeFromQueue={() => removeTrack($queue.currentIndex + 1 + index)}
 									/>
 								</div>

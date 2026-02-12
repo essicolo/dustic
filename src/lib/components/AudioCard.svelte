@@ -26,6 +26,8 @@
 	export let compact = false;
 	export let showRemoveFromQueue = false;
 	export let actionsLayout: 'full' | 'collapsed' | 'auto' = 'auto';
+	export let inQueue = false; // When true, clicking plays at queue index instead of replacing queue
+	export let queueIndex: number | undefined = undefined; // Index in queue (when inQueue is true)
 
 	const dispatch = createEventDispatcher();
 
@@ -143,6 +145,16 @@
 		// This must happen in the user gesture context
 		player.unlockIOSAudio();
 
+		// If this track is in the queue, jump to it instead of replacing the queue
+		if (inQueue && queueIndex !== undefined) {
+			const track = queue.playAt(queueIndex);
+			if (track) {
+				player.play(track);
+			}
+			return;
+		}
+
+		// Normal behavior: replace queue with this track/album
 		const tracksToPlay = await ensureTracks();
 		if (tracksToPlay?.length > 0) {
 			queue.setQueue(tracksToPlay, 0);

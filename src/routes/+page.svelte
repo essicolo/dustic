@@ -4,7 +4,6 @@
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
-	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
 	import type { Track } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
@@ -13,31 +12,20 @@
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute } from '$lib/utils/throttle';
+	import { base } from '$app/paths';
+	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
 
-	let selectedCollection: string = '';
-	let results: Track[] = [];
-	let isLoading = false;
 	let error = '';
 	let loadingTrack: string | null = null;
 	let shareMessage = '';
 	let showShareToast = false;
-	let expandedItems: Set<string> = new Set();
-	let itemChapters: Map<string, Track[]> = new Map();
-	let loadingChapters: Set<string> = new Set();
 	let continueListening: Track[] = [];
 	let isLoadingContinue = false;
 	let viewMode: 'tiles' | 'list' = 'tiles';
-	let failedImages = new Set<string>(); // Track failed image loads
 
 	onMount(() => {
 		loadContinueListening();
-		loadTrending();
 	});
-
-	function handleImageError(identifier: string) {
-		failedImages.add(identifier);
-		failedImages = failedImages; // Trigger reactivity
-	}
 
 	async function loadContinueListening() {
 		isLoadingContinue = true;
@@ -69,85 +57,6 @@
 		isLoadingContinue = false;
 	}
 
-	async function loadTrending() {
-		isLoading = true;
-		error = '';
-
-		try {
-			const result = await searchAPI({
-				query: selectedCollection ? `collection:${selectedCollection}` : 'mediatype:audio',
-				sort: 'downloads',
-				page: 1,
-				pageSize: 100
-			});
-			results = result.items;
-		} catch (e) {
-			error = 'Failed to load trending tracks.';
-			console.error(e);
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	async function playTrack(identifier: string) {
-		loadingTrack = identifier;
-		error = ''; // Clear previous errors
-		try {
-			const track = await getTrack(identifier);
-			if (track) {
-				queue.setQueue([track], 0);
-				player.play(track);
-			} else {
-				error = 'This track has no playable audio files. Try another one.';
-			}
-		} catch (e) {
-			console.error('Failed to play track:', e);
-			error = 'Failed to load track. Please try another.';
-		} finally {
-			loadingTrack = null;
-		}
-	}
-
-	async function addToQueue(identifier: string) {
-		loadingTrack = identifier;
-		error = ''; // Clear previous errors
-		try {
-			const track = await getTrack(identifier);
-			if (track) {
-				queue.addToEnd(track);
-			} else {
-				error = 'This track has no playable audio files.';
-			}
-		} catch (e) {
-			console.error('Failed to add track:', e);
-			error = 'Failed to load track.';
-		} finally {
-			loadingTrack = null;
-		}
-	}
-
-	async function playAll() {
-		if (results.length === 0) return;
-
-		// Load tracks in batches to avoid rate limiting
-		const trackTasks = results.slice(0, 20).map((item) => async () => {
-			try {
-				return await getTrack(item.identifier);
-			} catch {
-				return null;
-			}
-		});
-
-		// Execute in batches of 3 with 500ms delay between batches
-		const tracks = await batchExecute(trackTasks, 3, 500);
-
-		const validTracks = tracks.filter((t): t is Track => t !== null);
-		if (validTracks.length > 0) {
-			queue.setQueue(validTracks, 0);
-			player.play(validTracks[0]);
-		}
-	}
-
 	function isCurrentTrack(identifier: string): boolean {
 		if (!$currentTrack) return false;
 		// Handle chapter identifiers (format: "itemId#index")
@@ -169,53 +78,9 @@
 		}, 3000);
 	}
 
-	async function toggleExpand(identifier: string) {
-		const wasExpanded = expandedItems.has(identifier);
-
-		if (wasExpanded) {
-			expandedItems.delete(identifier);
-		} else {
-			expandedItems.add(identifier);
-		}
-
-		// Trigger reactivity by creating new Set
-		expandedItems = new Set(expandedItems);
-
-		// Load chapters if not already loaded
-		if (!wasExpanded && !itemChapters.has(identifier)) {
-			loadingChapters.add(identifier);
-			loadingChapters = new Set(loadingChapters);
-
-			try {
-				const chapters = await getAllTracks(identifier);
-				itemChapters.set(identifier, chapters);
-				itemChapters = new Map(itemChapters);
-			} catch (e) {
-				console.error('Failed to load chapters:', e);
-				error = 'Failed to load chapters';
-			} finally {
-				loadingChapters.delete(identifier);
-				loadingChapters = new Set(loadingChapters);
-			}
-		}
-	}
-
-	async function playAllChapters(identifier: string) {
-		const chapters = itemChapters.get(identifier);
-		if (chapters && chapters.length > 0) {
-			queue.setQueue(chapters, 0);
-			player.play(chapters[0]);
-		}
-	}
-
-	async function playChapter(chapter: Track) {
-		queue.addToEnd(chapter);
-		player.play(chapter);
-	}
-
-	$: if (selectedCollection !== undefined) {
-		loadTrending();
-	}
+	$: favorites = $library.favorites;
+	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
+	$: curatedPlaylists = curatedPlaylistsData.slice(0, 4); // Show first 4 curated playlists
 </script>
 
 <div class="p-4 md:p-8">
@@ -241,10 +106,10 @@
 
 	<!-- Continue Listening Section -->
 	{#if continueListening.length > 0}
-		<div class="mb-8">
+		<div class="mb-12">
 			<div class="flex items-center justify-between mb-4">
 				<h2 class="text-xl md:text-2xl font-bold">Continue Listening</h2>
-				<a href="/history" class="btn btn-ghost btn-sm">
+				<a href="{base}/history" class="btn btn-ghost btn-sm">
 					View All
 					<Icon icon="solar:arrow-right-linear" width="16" />
 				</a>
@@ -281,65 +146,172 @@
 		</div>
 	{/if}
 
-	<!-- Trending Section -->
-	<div class="flex items-center justify-between mb-6">
-		<h2 class="text-2xl md:text-3xl font-bold">Trending</h2>
-		<div class="flex items-center gap-2">
-			{#if results.length > 0}
-				<button on:click={playAll} class="btn btn-primary btn-sm">Play All</button>
+	<!-- Curated Playlists Section -->
+	{#if curatedPlaylists.length > 0}
+		<div class="mb-12">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<h2 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+						<span>Curated Playlists</span>
+						<Icon icon="solar:star-bold" width="20" class="text-primary" />
+					</h2>
+					<p class="text-sm text-base-content/60 mt-1">Hand-picked by the Dustic team</p>
+				</div>
+				<a href="{base}/curated" class="btn btn-ghost btn-sm">
+					View All
+					<Icon icon="solar:arrow-right-linear" width="16" />
+				</a>
+			</div>
+
+			<div class="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+				{#if viewMode === 'tiles'}
+					<div
+						class="flex gap-4 min-w-max md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:min-w-0 p-1"
+					>
+						{#each curatedPlaylists as playlist}
+							<a
+								href="{base}/curated/{playlist.id}"
+								class="w-64 md:w-auto flex-shrink-0 card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+							>
+								<div class="card-body p-6">
+									<div class="bg-gradient-to-br from-primary to-secondary p-4 rounded-lg mb-3">
+										<Icon icon="solar:star-bold" width="32" class="text-primary-content mx-auto" />
+									</div>
+									<h3 class="card-title text-base">{playlist.name}</h3>
+									<p class="text-sm text-base-content/60 line-clamp-2">{playlist.description}</p>
+									<div class="text-xs text-base-content/50 mt-2">
+										{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}
+									</div>
+								</div>
+							</a>
+						{/each}
+					</div>
+				{:else}
+					<div class="space-y-2">
+						{#each curatedPlaylists as playlist}
+							<a
+								href="{base}/curated/{playlist.id}"
+								class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+							>
+								<div class="card-body p-4 flex-row items-center gap-4">
+									<div class="bg-gradient-to-br from-primary to-secondary p-3 rounded-lg flex-shrink-0">
+										<Icon icon="solar:star-bold" width="24" class="text-primary-content" />
+									</div>
+									<div class="flex-1 min-w-0">
+										<h3 class="font-semibold">{playlist.name}</h3>
+										<p class="text-sm text-base-content/60 truncate">{playlist.description}</p>
+										<div class="text-xs text-base-content/50 mt-1">
+											{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}
+										</div>
+									</div>
+									<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
+								</div>
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Library Section -->
+	{#if favorites.length > 0 || playlists.length > 0}
+		<div class="mb-12">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-xl md:text-2xl font-bold">Your Library</h2>
+				<a href="{base}/library" class="btn btn-ghost btn-sm">
+					View All
+					<Icon icon="solar:arrow-right-linear" width="16" />
+				</a>
+			</div>
+
+			<!-- Favorites -->
+			{#if favorites.length > 0}
+				<div class="mb-6">
+					<h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+						<Icon icon="solar:heart-bold" width="18" class="text-error" />
+						<span>Favorites</span>
+						<span class="text-sm text-base-content/50 font-normal">({favorites.length})</span>
+					</h3>
+					<a
+						href="{base}/library/favorites"
+						class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+					>
+						<div class="card-body p-4 flex-row items-center gap-4">
+							<div class="bg-error/20 p-3 rounded-lg flex-shrink-0">
+								<Icon icon="solar:heart-bold" width="24" class="text-error" />
+							</div>
+							<div class="flex-1">
+								<h4 class="font-semibold">Favorites</h4>
+								<p class="text-sm text-base-content/60">{favorites.length} {favorites.length === 1 ? 'track' : 'tracks'}</p>
+							</div>
+							<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
+						</div>
+					</a>
+				</div>
+			{/if}
+
+			<!-- Playlists -->
+			{#if playlists.length > 0}
+				<div>
+					<h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+						<Icon icon="solar:list-heart-bold" width="18" class="text-primary" />
+						<span>Playlists</span>
+						<span class="text-sm text-base-content/50 font-normal">({playlists.length})</span>
+					</h3>
+					<div class="space-y-2">
+						{#each playlists.slice(0, 5) as playlist}
+							<a
+								href="{base}/library/playlists/{playlist.id}"
+								class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+							>
+								<div class="card-body p-4 flex-row items-center gap-4">
+									<div class="bg-primary/20 p-3 rounded-lg flex-shrink-0">
+										<Icon icon="solar:list-heart-bold" width="24" class="text-primary" />
+									</div>
+									<div class="flex-1 min-w-0">
+										<h4 class="font-semibold truncate">{playlist.name}</h4>
+										<p class="text-sm text-base-content/60">{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}</p>
+									</div>
+									<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
+								</div>
+							</a>
+						{/each}
+						{#if playlists.length > 5}
+							<a href="{base}/library/playlists" class="btn btn-ghost btn-sm w-full">
+								View all {playlists.length} playlists
+							</a>
+						{/if}
+					</div>
+				</div>
 			{/if}
 		</div>
-	</div>
+	{/if}
 
-	<!-- Collection Filter -->
-	<div class="mb-6">
-		<div class="flex items-center gap-2 flex-wrap">
-			<button
-				on:click={() => (selectedCollection = '')}
-				class="btn btn-sm {selectedCollection === '' ? 'btn-primary' : ''}"
-			>
-				All Audio
-			</button>
-			{#each POPULAR_COLLECTIONS as collection}
-				<button
-					on:click={() => (selectedCollection = collection.id)}
-									class="btn btn-sm {selectedCollection === collection.id ? 'btn-primary' : ''}"				>
-					{collection.name}
-				</button>
-			{/each}
+	<!-- Empty State -->
+	{#if continueListening.length === 0 && favorites.length === 0 && playlists.length === 0}
+		<div class="text-center py-20">
+			<div class="mb-6">
+				<Icon icon="solar:music-library-2-bold" width="64" class="text-base-content/20 mx-auto" />
+			</div>
+			<h3 class="text-2xl font-bold mb-2">Welcome to Dustic</h3>
+			<p class="text-base-content/60 mb-6">Start exploring music from the Internet Archive</p>
+			<div class="flex gap-3 justify-center flex-wrap">
+				<a href="{base}/search" class="btn btn-primary">
+					<Icon icon="solar:magnifer-bold" width="20" />
+					Search Music
+				</a>
+				<a href="{base}/curated" class="btn btn-outline">
+					<Icon icon="solar:star-bold" width="20" />
+					View Curated Playlists
+				</a>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	{#if error}
 		<div class="alert alert-error mb-4">
 			<span>{error}</span>
-		</div>
-	{/if}
-
-	{#if isLoading}
-		<!-- Skeleton loaders -->
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-			{#each Array(12) as _}
-				<SkeletonCard layout="grid" />
-			{/each}
-		</div>
-	{:else if results.length > 0}
-			{#if viewMode === 'tiles'}
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-					{#each results as item, index}
-						<AudioCard item={item} type="album" layout="tile" />
-					{/each}
-				</div>
-			{:else}
-				<div class="space-y-2">
-					{#each results as item}
-						<AudioCard item={item} type="album" layout="list" />
-					{/each}
-				</div>
-			{/if}
-	{:else}
-		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No trending tracks found</p>
 		</div>
 	{/if}
 

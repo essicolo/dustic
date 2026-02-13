@@ -70,6 +70,15 @@
 		}
 	});
 
+	// Watch for URL changes (e.g., when navigating back from an album)
+	$: if (browser && $page.url.searchParams.get('q')) {
+		const q = $page.url.searchParams.get('q');
+		if (q && q !== searchQuery) {
+			searchQuery = q;
+			handleSearch();
+		}
+	}
+
 	async function handleSearch() {
 		if (!searchQuery.trim()) {
 			results = [];

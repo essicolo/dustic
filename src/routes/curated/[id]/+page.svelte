@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { browser } from '$app/environment';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { getTrack, getAllTracks } from '$lib/services/internetArchive';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { offline } from '$lib/stores/offline';
@@ -20,6 +20,7 @@
 		curator: string;
 		tracks: Array<{
 			identifier: string;
+			trackIndex?: number;
 			note?: string;
 		}>;
 	}
@@ -27,6 +28,7 @@
 	let playlistId = '';
 	let playlist: CuratedPlaylist | null = null;
 	let tracks: Track[] = [];
+	let trackIndexMap: Map<string, number> = new Map(); // Maps track identifier to its trackIndex
 	let isLoading = false;
 	let error = '';
 	let viewMode: 'grid' | 'list' = 'list';
@@ -79,9 +81,24 @@
 			playlist = foundPlaylist as CuratedPlaylist;
 
 			// Load track metadata for each item
+			trackIndexMap.clear();
 			const trackPromises = playlist.tracks.map(async (item) => {
 				try {
-					const track = await getTrack(item.identifier);
+					let track: Track | null = null;
+
+					if (item.trackIndex !== undefined) {
+						// Load specific track from album
+						const allTracks = await getAllTracks(item.identifier);
+						if (allTracks && allTracks[item.trackIndex]) {
+							track = allTracks[item.trackIndex];
+							// Store the trackIndex for this track
+							trackIndexMap.set(track.identifier, item.trackIndex);
+						}
+					} else {
+						// Load single track
+						track = await getTrack(item.identifier);
+					}
+
 					return track;
 				} catch (e) {
 					console.error(`Failed to load track ${item.identifier}:`, e);
@@ -91,6 +108,7 @@
 
 			const loadedTracks = await Promise.all(trackPromises);
 			tracks = loadedTracks.filter((t): t is Track => t !== null);
+			trackIndexMap = trackIndexMap; // Trigger reactivity
 
 		} catch (e) {
 			console.error('Error loading curated playlist:', e);
@@ -223,8 +241,29 @@
 			<!-- Grid View -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 				{#each filteredTracks as track, index}
-					<div class="relative">
-						<AudioCard item={track} type="album" layout="grid" />
+					<div
+						class="relative cursor-pointer"
+						on:click={() => {
+							const trackIdx = trackIndexMap.get(track.identifier);
+							const url = trackIdx !== undefined
+								? `${base}/item/${track.identifier.split('#')[0]}?track=${trackIdx}`
+								: `${base}/item/${track.identifier}`;
+							goto(url);
+						}}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								const trackIdx = trackIndexMap.get(track.identifier);
+								const url = trackIdx !== undefined
+									? `${base}/item/${track.identifier.split('#')[0]}?track=${trackIdx}`
+									: `${base}/item/${track.identifier}`;
+								goto(url);
+							}
+						}}
+						role="button"
+						tabindex="0"
+					>
+						<AudioCard item={track} type="track" layout="grid" />
 						{#if playlist.tracks[index]?.note}
 							<div class="text-xs text-base-content/50 italic mt-1 px-2">
 								{playlist.tracks[index].note}
@@ -237,8 +276,29 @@
 			<!-- List View -->
 			<div class="space-y-2">
 				{#each filteredTracks as track, index}
-					<div class="relative">
-						<AudioCard item={track} type="album" layout="list" />
+					<div
+						class="relative cursor-pointer"
+						on:click={() => {
+							const trackIdx = trackIndexMap.get(track.identifier);
+							const url = trackIdx !== undefined
+								? `${base}/item/${track.identifier.split('#')[0]}?track=${trackIdx}`
+								: `${base}/item/${track.identifier}`;
+							goto(url);
+						}}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								const trackIdx = trackIndexMap.get(track.identifier);
+								const url = trackIdx !== undefined
+									? `${base}/item/${track.identifier.split('#')[0]}?track=${trackIdx}`
+									: `${base}/item/${track.identifier}`;
+								goto(url);
+							}
+						}}
+						role="button"
+						tabindex="0"
+					>
+						<AudioCard item={track} type="track" layout="list" />
 						{#if playlist.tracks[index]?.note}
 							<div class="text-xs text-base-content/50 italic ml-16 mt-1">
 								{playlist.tracks[index].note}

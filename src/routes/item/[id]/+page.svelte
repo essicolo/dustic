@@ -63,6 +63,17 @@
 
 			if (tracks.length === 0) {
 				error = 'No playable audio files found. This item may only contain metadata or non-audio files.';
+			} else {
+				// Check if URL has a track parameter and auto-play
+				const trackParam = $page.url.searchParams.get('track');
+				if (trackParam !== null) {
+					const trackIndex = parseInt(trackParam, 10);
+					if (!isNaN(trackIndex) && trackIndex >= 0 && trackIndex < tracks.length) {
+						// Auto-play the specified track
+						queue.setQueue(tracks, trackIndex);
+						player.play(tracks[trackIndex]);
+					}
+				}
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
@@ -75,12 +86,22 @@
 	async function playTrack(track: Track, index: number) {
 		queue.setQueue(tracks, index);
 		player.play(track);
+
+		// Update URL to include track index
+		const url = new URL(window.location.href);
+		url.searchParams.set('track', index.toString());
+		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
 	}
 
 	async function playAll() {
 		if (tracks.length > 0) {
 			queue.setQueue(tracks, 0);
 			player.play(tracks[0]);
+
+			// Update URL to include track index
+			const url = new URL(window.location.href);
+			url.searchParams.set('track', '0');
+			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
 		}
 	}
 

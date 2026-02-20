@@ -57,6 +57,201 @@ export function invalidateQualityCache(): void {
 }
 
 /**
+ * Clean a search input that might be a URL or identifier
+ * Strips archive.org URLs, trims whitespace
+ */
+function cleanSearchInput(input: string): string {
+	let cleaned = input.trim();
+
+	// Strip full archive.org URLs
+	// Handles: https://archive.org/details/identifier, /metadata/identifier, /download/identifier
+	const urlPatterns = [
+		/^https?:\/\/(?:www\.)?archive\.org\/details\/([^\s/?#]+)/i,
+		/^https?:\/\/(?:www\.)?archive\.org\/metadata\/([^\s/?#]+)/i,
+		/^https?:\/\/(?:www\.)?archive\.org\/download\/([^\s/?#]+)/i
+	];
+
+	for (const pattern of urlPatterns) {
+		const match = cleaned.match(pattern);
+		if (match) {
+			cleaned = match[1];
+			break;
+		}
+	}
+
+	return cleaned;
+}
+
+/**
+ * Check if a string looks like an Archive.org identifier
+ * Identifiers: alphanumeric, hyphens, dots, underscores, no spaces
+ */
+function looksLikeIdentifier(input: string): boolean {
+	if (!input || input.length === 0) return false;
+	// If it contains spaces, it's likely a natural language query
+	if (input.includes(' ')) return false;
+	// Must match typical identifier pattern
+	return /^[a-zA-Z0-9._-]+$/.test(input);
+}
+
+/**
+ * Try to resolve an identifier directly via the Metadata API
+ * Returns a SearchResult with the item if found, or null if not
+ */
+async function resolveIdentifier(identifier: string): Promise<SearchResult | null> {
+	const url = `${IA_METADATA_URL}/${identifier}`;
+	console.log(`[IA] Trying direct metadata lookup: ${identifier}`);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+
+		// Check for dark/private items
+		if (rawData.is_dark) {
+			console.warn(`[IA] Item "${identifier}" is dark (restricted)`);
+			return { items: [], total: 0, page: 1, pageSize: 1, error: `Item "${identifier}" is restricted (dark archive). It has been made unavailable.` };
+		}
+
+		// Check for explicit error from API
+		if (rawData.error) {
+			console.warn(`[IA] Metadata error for "${identifier}":`, rawData.error);
+			return null; // Let fallback handle it
+		}
+
+		// Empty metadata means item doesn't exist
+		if (!rawData.metadata || Object.keys(rawData.metadata).length === 0) {
+			console.log(`[IA] No metadata for "${identifier}"`);
+			return null;
+		}
+
+		// Validate with Zod
+		const metadata = IAMetadataResponseSchema.parse(rawData);
+
+		const item: Track = {
+			identifier: metadata.metadata.identifier,
+			filename: '',
+			title: metadata.metadata.title || 'Untitled',
+			artist: Array.isArray(metadata.metadata.creator)
+				? metadata.metadata.creator[0]
+				: metadata.metadata.creator || 'Unknown Artist',
+			date: metadata.metadata.date,
+			collection: Array.isArray(metadata.metadata.collection)
+				? metadata.metadata.collection
+				: metadata.metadata.collection
+					? [metadata.metadata.collection]
+					: [],
+			genre: Array.isArray(metadata.metadata.subject)
+				? metadata.metadata.subject
+				: metadata.metadata.subject
+					? [metadata.metadata.subject]
+					: undefined,
+			format: 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(metadata.metadata.identifier),
+			metadata: metadata.metadata
+		};
+
+		console.log(`[IA] Direct lookup succeeded: "${item.title}"`);
+		return { items: [item], total: 1, page: 1, pageSize: 1 };
+	} catch (error: any) {
+		if (error?.status === 404 || error?.message?.includes('404')) {
+			console.log(`[IA] Item "${identifier}" not found via direct lookup`);
+		} else {
+			console.warn(`[IA] Direct lookup failed for "${identifier}":`, error?.message || error);
+		}
+		return null;
+	}
+}
+
+/**
+ * Search by identifier field using the Advanced Search API
+ * Catches items that text search misses (e.g., identifiers with dots)
+ */
+async function searchByIdentifier(identifier: string): Promise<SearchResult | null> {
+	const q = `identifier:${identifier}`;
+	const urlParams = new URLSearchParams({
+		q,
+		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
+		rows: '5',
+		page: '1',
+		output: 'json'
+	});
+
+	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+	console.log(`[IA] Trying identifier field search: ${q}`);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+		const data = IASearchResponseSchema.parse(rawData);
+
+		if (data.response.docs.length === 0) {
+			console.log(`[IA] No results for identifier field search: ${identifier}`);
+			return null;
+		}
+
+		const items: Track[] = data.response.docs.map((doc) => ({
+			identifier: doc.identifier,
+			filename: '',
+			title: doc.title || 'Untitled',
+			artist: Array.isArray(doc.creator)
+				? doc.creator[0]
+				: doc.creator || 'Unknown Artist',
+			date: doc.date,
+			collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+			genre: Array.isArray(doc.subject)
+				? doc.subject
+				: doc.subject
+					? [doc.subject]
+					: undefined,
+			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
+			metadata: doc
+		}));
+
+		console.log(`[IA] Identifier field search found ${items.length} result(s)`);
+		return { items, total: data.response.numFound, page: 1, pageSize: 5 };
+	} catch (error) {
+		console.warn('[IA] Identifier field search failed:', error);
+		return null;
+	}
+}
+
+/**
+ * Smart search: tries direct identifier lookup, then identifier field search,
+ * then falls back to regular text search.
+ *
+ * Handles cases where users paste archive.org URLs or known identifiers
+ * like "mono2004-12-04.flac16" that the regular text search can't find.
+ */
+export async function smartSearch(params: SearchParams): Promise<SearchResult> {
+	const cleaned = cleanSearchInput(params.query);
+
+	// If the input looks like an identifier, try direct resolution first
+	if (looksLikeIdentifier(cleaned)) {
+		// 1. Try direct metadata API lookup
+		const directResult = await resolveIdentifier(cleaned);
+		if (directResult) {
+			if (directResult.error || directResult.items.length > 0) {
+				return directResult;
+			}
+		}
+
+		// 2. Try searching by identifier field (catches partial matches)
+		const idSearchResult = await searchByIdentifier(cleaned);
+		if (idSearchResult && idSearchResult.items.length > 0) {
+			return idSearchResult;
+		}
+
+		console.log(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
+	}
+
+	// 3. Fall back to regular text search (use cleaned input)
+	return search({ ...params, query: cleaned });
+}
+
+/**
  * Search for audio items in the Internet Archive
  */
 export async function search(params: SearchParams): Promise<SearchResult> {
@@ -197,6 +392,22 @@ export async function getItemMetadata(identifier: string): Promise<IAMetadataRes
 				async () => {
 					const response = await fetchWithRetry(url, {}, { maxAttempts: 3 });
 					const rawData = await response.json();
+
+					// Check for dark/private items before Zod validation
+					if (rawData.is_dark) {
+						throw new Error(`Item "${identifier}" is restricted (dark archive). It has been made unavailable.`);
+					}
+
+					// Check for API-level errors (e.g., item not found returns {error: "..."}})
+					if (rawData.error) {
+						throw new Error(`Item "${identifier}" not found: ${rawData.error}`);
+					}
+
+					// Empty metadata means item doesn't exist
+					if (!rawData.metadata || Object.keys(rawData.metadata).length === 0) {
+						throw new Error(`Item "${identifier}" does not exist on Internet Archive.`);
+					}
+
 					return IAMetadataResponseSchema.parse(rawData); // Validate with Zod
 				},
 				60 * 60 * 1000 // 1 hour (aggressive caching)
@@ -206,14 +417,20 @@ export async function getItemMetadata(identifier: string): Promise<IAMetadataRes
 
 			// Provide specific error messages
 			if (error.status === 404) {
-				throw new Error('Item not found on Internet Archive');
+				throw new Error(`Item "${identifier}" not found on Internet Archive.`);
 			} else if (error.status === 429) {
 				throw new Error('Too many requests. Please wait a moment and try again.');
-			} else if (error.message?.includes('fetch')) {
+			} else if (error.message?.includes('restricted') || error.message?.includes('dark archive')) {
+				throw error; // Pass through dark/restricted errors
+			} else if (error.message?.includes('does not exist')) {
+				throw error; // Pass through not-found errors
+			} else if (error.message?.includes('not found:')) {
+				throw error; // Pass through API errors
+			} else if (error.message?.includes('fetch') || error.message?.includes('network')) {
 				throw new Error('Network error. Please check your internet connection.');
 			}
 
-			throw new Error('Failed to fetch item metadata');
+			throw new Error(`Failed to fetch metadata for "${identifier}".`);
 		}
 	});
 }

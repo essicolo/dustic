@@ -78,6 +78,7 @@ export interface SearchResult {
 	total: number;
 	page: number;
 	pageSize: number;
+	error?: string; // Specific error (e.g., item is dark/private)
 }
 
 export interface IASearchResponse {

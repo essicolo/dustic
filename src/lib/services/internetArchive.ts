@@ -166,19 +166,23 @@ async function resolveIdentifier(identifier: string): Promise<SearchResult | nul
 /**
  * Search by identifier field using the Advanced Search API
  * Catches items that text search misses (e.g., identifiers with dots)
+ * Tries exact match first, then wildcard if no results
  */
-async function searchByIdentifier(identifier: string): Promise<SearchResult | null> {
-	const q = `identifier:${identifier}`;
+async function searchByIdentifier(identifier: string, useWildcard = false): Promise<SearchResult | null> {
+	// For exact search, use the identifier as-is
+	// For wildcard search, add * at the end to catch variants (e.g., dmst2004-10-13*)
+	const q = useWildcard ? `identifier:${identifier}*` : `identifier:${identifier}`;
 	const urlParams = new URLSearchParams({
 		q,
 		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
-		rows: '5',
+		rows: '10',
 		page: '1',
-		output: 'json'
+		output: 'json',
+		sort: 'downloads desc' // Prefer most popular when using wildcard
 	});
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log(`[IA] Trying identifier field search: ${q}`);
+	console.log(`[IA] Trying identifier field search${useWildcard ? ' (wildcard)' : ''}: ${q}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -186,6 +190,11 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 		const data = IASearchResponseSchema.parse(rawData);
 
 		if (data.response.docs.length === 0) {
+			// If exact match failed and we haven't tried wildcard yet, try it
+			if (!useWildcard) {
+				console.log(`[IA] No exact match, trying wildcard search`);
+				return searchByIdentifier(identifier, true);
+			}
 			console.log(`[IA] No results for identifier field search: ${identifier}`);
 			return null;
 		}
@@ -211,7 +220,7 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 		}));
 
 		console.log(`[IA] Identifier field search found ${items.length} result(s)`);
-		return { items, total: data.response.numFound, page: 1, pageSize: 5 };
+		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
 	} catch (error) {
 		console.warn('[IA] Identifier field search failed:', error);
 		return null;
@@ -219,16 +228,43 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 }
 
 /**
- * Smart search: tries direct identifier lookup, then identifier field search,
- * then falls back to regular text search.
- *
- * Handles cases where users paste archive.org URLs or known identifiers
- * like "mono2004-12-04.flac16" that the regular text search can't find.
+ * Extract potential identifier from concert title patterns
+ * e.g., "Mono Live at Venue on 2010-03-21" → "mono2010-03-21"
+ */
+function extractPotentialIdentifier(title: string): string | null {
+	// Pattern: "Artist Live at Venue on YYYY-MM-DD"
+	const concertPattern = /^(.+?)\s+(?:Live\s+at|@)\s+.+?\s+on\s+(\d{4}[-]\d{2}[-]\d{2})/i;
+	const match = title.match(concertPattern);
+
+	if (match) {
+		const artist = match[1].trim();
+		const date = match[2].replace(/-/g, '-'); // Keep hyphens
+
+		// Create potential identifiers
+		// Common patterns: "artistYYYY-MM-DD", "artist-YYYY-MM-DD", "artistYYYYMMDD"
+		const artistSlug = artist.toLowerCase()
+			.replace(/\s+/g, '')  // Remove spaces
+			.replace(/[^a-z0-9-]/g, ''); // Remove special chars except hyphens
+
+		return `${artistSlug}${date}`;
+	}
+
+	return null;
+}
+
+/**
+ * Smart search: tries multiple strategies to find items
+ * 1. Direct identifier lookup (if looks like identifier)
+ * 2. Identifier field search (if looks like identifier)
+ * 3. Extract potential identifier from concert title pattern
+ * 4. Regular text search with filters
+ * 5. Text search without format filters (if no results)
+ * 6. Creator + date search (for concerts)
  */
 export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	const cleaned = cleanSearchInput(params.query);
 
-	// If the input looks like an identifier, try direct resolution first
+	// Strategy 1 & 2: If the input looks like an identifier, try direct resolution first
 	if (looksLikeIdentifier(cleaned)) {
 		// 1. Try direct metadata API lookup
 		const directResult = await resolveIdentifier(cleaned);
@@ -247,8 +283,172 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		console.log(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
 	}
 
-	// 3. Fall back to regular text search (use cleaned input)
-	return search({ ...params, query: cleaned });
+	// Strategy 3: Try to extract identifier from concert title pattern
+	const potentialId = extractPotentialIdentifier(cleaned);
+	if (potentialId) {
+		console.log(`[IA] Extracted potential identifier: ${potentialId}`);
+		const idResult = await searchByIdentifier(potentialId);
+		if (idResult && idResult.items.length > 0) {
+			return idResult;
+		}
+	}
+
+	// Strategy 4: Regular text search with format filters
+	const textResult = await search({ ...params, query: cleaned });
+	if (textResult.items.length > 0) {
+		return textResult;
+	}
+
+	console.log(`[IA] Text search returned no results, trying without format filters`);
+
+	// Strategy 5: Try without restrictive format filters (for edge cases)
+	const noFilterResult = await searchWithoutFormatFilter({ ...params, query: cleaned });
+	if (noFilterResult.items.length > 0) {
+		return noFilterResult;
+	}
+
+	console.log(`[IA] Still no results, trying creator+date search`);
+
+	// Strategy 6: For concert titles, try searching by creator and date
+	const concertMatch = cleaned.match(/^(.+?)\s+(?:Live|@)\s+.+?\s+on\s+(\d{4}[-]\d{2}[-]\d{2})/i);
+	if (concertMatch) {
+		const artist = concertMatch[1].trim();
+		const date = concertMatch[2];
+		const creatorDateResult = await searchByCreatorAndDate(artist, date);
+		if (creatorDateResult && creatorDateResult.items.length > 0) {
+			return creatorDateResult;
+		}
+	}
+
+	// All strategies failed, return empty result
+	console.log(`[IA] All search strategies failed for "${cleaned}"`);
+	return { items: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 50 };
+}
+
+/**
+ * Search without format filters (more permissive, catches edge cases)
+ */
+async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchResult> {
+	const {
+		query,
+		collection = [],
+		sort = 'relevance',
+		page = 1,
+		pageSize = CONFIG.defaultPageSize
+	} = params;
+
+	let q = query;
+
+	// Only add mediatype filter, no format restrictions
+	q += ` AND mediatype:audio`;
+
+	// Add collection filter if specified
+	if (collection.length > 0) {
+		const collectionQuery = collection.map((c) => `collection:(${c})`).join(' OR ');
+		q += ` AND (${collectionQuery})`;
+	}
+
+	const urlParams = new URLSearchParams({
+		q,
+		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
+		rows: pageSize.toString(),
+		page: page.toString(),
+		output: 'json'
+	});
+
+	if (sort === 'date') {
+		urlParams.set('sort[]', 'date desc');
+	} else if (sort === 'downloads') {
+		urlParams.set('sort[]', 'downloads desc');
+	}
+
+	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+	console.log('[IA Search NoFilter] Query:', q);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+		const data = IASearchResponseSchema.parse(rawData);
+
+		const items: Track[] = data.response.docs.map((doc) => ({
+			identifier: doc.identifier,
+			filename: '',
+			title: doc.title || 'Untitled',
+			artist: Array.isArray(doc.creator)
+				? doc.creator[0]
+				: doc.creator || 'Unknown Artist',
+			date: doc.date,
+			collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+			genre: Array.isArray(doc.subject)
+				? doc.subject
+				: doc.subject
+					? [doc.subject]
+					: undefined,
+			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
+			metadata: doc
+		}));
+
+		console.log(`[IA Search NoFilter] Found ${items.length} results`);
+		return { items, total: data.response.numFound, page, pageSize };
+	} catch (error) {
+		console.warn('[IA Search NoFilter] Failed:', error);
+		return { items: [], total: 0, page, pageSize };
+	}
+}
+
+/**
+ * Search by creator (artist) and date for concert recordings
+ */
+async function searchByCreatorAndDate(creator: string, date: string): Promise<SearchResult | null> {
+	const q = `creator:"${creator}" AND date:${date} AND mediatype:audio`;
+	const urlParams = new URLSearchParams({
+		q,
+		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
+		rows: '10',
+		page: '1',
+		output: 'json'
+	});
+
+	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+	console.log(`[IA] Trying creator+date search: ${q}`);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+		const data = IASearchResponseSchema.parse(rawData);
+
+		if (data.response.docs.length === 0) {
+			return null;
+		}
+
+		const items: Track[] = data.response.docs.map((doc) => ({
+			identifier: doc.identifier,
+			filename: '',
+			title: doc.title || 'Untitled',
+			artist: Array.isArray(doc.creator)
+				? doc.creator[0]
+				: doc.creator || 'Unknown Artist',
+			date: doc.date,
+			collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+			genre: Array.isArray(doc.subject)
+				? doc.subject
+				: doc.subject
+					? [doc.subject]
+					: undefined,
+			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
+			metadata: doc
+		}));
+
+		console.log(`[IA] Creator+date search found ${items.length} result(s)`);
+		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
+	} catch (error) {
+		console.warn('[IA] Creator+date search failed:', error);
+		return null;
+	}
 }
 
 /**
@@ -496,6 +696,65 @@ export function getBestAudioFile(
 }
 
 /**
+ * Fetch and parse Essentia metadata file for an audio file
+ * Archive.org pre-extracts ID3 tags/metadata into _esshigh.json.gz files
+ */
+async function fetchEssentiaMetadata(identifier: string, filename: string): Promise<{ title?: string; artist?: string; album?: string } | null> {
+	// Strip extension from filename and add _esshigh.json.gz
+	const baseName = filename.replace(/\.[^.]+$/, '');
+	const metadataFilename = `${baseName}_esshigh.json.gz`;
+	const url = `https://archive.org/download/${identifier}/${metadataFilename}`;
+
+	try {
+		console.log(`[IA] Fetching Essentia metadata: ${metadataFilename}`);
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 1 });
+
+		if (!response.ok) {
+			console.log(`[IA] Essentia metadata not found for ${filename}`);
+			return null;
+		}
+
+		// The response is gzip-compressed JSON
+		const blob = await response.blob();
+		const decompressed = await decompressGzip(blob);
+		const json = JSON.parse(decompressed);
+
+		// Extract tags from the Essentia metadata structure
+		const tags = json?.metadata?.tags;
+		if (!tags) {
+			console.log(`[IA] No tags in Essentia metadata for ${filename}`);
+			return null;
+		}
+
+		// Tags are arrays, take first element
+		const title = Array.isArray(tags.title) ? tags.title[0] : tags.title;
+		const artist = Array.isArray(tags.artist) ? tags.artist[0] : tags.artist;
+		const album = Array.isArray(tags.album) ? tags.album[0] : tags.album;
+
+		console.log(`[IA] Extracted from Essentia: "${title}" by "${artist}"`);
+		return { title, artist, album };
+	} catch (error) {
+		console.warn(`[IA] Failed to fetch Essentia metadata for ${filename}:`, error);
+		return null;
+	}
+}
+
+/**
+ * Decompress gzip data from a Blob
+ */
+async function decompressGzip(blob: Blob): Promise<string> {
+	if (typeof DecompressionStream === 'undefined') {
+		// Fallback for environments without DecompressionStream
+		console.warn('[IA] DecompressionStream not supported, skipping metadata extraction');
+		throw new Error('DecompressionStream not supported');
+	}
+
+	const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+	const decompressed = await new Response(stream).text();
+	return decompressed;
+}
+
+/**
  * Get all audio files from an item's file list, sorted by quality preference and filename
  */
 export function getAllAudioFiles(
@@ -631,16 +890,24 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 			return null;
 		}
 
+		// Try to get embedded metadata from Essentia JSON
+		const essentiaMetadata = await fetchEssentiaMetadata(itemIdentifier, audioFile.filename);
+
+		const title = trackIndexStr
+			? (essentiaMetadata?.title || extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title))
+			: (metadata.metadata.title || 'Untitled');
+
+		const artist = essentiaMetadata?.artist
+			|| (Array.isArray(metadata.metadata.creator)
+				? metadata.metadata.creator[0]
+				: metadata.metadata.creator || 'Unknown Artist');
+
 		const track: Track = {
 			identifier,
 			filename: audioFile.filename,
-			title: trackIndexStr
-				? extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title)
-				: metadata.metadata.title || 'Untitled',
-			artist: Array.isArray(metadata.metadata.creator)
-				? metadata.metadata.creator[0]
-				: metadata.metadata.creator || 'Unknown Artist',
-			album: metadata.metadata.title,
+			title,
+			artist,
+			album: essentiaMetadata?.album || metadata.metadata.title,
 			date: metadata.metadata.date,
 			duration: audioFile.duration,
 			collection: Array.isArray(metadata.metadata.collection)
@@ -689,32 +956,45 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 			return [];
 		}
 
-		const tracks: Track[] = audioFiles.map((audioFile, index) => ({
-			identifier: `${identifier}#${index}`,
-			filename: audioFile.filename,
-			title: extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title),
-			artist: Array.isArray(metadata.metadata.creator)
-				? metadata.metadata.creator[0]
-				: metadata.metadata.creator || 'Unknown Artist',
-			album: metadata.metadata.title,
-			date: metadata.metadata.date,
-			duration: audioFile.duration,
-			collection: Array.isArray(metadata.metadata.collection)
-				? metadata.metadata.collection
-				: metadata.metadata.collection
-					? [metadata.metadata.collection]
-					: [],
-			genre: Array.isArray(metadata.metadata.subject)
-				? metadata.metadata.subject
-				: metadata.metadata.subject
-					? [metadata.metadata.subject]
-					: undefined,
-			format: audioFile.format,
-			streamUrl: getStreamUrl(identifier, audioFile.filename),
-			thumbnailUrl: getThumbnailUrl(identifier),
-			metadata: metadata.metadata
-		}));
+		// Fetch Essentia metadata for all tracks in parallel
+		const trackPromises = audioFiles.map(async (audioFile, index) => {
+			// Try to get embedded metadata from Essentia JSON
+			const essentiaMetadata = await fetchEssentiaMetadata(identifier, audioFile.filename);
 
+			const title = essentiaMetadata?.title
+				|| extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title);
+
+			const artist = essentiaMetadata?.artist
+				|| (Array.isArray(metadata.metadata.creator)
+					? metadata.metadata.creator[0]
+					: metadata.metadata.creator || 'Unknown Artist');
+
+			return {
+				identifier: `${identifier}#${index}`,
+				filename: audioFile.filename,
+				title,
+				artist,
+				album: essentiaMetadata?.album || metadata.metadata.title,
+				date: metadata.metadata.date,
+				duration: audioFile.duration,
+				collection: Array.isArray(metadata.metadata.collection)
+					? metadata.metadata.collection
+					: metadata.metadata.collection
+						? [metadata.metadata.collection]
+						: [],
+				genre: Array.isArray(metadata.metadata.subject)
+					? metadata.metadata.subject
+					: metadata.metadata.subject
+						? [metadata.metadata.subject]
+						: undefined,
+				format: audioFile.format,
+				streamUrl: getStreamUrl(identifier, audioFile.filename),
+				thumbnailUrl: getThumbnailUrl(identifier),
+				metadata: metadata.metadata
+			};
+		});
+
+		const tracks = await Promise.all(trackPromises);
 		return tracks;
 	} catch (error) {
 		console.error(`Error fetching tracks for ${identifier}:`, error);

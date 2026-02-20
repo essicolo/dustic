@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { search as searchAPI, getTrack } from '$lib/services/internetArchive';
+	import { smartSearch as searchAPI, getTrack } from '$lib/services/internetArchive';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
@@ -107,8 +107,13 @@
 			const result = await searchAPI(params);
 			results = result.items;
 			totalResults = result.total;
-			// Clear any previous errors on successful search
-			error = '';
+
+			// Show specific errors (e.g., dark/restricted items)
+			if (result.error) {
+				error = result.error;
+			} else {
+				error = '';
+			}
 		} catch (e: any) {
 			// Log error for debugging but don't show aggressive UI alerts
 			console.warn('[Search] Failed:', e.message || e);

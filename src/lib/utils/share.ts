@@ -2,9 +2,11 @@ import type { Track } from '$lib/types';
 import { browser } from '$app/environment';
 
 export async function shareTrack(track: Track): Promise<{ success: boolean; message: string }> {
-	// Extract base identifier (remove chapter index if present)
-	const baseIdentifier = track.identifier.split('#')[0];
-	const url = `https://dustic.app/item/${baseIdentifier}`;
+	// Extract base identifier and track index if present
+	const [baseIdentifier, trackIndex] = track.identifier.split('#');
+	const url = trackIndex
+		? `https://dustic.app/item/${baseIdentifier}?track=${trackIndex}`
+		: `https://dustic.app/item/${baseIdentifier}`;
 	const title = `${track.title} - ${track.artist}`;
 
 	// Try Web Share API first (works on mobile)

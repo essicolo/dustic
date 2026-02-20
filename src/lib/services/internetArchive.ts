@@ -219,16 +219,17 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 }
 
 /**
- * Smart search: tries direct identifier lookup, then identifier field search,
- * then falls back to regular text search.
- *
- * Handles cases where users paste archive.org URLs or known identifiers
- * like "mono2004-12-04.flac16" that the regular text search can't find.
+ * Smart search: tries multiple strategies to find items
+ * 1. Direct identifier lookup (if looks like identifier)
+ * 2. Identifier field search (if looks like identifier)
+ * 3. Regular text search with filters
+ * 4. Text search without format filters (if no results)
+ * 5. Title-only search (if no results)
  */
 export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	const cleaned = cleanSearchInput(params.query);
 
-	// If the input looks like an identifier, try direct resolution first
+	// Strategy 1 & 2: If the input looks like an identifier, try direct resolution first
 	if (looksLikeIdentifier(cleaned)) {
 		// 1. Try direct metadata API lookup
 		const directResult = await resolveIdentifier(cleaned);
@@ -247,8 +248,157 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		console.log(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
 	}
 
-	// 3. Fall back to regular text search (use cleaned input)
-	return search({ ...params, query: cleaned });
+	// Strategy 3: Regular text search with format filters
+	const textResult = await search({ ...params, query: cleaned });
+	if (textResult.items.length > 0) {
+		return textResult;
+	}
+
+	console.log(`[IA] Text search returned no results, trying without format filters`);
+
+	// Strategy 4: Try without restrictive format filters (for edge cases)
+	const noFilterResult = await searchWithoutFormatFilter({ ...params, query: cleaned });
+	if (noFilterResult.items.length > 0) {
+		return noFilterResult;
+	}
+
+	console.log(`[IA] Still no results, trying title-only search`);
+
+	// Strategy 5: Try searching in title field specifically
+	const titleResult = await searchByTitle(cleaned);
+	if (titleResult && titleResult.items.length > 0) {
+		return titleResult;
+	}
+
+	// All strategies failed, return empty result
+	console.log(`[IA] All search strategies failed for "${cleaned}"`);
+	return { items: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 50 };
+}
+
+/**
+ * Search without format filters (more permissive, catches edge cases)
+ */
+async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchResult> {
+	const {
+		query,
+		collection = [],
+		sort = 'relevance',
+		page = 1,
+		pageSize = CONFIG.defaultPageSize
+	} = params;
+
+	let q = query;
+
+	// Only add mediatype filter, no format restrictions
+	q += ` AND mediatype:audio`;
+
+	// Add collection filter if specified
+	if (collection.length > 0) {
+		const collectionQuery = collection.map((c) => `collection:(${c})`).join(' OR ');
+		q += ` AND (${collectionQuery})`;
+	}
+
+	const urlParams = new URLSearchParams({
+		q,
+		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
+		rows: pageSize.toString(),
+		page: page.toString(),
+		output: 'json'
+	});
+
+	if (sort === 'date') {
+		urlParams.set('sort[]', 'date desc');
+	} else if (sort === 'downloads') {
+		urlParams.set('sort[]', 'downloads desc');
+	}
+
+	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+	console.log('[IA Search NoFilter] Query:', q);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+		const data = IASearchResponseSchema.parse(rawData);
+
+		const items: Track[] = data.response.docs.map((doc) => ({
+			identifier: doc.identifier,
+			filename: '',
+			title: doc.title || 'Untitled',
+			artist: Array.isArray(doc.creator)
+				? doc.creator[0]
+				: doc.creator || 'Unknown Artist',
+			date: doc.date,
+			collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+			genre: Array.isArray(doc.subject)
+				? doc.subject
+				: doc.subject
+					? [doc.subject]
+					: undefined,
+			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
+			metadata: doc
+		}));
+
+		console.log(`[IA Search NoFilter] Found ${items.length} results`);
+		return { items, total: data.response.numFound, page, pageSize };
+	} catch (error) {
+		console.warn('[IA Search NoFilter] Failed:', error);
+		return { items: [], total: 0, page, pageSize };
+	}
+}
+
+/**
+ * Search in the title field specifically
+ */
+async function searchByTitle(titleQuery: string): Promise<SearchResult | null> {
+	const q = `title:(${titleQuery}) AND mediatype:audio`;
+	const urlParams = new URLSearchParams({
+		q,
+		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
+		rows: '10',
+		page: '1',
+		output: 'json'
+	});
+
+	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+	console.log(`[IA] Trying title field search: ${q}`);
+
+	try {
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+		const rawData = await response.json();
+		const data = IASearchResponseSchema.parse(rawData);
+
+		if (data.response.docs.length === 0) {
+			return null;
+		}
+
+		const items: Track[] = data.response.docs.map((doc) => ({
+			identifier: doc.identifier,
+			filename: '',
+			title: doc.title || 'Untitled',
+			artist: Array.isArray(doc.creator)
+				? doc.creator[0]
+				: doc.creator || 'Unknown Artist',
+			date: doc.date,
+			collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+			genre: Array.isArray(doc.subject)
+				? doc.subject
+				: doc.subject
+					? [doc.subject]
+					: undefined,
+			format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+			streamUrl: '',
+			thumbnailUrl: getThumbnailUrl(doc.identifier),
+			metadata: doc
+		}));
+
+		console.log(`[IA] Title search found ${items.length} result(s)`);
+		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
+	} catch (error) {
+		console.warn('[IA] Title search failed:', error);
+		return null;
+	}
 }
 
 /**

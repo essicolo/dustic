@@ -699,7 +699,7 @@ export function getBestAudioFile(
  * Fetch and parse Essentia metadata file for an audio file
  * Archive.org pre-extracts ID3 tags/metadata into _esshigh.json.gz files
  */
-async function fetchEssentiaMetadata(identifier: string, filename: string): Promise<{ title?: string; artist?: string; album?: string } | null> {
+async function fetchEssentiaMetadata(identifier: string, filename: string): Promise<{ title?: string; artist?: string; album?: string; tracknumber?: string } | null> {
 	// Strip extension from filename and add _esshigh.json.gz
 	const baseName = filename.replace(/\.[^.]+$/, '');
 	const metadataFilename = `${baseName}_esshigh.json.gz`;
@@ -730,9 +730,10 @@ async function fetchEssentiaMetadata(identifier: string, filename: string): Prom
 		const title = Array.isArray(tags.title) ? tags.title[0] : tags.title;
 		const artist = Array.isArray(tags.artist) ? tags.artist[0] : tags.artist;
 		const album = Array.isArray(tags.album) ? tags.album[0] : tags.album;
+		const tracknumber = Array.isArray(tags.tracknumber) ? tags.tracknumber[0] : tags.tracknumber;
 
-		console.log(`[IA] Extracted from Essentia: "${title}" by "${artist}"`);
-		return { title, artist, album };
+		console.log(`[IA] Extracted from Essentia: "${title}" by "${artist}" (track ${tracknumber})`);
+		return { title, artist, album, tracknumber };
 	} catch (error) {
 		console.warn(`[IA] Failed to fetch Essentia metadata for ${filename}:`, error);
 		return null;
@@ -893,9 +894,21 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 		// Try to get embedded metadata from Essentia JSON
 		const essentiaMetadata = await fetchEssentiaMetadata(itemIdentifier, audioFile.filename);
 
-		const title = trackIndexStr
-			? (essentiaMetadata?.title || extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title))
-			: (metadata.metadata.title || 'Untitled');
+		// Build title: if this is a multi-track item and Essentia has a title, prefix with track number
+		let title: string;
+		if (trackIndexStr) {
+			if (essentiaMetadata?.title) {
+				// Use track number from metadata or fall back to trackIndex + 1
+				const trackNum = essentiaMetadata.tracknumber || (trackIndex + 1).toString();
+				// Pad single digits with leading zero if not already padded
+				const paddedNum = trackNum.length === 1 ? `0${trackNum}` : trackNum;
+				title = `${paddedNum}. ${essentiaMetadata.title}`;
+			} else {
+				title = extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title);
+			}
+		} else {
+			title = metadata.metadata.title || 'Untitled';
+		}
 
 		const artist = essentiaMetadata?.artist
 			|| (Array.isArray(metadata.metadata.creator)
@@ -961,8 +974,17 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 			// Try to get embedded metadata from Essentia JSON
 			const essentiaMetadata = await fetchEssentiaMetadata(identifier, audioFile.filename);
 
-			const title = essentiaMetadata?.title
-				|| extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title);
+			// Build title: if Essentia has a title, prefix it with track number
+			let title: string;
+			if (essentiaMetadata?.title) {
+				// Use track number from metadata or fall back to index + 1
+				const trackNum = essentiaMetadata.tracknumber || (index + 1).toString();
+				// Pad single digits with leading zero if not already padded
+				const paddedNum = trackNum.length === 1 ? `0${trackNum}` : trackNum;
+				title = `${paddedNum}. ${essentiaMetadata.title}`;
+			} else {
+				title = extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title);
+			}
 
 			const artist = essentiaMetadata?.artist
 				|| (Array.isArray(metadata.metadata.creator)

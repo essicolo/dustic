@@ -366,13 +366,12 @@
 							tabindex="0"
 							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group cursor-pointer {isCurrentTrack(track.identifier) ? 'bg-base-300 text-primary' : ''}"
 						>
-							<!-- Track Number / Play Icon -->
+							<!-- Play Icon -->
 							<div class="w-8 text-center flex-shrink-0">
 								{#if isCurrentTrack(track.identifier)}
 									<Icon icon="solar:play-bold" width="20" className="text-primary" />
 								{:else}
-									<span class="text-base-content/50 group-hover:hidden">{index + 1}</span>
-									<Icon icon="solar:play-linear" width="20" className="hidden group-hover:block" />
+									<Icon icon="solar:play-linear" width="20" className="opacity-0 group-hover:opacity-100 transition-opacity" />
 								{/if}
 							</div>
 

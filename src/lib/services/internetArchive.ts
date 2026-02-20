@@ -166,19 +166,23 @@ async function resolveIdentifier(identifier: string): Promise<SearchResult | nul
 /**
  * Search by identifier field using the Advanced Search API
  * Catches items that text search misses (e.g., identifiers with dots)
+ * Tries exact match first, then wildcard if no results
  */
-async function searchByIdentifier(identifier: string): Promise<SearchResult | null> {
-	const q = `identifier:${identifier}`;
+async function searchByIdentifier(identifier: string, useWildcard = false): Promise<SearchResult | null> {
+	// For exact search, use the identifier as-is
+	// For wildcard search, add * at the end to catch variants (e.g., dmst2004-10-13*)
+	const q = useWildcard ? `identifier:${identifier}*` : `identifier:${identifier}`;
 	const urlParams = new URLSearchParams({
 		q,
 		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
-		rows: '5',
+		rows: '10',
 		page: '1',
-		output: 'json'
+		output: 'json',
+		sort: 'downloads desc' // Prefer most popular when using wildcard
 	});
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log(`[IA] Trying identifier field search: ${q}`);
+	console.log(`[IA] Trying identifier field search${useWildcard ? ' (wildcard)' : ''}: ${q}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -186,6 +190,11 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 		const data = IASearchResponseSchema.parse(rawData);
 
 		if (data.response.docs.length === 0) {
+			// If exact match failed and we haven't tried wildcard yet, try it
+			if (!useWildcard) {
+				console.log(`[IA] No exact match, trying wildcard search`);
+				return searchByIdentifier(identifier, true);
+			}
 			console.log(`[IA] No results for identifier field search: ${identifier}`);
 			return null;
 		}
@@ -211,7 +220,7 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 		}));
 
 		console.log(`[IA] Identifier field search found ${items.length} result(s)`);
-		return { items, total: data.response.numFound, page: 1, pageSize: 5 };
+		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
 	} catch (error) {
 		console.warn('[IA] Identifier field search failed:', error);
 		return null;
@@ -219,12 +228,38 @@ async function searchByIdentifier(identifier: string): Promise<SearchResult | nu
 }
 
 /**
+ * Extract potential identifier from concert title patterns
+ * e.g., "Mono Live at Venue on 2010-03-21" → "mono2010-03-21"
+ */
+function extractPotentialIdentifier(title: string): string | null {
+	// Pattern: "Artist Live at Venue on YYYY-MM-DD"
+	const concertPattern = /^(.+?)\s+(?:Live\s+at|@)\s+.+?\s+on\s+(\d{4}[-]\d{2}[-]\d{2})/i;
+	const match = title.match(concertPattern);
+
+	if (match) {
+		const artist = match[1].trim();
+		const date = match[2].replace(/-/g, '-'); // Keep hyphens
+
+		// Create potential identifiers
+		// Common patterns: "artistYYYY-MM-DD", "artist-YYYY-MM-DD", "artistYYYYMMDD"
+		const artistSlug = artist.toLowerCase()
+			.replace(/\s+/g, '')  // Remove spaces
+			.replace(/[^a-z0-9-]/g, ''); // Remove special chars except hyphens
+
+		return `${artistSlug}${date}`;
+	}
+
+	return null;
+}
+
+/**
  * Smart search: tries multiple strategies to find items
  * 1. Direct identifier lookup (if looks like identifier)
  * 2. Identifier field search (if looks like identifier)
- * 3. Regular text search with filters
- * 4. Text search without format filters (if no results)
- * 5. Title-only search (if no results)
+ * 3. Extract potential identifier from concert title pattern
+ * 4. Regular text search with filters
+ * 5. Text search without format filters (if no results)
+ * 6. Creator + date search (for concerts)
  */
 export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	const cleaned = cleanSearchInput(params.query);
@@ -248,7 +283,17 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		console.log(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
 	}
 
-	// Strategy 3: Regular text search with format filters
+	// Strategy 3: Try to extract identifier from concert title pattern
+	const potentialId = extractPotentialIdentifier(cleaned);
+	if (potentialId) {
+		console.log(`[IA] Extracted potential identifier: ${potentialId}`);
+		const idResult = await searchByIdentifier(potentialId);
+		if (idResult && idResult.items.length > 0) {
+			return idResult;
+		}
+	}
+
+	// Strategy 4: Regular text search with format filters
 	const textResult = await search({ ...params, query: cleaned });
 	if (textResult.items.length > 0) {
 		return textResult;
@@ -256,18 +301,23 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 
 	console.log(`[IA] Text search returned no results, trying without format filters`);
 
-	// Strategy 4: Try without restrictive format filters (for edge cases)
+	// Strategy 5: Try without restrictive format filters (for edge cases)
 	const noFilterResult = await searchWithoutFormatFilter({ ...params, query: cleaned });
 	if (noFilterResult.items.length > 0) {
 		return noFilterResult;
 	}
 
-	console.log(`[IA] Still no results, trying title-only search`);
+	console.log(`[IA] Still no results, trying creator+date search`);
 
-	// Strategy 5: Try searching in title field specifically
-	const titleResult = await searchByTitle(cleaned);
-	if (titleResult && titleResult.items.length > 0) {
-		return titleResult;
+	// Strategy 6: For concert titles, try searching by creator and date
+	const concertMatch = cleaned.match(/^(.+?)\s+(?:Live|@)\s+.+?\s+on\s+(\d{4}[-]\d{2}[-]\d{2})/i);
+	if (concertMatch) {
+		const artist = concertMatch[1].trim();
+		const date = concertMatch[2];
+		const creatorDateResult = await searchByCreatorAndDate(artist, date);
+		if (creatorDateResult && creatorDateResult.items.length > 0) {
+			return creatorDateResult;
+		}
 	}
 
 	// All strategies failed, return empty result
@@ -349,10 +399,10 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 }
 
 /**
- * Search in the title field specifically
+ * Search by creator (artist) and date for concert recordings
  */
-async function searchByTitle(titleQuery: string): Promise<SearchResult | null> {
-	const q = `title:(${titleQuery}) AND mediatype:audio`;
+async function searchByCreatorAndDate(creator: string, date: string): Promise<SearchResult | null> {
+	const q = `creator:"${creator}" AND date:${date} AND mediatype:audio`;
 	const urlParams = new URLSearchParams({
 		q,
 		fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection', 'downloads'].join(','),
@@ -362,7 +412,7 @@ async function searchByTitle(titleQuery: string): Promise<SearchResult | null> {
 	});
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log(`[IA] Trying title field search: ${q}`);
+	console.log(`[IA] Trying creator+date search: ${q}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -393,10 +443,10 @@ async function searchByTitle(titleQuery: string): Promise<SearchResult | null> {
 			metadata: doc
 		}));
 
-		console.log(`[IA] Title search found ${items.length} result(s)`);
+		console.log(`[IA] Creator+date search found ${items.length} result(s)`);
 		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
 	} catch (error) {
-		console.warn('[IA] Title search failed:', error);
+		console.warn('[IA] Creator+date search failed:', error);
 		return null;
 	}
 }

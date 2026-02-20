@@ -94,5 +94,49 @@
       "note": "Ludwig van Beethoven: Moonlight Sonata"
     }
   ]
+},
+{
+  "id": "post-rock-expedition",
+  "name": "Post-Rock Intro! Course",
+  "description": "Atmospheric textures, organic grooves, and wall-of-sound crescendos, an introduction to post-rock music.",
+  "curator": "Essi",
+  "tracks": [
+    {
+      "identifier": "mogwai-the-hawk-is-howling",
+      "note": "Mogwai: Danphe and the Brain"
+    },
+    {
+      "identifier": "GYBE-StatesEnd-2021",
+      "note": "Godspeed You! Black Emperor: Fire at Static Valley, live"
+    },
+    {
+      "identifier": "DoMakeSayThink-2008.04.28LiveAtO-nestre-uploaded",
+      "note": "Do Make Say Think: The Landlord is Dead, live"
+    },
+    {
+      "identifier": "ExplosionsInTheSky-SoLongLonesome",
+      "note": "Explosions in the Sky: So Long, Lonesome"
+    },
+    {
+      "identifier": "mono2010-03-21.Nijmegen.flac16?track=7",
+      "note": "Mono:  Halcyon (Beautiful Days), live"
+    },
+    {
+      "identifier": "65daysofstatic-2007-04-21.dpa4061.rob.flac16",
+      "note": "65daysofstatic: Radio Protector, live"
+    },
+    {
+      "identifier": "LostChildren025?track=3",
+      "note": "pg.lost: Yes I Am"
+    },
+    {
+      "identifier": "caspian2006-10-15.akgc1000s.flac16?track=1",
+      "note": "Caspian: ASA, live"
+    },
+    {
+      "identifier": "2000-godspeed-you-black-emperor-lift-yr.-skinny-fists-like-antennas-to-heaven",
+      "note": "Godspeed You! Black Emperor: Antennas to Heaven"
+    }
+  ]
 }
 ]

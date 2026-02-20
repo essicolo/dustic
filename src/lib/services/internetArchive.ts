@@ -696,6 +696,65 @@ export function getBestAudioFile(
 }
 
 /**
+ * Fetch and parse Essentia metadata file for an audio file
+ * Archive.org pre-extracts ID3 tags/metadata into _esshigh.json.gz files
+ */
+async function fetchEssentiaMetadata(identifier: string, filename: string): Promise<{ title?: string; artist?: string; album?: string } | null> {
+	// Strip extension from filename and add _esshigh.json.gz
+	const baseName = filename.replace(/\.[^.]+$/, '');
+	const metadataFilename = `${baseName}_esshigh.json.gz`;
+	const url = `https://archive.org/download/${identifier}/${metadataFilename}`;
+
+	try {
+		console.log(`[IA] Fetching Essentia metadata: ${metadataFilename}`);
+		const response = await fetchWithRetry(url, {}, { maxAttempts: 1 });
+
+		if (!response.ok) {
+			console.log(`[IA] Essentia metadata not found for ${filename}`);
+			return null;
+		}
+
+		// The response is gzip-compressed JSON
+		const blob = await response.blob();
+		const decompressed = await decompressGzip(blob);
+		const json = JSON.parse(decompressed);
+
+		// Extract tags from the Essentia metadata structure
+		const tags = json?.metadata?.tags;
+		if (!tags) {
+			console.log(`[IA] No tags in Essentia metadata for ${filename}`);
+			return null;
+		}
+
+		// Tags are arrays, take first element
+		const title = Array.isArray(tags.title) ? tags.title[0] : tags.title;
+		const artist = Array.isArray(tags.artist) ? tags.artist[0] : tags.artist;
+		const album = Array.isArray(tags.album) ? tags.album[0] : tags.album;
+
+		console.log(`[IA] Extracted from Essentia: "${title}" by "${artist}"`);
+		return { title, artist, album };
+	} catch (error) {
+		console.warn(`[IA] Failed to fetch Essentia metadata for ${filename}:`, error);
+		return null;
+	}
+}
+
+/**
+ * Decompress gzip data from a Blob
+ */
+async function decompressGzip(blob: Blob): Promise<string> {
+	if (typeof DecompressionStream === 'undefined') {
+		// Fallback for environments without DecompressionStream
+		console.warn('[IA] DecompressionStream not supported, skipping metadata extraction');
+		throw new Error('DecompressionStream not supported');
+	}
+
+	const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+	const decompressed = await new Response(stream).text();
+	return decompressed;
+}
+
+/**
  * Get all audio files from an item's file list, sorted by quality preference and filename
  */
 export function getAllAudioFiles(
@@ -831,16 +890,24 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 			return null;
 		}
 
+		// Try to get embedded metadata from Essentia JSON
+		const essentiaMetadata = await fetchEssentiaMetadata(itemIdentifier, audioFile.filename);
+
+		const title = trackIndexStr
+			? (essentiaMetadata?.title || extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title))
+			: (metadata.metadata.title || 'Untitled');
+
+		const artist = essentiaMetadata?.artist
+			|| (Array.isArray(metadata.metadata.creator)
+				? metadata.metadata.creator[0]
+				: metadata.metadata.creator || 'Unknown Artist');
+
 		const track: Track = {
 			identifier,
 			filename: audioFile.filename,
-			title: trackIndexStr
-				? extractChapterTitle(audioFile.filename, trackIndex + 1, metadata.metadata.title)
-				: metadata.metadata.title || 'Untitled',
-			artist: Array.isArray(metadata.metadata.creator)
-				? metadata.metadata.creator[0]
-				: metadata.metadata.creator || 'Unknown Artist',
-			album: metadata.metadata.title,
+			title,
+			artist,
+			album: essentiaMetadata?.album || metadata.metadata.title,
 			date: metadata.metadata.date,
 			duration: audioFile.duration,
 			collection: Array.isArray(metadata.metadata.collection)
@@ -889,32 +956,45 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 			return [];
 		}
 
-		const tracks: Track[] = audioFiles.map((audioFile, index) => ({
-			identifier: `${identifier}#${index}`,
-			filename: audioFile.filename,
-			title: extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title),
-			artist: Array.isArray(metadata.metadata.creator)
-				? metadata.metadata.creator[0]
-				: metadata.metadata.creator || 'Unknown Artist',
-			album: metadata.metadata.title,
-			date: metadata.metadata.date,
-			duration: audioFile.duration,
-			collection: Array.isArray(metadata.metadata.collection)
-				? metadata.metadata.collection
-				: metadata.metadata.collection
-					? [metadata.metadata.collection]
-					: [],
-			genre: Array.isArray(metadata.metadata.subject)
-				? metadata.metadata.subject
-				: metadata.metadata.subject
-					? [metadata.metadata.subject]
-					: undefined,
-			format: audioFile.format,
-			streamUrl: getStreamUrl(identifier, audioFile.filename),
-			thumbnailUrl: getThumbnailUrl(identifier),
-			metadata: metadata.metadata
-		}));
+		// Fetch Essentia metadata for all tracks in parallel
+		const trackPromises = audioFiles.map(async (audioFile, index) => {
+			// Try to get embedded metadata from Essentia JSON
+			const essentiaMetadata = await fetchEssentiaMetadata(identifier, audioFile.filename);
 
+			const title = essentiaMetadata?.title
+				|| extractChapterTitle(audioFile.filename, index + 1, metadata.metadata.title);
+
+			const artist = essentiaMetadata?.artist
+				|| (Array.isArray(metadata.metadata.creator)
+					? metadata.metadata.creator[0]
+					: metadata.metadata.creator || 'Unknown Artist');
+
+			return {
+				identifier: `${identifier}#${index}`,
+				filename: audioFile.filename,
+				title,
+				artist,
+				album: essentiaMetadata?.album || metadata.metadata.title,
+				date: metadata.metadata.date,
+				duration: audioFile.duration,
+				collection: Array.isArray(metadata.metadata.collection)
+					? metadata.metadata.collection
+					: metadata.metadata.collection
+						? [metadata.metadata.collection]
+						: [],
+				genre: Array.isArray(metadata.metadata.subject)
+					? metadata.metadata.subject
+					: metadata.metadata.subject
+						? [metadata.metadata.subject]
+						: undefined,
+				format: audioFile.format,
+				streamUrl: getStreamUrl(identifier, audioFile.filename),
+				thumbnailUrl: getThumbnailUrl(identifier),
+				metadata: metadata.metadata
+			};
+		});
+
+		const tracks = await Promise.all(trackPromises);
 		return tracks;
 	} catch (error) {
 		console.error(`Error fetching tracks for ${identifier}:`, error);

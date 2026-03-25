@@ -62,6 +62,8 @@
 		failedImages = failedImages; // Trigger reactivity
 	}
 
+	let initialized = false;
+
 	// Read query params on mount
 	onMount(() => {
 		if (browser) {
@@ -71,11 +73,13 @@
 				searchQuery = q;
 				handleSearch();
 			}
+			// Mark initialized after first tick to prevent reactive block from double-firing
+			setTimeout(() => { initialized = true; }, 0);
 		}
 	});
 
 	// Watch for URL changes (e.g., when navigating back or clicking creator links)
-	$: if (browser && !userIsEditing && $page.url.searchParams.get('q')) {
+	$: if (browser && initialized && !userIsEditing && $page.url.searchParams.get('q')) {
 		const q = $page.url.searchParams.get('q');
 		if (q && q !== searchQuery) {
 			searchQuery = q;

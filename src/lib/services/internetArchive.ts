@@ -79,6 +79,10 @@ function cleanSearchInput(input: string): string {
 		}
 	}
 
+	// Normalize IA field syntax: fix "creator: "value"" → "creator:"value""
+	// (remove space between field name colon and quoted value)
+	cleaned = cleaned.replace(/\b(creator|subject|title|identifier|collection|mediatype|format):\s+"/gi, '$1:"');
+
 	return cleaned;
 }
 

@@ -52,6 +52,7 @@
 	// Track previous filter values to prevent unnecessary searches
 	let prevCollections: string[] = [];
 	let prevSortBy: string = 'relevance';
+	let userIsEditing = false; // Prevent URL watcher from overriding user input
 
 	function handleImageError(identifier: string) {
 		failedImages.add(identifier);
@@ -70,8 +71,8 @@
 		}
 	});
 
-	// Watch for URL changes (e.g., when navigating back from an album)
-	$: if (browser && $page.url.searchParams.get('q')) {
+	// Watch for URL changes (e.g., when navigating back or clicking creator links)
+	$: if (browser && !userIsEditing && $page.url.searchParams.get('q')) {
 		const q = $page.url.searchParams.get('q');
 		if (q && q !== searchQuery) {
 			searchQuery = q;
@@ -127,6 +128,7 @@
 			// The user can retry, and the empty results UI will show
 		} finally {
 			isSearching = false;
+			userIsEditing = false;
 		}
 	}
 
@@ -138,12 +140,7 @@
 
 	function onSearchInput() {
 		isTyping = true;
-		// Clear URL query param so the reactive $page watcher doesn't override user input
-		if (browser && $page.url.searchParams.has('q')) {
-			const url = new URL(window.location.href);
-			url.searchParams.delete('q');
-			window.history.replaceState({}, '', url.toString());
-		}
+		userIsEditing = true;
 		debouncedSearch();
 	}
 

@@ -174,13 +174,20 @@ function fwIdentifier(instanceUrl: string, trackId: number | string): string {
  * IA uses creator:"name", subject:"tag", title:"name" etc. FunkWhale just wants plain text.
  */
 function cleanQueryForFW(query: string): string {
-	// Remove IA field prefixes: creator:"...", subject:"...", title:"..."
+	// Remove IA field prefixes: creator:"...", creator: "...", subject:"...", etc.
 	let cleaned = query
-		.replace(/\b(creator|subject|title|identifier|collection):"([^"]*)"/gi, '$2')
-		.replace(/\b(creator|subject|title|identifier|collection):/gi, '')
+		// Match field:"value" or field: "value" (with optional space after colon)
+		.replace(/\b(creator|subject|title|identifier|collection|mediatype|format):\s*"([^"]*)"/gi, '$2')
+		// Remove leftover field: prefixes
+		.replace(/\b(creator|subject|title|identifier|collection|mediatype|format):\s*/gi, '')
+		// Remove boolean operators
 		.replace(/\bAND\b/gi, ' ')
 		.replace(/\bOR\b/gi, ' ')
 		.replace(/\bNOT\b/gi, ' ')
+		// Remove parentheses used in IA query grouping
+		.replace(/[()]/g, ' ')
+		// Remove remaining standalone quotes
+		.replace(/"/g, '')
 		.replace(/\s+/g, ' ')
 		.trim();
 

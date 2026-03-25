@@ -138,6 +138,12 @@
 
 	function onSearchInput() {
 		isTyping = true;
+		// Clear URL query param so the reactive $page watcher doesn't override user input
+		if (browser && $page.url.searchParams.has('q')) {
+			const url = new URL(window.location.href);
+			url.searchParams.delete('q');
+			window.history.replaceState({}, '', url.toString());
+		}
 		debouncedSearch();
 	}
 

@@ -205,17 +205,6 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const uploads = fwTrack.uploads || [];
 	const upload = uploads[0];
 
-	// Debug: log track vs upload UUIDs to diagnose 404s
-	if (uploads.length > 0 || rawListenUrl) {
-		console.log(`[FW] Track "${trackTitle}" URLs:`, {
-			trackGuid: fwTrack.guid,
-			trackListenUrl: rawListenUrl,
-			uploadUuid: upload?.uuid,
-			uploadListenUrl: upload?.listen_url,
-			uploadsCount: uploads.length
-		});
-	}
-
 	// Artist: v1 uses 'artist', v2 uses 'artist_credit' array
 	const artistName = fwTrack.artist?.name
 		|| fwTrack.artist_credit?.[0]?.credit
@@ -230,10 +219,9 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const albumTitle = albumObj?.title;
 
 	// Build stream URL
-	// v2: track-level listen_url is /api/v2/listen/{track-guid}/ (preferred)
-	// v1: upload-level listen_url is /api/v1/listen/{upload-uuid}/
-	// Use track-level first (matches the API version), upload as fallback
-	const streamRaw = rawListenUrl || upload?.listen_url || '';
+	// v2 listen endpoint REQUIRES ?upload= query param - without it returns 404
+	// So: prefer upload's listen_url (has ?upload=) over track-level listen_url
+	const streamRaw = upload?.listen_url || rawListenUrl || '';
 	const streamUrl = streamRaw
 		? streamRaw.startsWith('http')
 			? streamRaw
@@ -319,10 +307,10 @@ export async function searchInstance(
 
 		const fwTracks = data.results || [];
 		const tracks = fwTracks
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
-			.map((t) => toTrack(t, baseUrl));
+			.map((t) => toTrack(t, baseUrl))
+			.filter((t) => t.streamUrl); // Only include tracks with a valid stream URL
 
-		console.log(`[FW] Found ${tracks.length} tracks on ${baseUrl} (total: ${data.count})`);
+		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${data.count})`);
 		return { tracks, total: data.count || tracks.length };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
@@ -380,32 +368,45 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 	const instance = instances.find((i) => new URL(i.url).host === host);
 	const baseUrl = instance ? normalizeUrl(instance.url) : `https://${host}`;
 
-	const apiVersion = await detectApiVersion(baseUrl);
-	const path = tracksPath(apiVersion);
-	const url = `${baseUrl}${path}${trackId}/`;
-	console.log(`[FW] Fetching track (${apiVersion}): ${url}`);
+	// Always try v1 first for individual track detail - v1 includes uploads array
+	// with listen_url containing the required ?upload= param.
+	// v2's /api/v2/tracks/{id}/ does NOT include uploads, causing 404s on listen.
+	const versionsToTry: ApiVersion[] = ['v1', 'v2'];
 
-	try {
-		const fwTrack: FWTrack = await withCache(
-			`fw:track:${identifier}`,
-			async () => {
-				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
-				return response.json();
-			},
-			60 * 60 * 1000
-		);
+	for (const version of versionsToTry) {
+		const path = tracksPath(version);
+		const url = `${baseUrl}${path}${trackId}/`;
 
-		// v1 requires uploads, v2 may use 'playable' flag
-		if (!fwTrack.uploads?.length && !fwTrack.is_playable && !fwTrack.listen_url) {
-			console.warn(`[FW] Track ${trackId} has no uploads and is not playable`);
-			return null;
+		try {
+			const fwTrack: FWTrack = await withCache(
+				`fw:track:${identifier}:${version}`,
+				async () => {
+					const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+					return response.json();
+				},
+				60 * 60 * 1000
+			);
+
+			// Need uploads with listen_url for playback
+			if (fwTrack.uploads?.length && fwTrack.uploads[0]?.listen_url) {
+				return toTrack(fwTrack, baseUrl);
+			}
+
+			// Accept tracks with a listen_url that has ?upload= param
+			if (fwTrack.listen_url?.includes('upload=')) {
+				return toTrack(fwTrack, baseUrl);
+			}
+
+			// This version didn't give us uploads, try next
+			console.log(`[FW] ${version} track detail lacks uploads, trying next version`);
+		} catch (error: any) {
+			console.log(`[FW] ${version} track fetch failed: ${error?.message}`);
 		}
-
-		return toTrack(fwTrack, baseUrl);
-	} catch (error: any) {
-		console.warn(`[FW] Failed to fetch track ${identifier}:`, error?.message || error);
-		return null;
 	}
+
+	console.warn(`[FW] Track ${trackId} has no playable uploads from any API version`);
+	return null;
 }
 
 /**
@@ -416,27 +417,34 @@ export async function getAlbumTracks(
 	albumId: number
 ): Promise<Track[]> {
 	const baseUrl = normalizeUrl(instanceUrl);
-	const apiVersion = await detectApiVersion(baseUrl);
-	const path = tracksPath(apiVersion);
-	const url = `${baseUrl}${path}?album=${albumId}&page_size=100&ordering=position`;
 
-	try {
-		const data: FWPaginatedResponse<FWTrack> = await withCache(
-			`fw:album:${baseUrl}:${albumId}`,
-			async () => {
-				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
-				return response.json();
-			},
-			60 * 60 * 1000
-		);
+	// Try v1 first - it includes uploads with listen_url
+	for (const version of ['v1', 'v2'] as ApiVersion[]) {
+		const path = tracksPath(version);
+		const url = `${baseUrl}${path}?album=${albumId}&page_size=100&ordering=position`;
 
-		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
-			.map((t) => toTrack(t, baseUrl));
-	} catch (error: any) {
-		console.warn(`[FW] Failed to fetch album tracks:`, error?.message || error);
-		return [];
+		try {
+			const data: FWPaginatedResponse<FWTrack> = await withCache(
+				`fw:album:${baseUrl}:${albumId}:${version}`,
+				async () => {
+					const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+					return response.json();
+				},
+				60 * 60 * 1000
+			);
+
+			const tracks = data.results
+				.map((t) => toTrack(t, baseUrl))
+				.filter((t) => t.streamUrl);
+
+			if (tracks.length > 0) return tracks;
+		} catch (error: any) {
+			console.log(`[FW] Album tracks ${version} failed: ${error?.message}`);
+		}
 	}
+
+	return [];
 }
 
 /**
@@ -463,9 +471,8 @@ export async function searchByArtist(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl))
-			.filter((t) => t.identifier !== excludeIdentifier);
+			.filter((t) => t.streamUrl && t.identifier !== excludeIdentifier);
 	} catch (error: any) {
 		console.warn(`[FW] Failed to search by artist:`, error?.message || error);
 		return [];
@@ -496,9 +503,8 @@ export async function searchByTag(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl))
-			.filter((t) => t.identifier !== excludeIdentifier);
+			.filter((t) => t.streamUrl && t.identifier !== excludeIdentifier);
 	} catch (error: any) {
 		console.warn(`[FW] Failed to search by tag:`, error?.message || error);
 		return [];
@@ -595,8 +601,8 @@ export async function getRandomTracks(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
-			.map((t) => toTrack(t, baseUrl));
+			.map((t) => toTrack(t, baseUrl))
+			.filter((t) => t.streamUrl);
 	} catch (error: any) {
 		console.warn(`[FW] Failed to get random tracks:`, error?.message || error);
 		return [];

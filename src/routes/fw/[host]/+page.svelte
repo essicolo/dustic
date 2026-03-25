@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { search as fwSearch, getRandomTracks } from '$lib/services/funkwhale';
+	import { searchInstance, getRandomTracks } from '$lib/services/funkwhale';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import type { Track } from '$lib/types';
-	import { onMount } from 'svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import Icon from '@iconify/svelte';
@@ -13,33 +12,31 @@
 	let isLoading = false;
 	let error = '';
 	let viewMode: 'tiles' | 'list' = 'tiles';
+	let lastLoadKey = '';
 
 	$: host = $page.params.host || '';
 	$: category = $page.url.searchParams.get('q') || '';
 	$: instanceUrl = `https://${host}`;
-	$: pageTitle = category || 'Recent tracks';
+	$: pageTitle = category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Recent tracks';
 
-	onMount(() => {
-		loadTracks();
-	});
-
-	// Reload when category changes
-	$: if (host && typeof window !== 'undefined') {
+	// Reactive load: re-fetch when host OR category changes
+	$: loadKey = `${host}:${category}`;
+	$: if (loadKey && typeof window !== 'undefined' && loadKey !== lastLoadKey) {
+		lastLoadKey = loadKey;
 		loadTracks();
 	}
 
 	async function loadTracks() {
+		if (!host) return;
 		isLoading = true;
 		error = '';
 		results = [];
 
 		try {
 			if (category) {
-				const result = await fwSearch({
-					query: category,
-					pageSize: 50
-				});
-				results = result.items;
+				// Search this specific instance only (not all instances)
+				const result = await searchInstance(instanceUrl, category, 50);
+				results = result.tracks;
 			} else {
 				results = await getRandomTracks(instanceUrl, 50);
 			}

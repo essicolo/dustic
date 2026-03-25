@@ -869,7 +869,6 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 	// It also provides image optimization and fallback handling
 	const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&output=jpg&default=${encodeURIComponent('https://placehold.co/512x512/1f2937/white?text=No+Image')}`;
 
-	console.log('[IA] Thumbnail URL:', proxyUrl);
 	return proxyUrl;
 }
 

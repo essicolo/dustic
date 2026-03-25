@@ -37,6 +37,8 @@ function createPlayerStore() {
 	let audioElement: HTMLAudioElement | null = null;
 	let iosAudioUnlocked = false;
 	let currentBlobUrl: string | null = null;
+	let consecutiveErrors = 0;
+	const MAX_CONSECUTIVE_ERRORS = 3;
 
 	return {
 		subscribe,
@@ -115,34 +117,28 @@ function createPlayerStore() {
 
 			element.addEventListener('error', (e) => {
 				const error = element.error;
-				console.error('[Player] Audio error event:', {
-					code: error?.code,
-					message: error?.message,
-					MEDIA_ERR_ABORTED: error?.code === 1,
-					MEDIA_ERR_NETWORK: error?.code === 2,
-					MEDIA_ERR_DECODE: error?.code === 3,
-					MEDIA_ERR_SRC_NOT_SUPPORTED: error?.code === 4
-				});
+				console.error('[Player] Audio error:', error?.code, error?.message);
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
 
-				// Auto-skip to next track on playback errors (e.g. FW 404s)
+				// Auto-skip on playback errors, but stop after MAX_CONSECUTIVE_ERRORS
 				if (error?.code === 4 || error?.code === 2) {
-					console.log('[Player] Skipping unplayable track, trying next...');
-					setTimeout(() => this.next(), 500);
+					consecutiveErrors++;
+					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
+						setTimeout(() => this.next(), 500);
+					} else {
+						console.warn('[Player] Too many consecutive errors, stopping playback');
+						consecutiveErrors = 0;
+					}
 				}
 			});
 
 			element.addEventListener('loadeddata', () => {
-				console.log('[Player] Audio loadeddata - ready to play');
+				consecutiveErrors = 0; // Reset on successful load
 			});
 
-			element.addEventListener('waiting', () => {
-				console.log('[Player] Audio waiting - buffering...');
-			});
-
-			element.addEventListener('stalled', () => {
-				console.log('[Player] Audio stalled - network issue?');
-			});
+			element.addEventListener('waiting', () => {});
+			element.addEventListener('stalled', () => {});
 
 			// Set initial volume
 			element.volume = initialState.volume;
@@ -155,11 +151,7 @@ function createPlayerStore() {
 				return;
 			}
 
-			console.log('[Player] Starting playback:', {
-				title: track.title,
-				streamUrl: track.streamUrl,
-				iosUnlocked: iosAudioUnlocked
-			});
+			console.log('[Player] Playing:', track.title, track.source || 'ia');
 
 			update((state) => ({
 				...state,
@@ -208,42 +200,45 @@ function createPlayerStore() {
 				currentBlobUrl = null;
 			}
 
-			// FunkWhale tracks need blob URLs to avoid OpaqueResponseBlocking on <audio>
+			// FunkWhale tracks: fetch as blob to avoid OpaqueResponseBlocking
 			if (track.source === 'funkwhale') {
-				try {
-					console.log('[Player] Fetching FunkWhale audio as blob...');
-					const response = await fetch(track.streamUrl);
-					if (!response.ok) throw new Error(`HTTP ${response.status}`);
-					const blob = await response.blob();
-					currentBlobUrl = URL.createObjectURL(blob);
-					audioElement.src = currentBlobUrl;
-				} catch (err) {
-					console.warn('[Player] Blob fetch failed, trying direct URL:', err);
+				let fetched = false;
+				const urlsToTry = [track.streamUrl];
+				// If URL uses v1 listen, also try v2 as fallback (and vice versa)
+				if (track.streamUrl.includes('/api/v1/listen/')) {
+					urlsToTry.push(track.streamUrl.replace('/api/v1/listen/', '/api/v2/listen/'));
+				} else if (track.streamUrl.includes('/api/v2/listen/')) {
+					urlsToTry.push(track.streamUrl.replace('/api/v2/listen/', '/api/v1/listen/'));
+				}
+				for (const url of urlsToTry) {
+					try {
+						console.log('[Player] Fetching FW audio:', url);
+						const response = await fetch(url);
+						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+						const blob = await response.blob();
+						currentBlobUrl = URL.createObjectURL(blob);
+						audioElement.src = currentBlobUrl;
+						fetched = true;
+						break;
+					} catch (err) {
+						console.warn('[Player] FW fetch failed:', url, (err as Error).message);
+					}
+				}
+				if (!fetched) {
+					// Last resort: direct URL (might work if CORS is relaxed)
 					audioElement.src = track.streamUrl;
 				}
 			} else {
 				audioElement.src = track.streamUrl;
 			}
 
-			console.log('[Player] Setting audio src and loading...');
 			audioElement.load();
-
-			console.log('[Player] Calling play()...');
 			const playPromise = audioElement.play();
-
 			if (playPromise !== undefined) {
-				playPromise
-					.then(() => {
-						console.log('[Player] Play started successfully');
-					})
-					.catch((error) => {
-						console.error('[Player] Play error:', {
-							name: error.name,
-							message: error.message,
-							code: error.code
-						});
-						update((state) => ({ ...state, isLoading: false }));
-					});
+				playPromise.catch((error) => {
+					console.error('[Player] Play error:', error.message);
+					update((state) => ({ ...state, isLoading: false }));
+				});
 			}
 		},
 

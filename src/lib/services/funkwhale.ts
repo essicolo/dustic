@@ -43,11 +43,14 @@ interface FWTrack {
 	id: number;
 	title: string;
 	artist: FWArtist;
-	album?: FWAlbum;
+	album?: FWAlbum | number; // Can be nested object or just an ID
 	uploads: FWUpload[];
 	creation_date?: string;
 	position?: number;
 	disc_number?: number;
+	is_playable?: boolean;
+	listen_url?: string; // Relative path, e.g. /api/v1/listen/<uuid>/
+	duration?: number; // Some responses include duration at track level
 	tags: string[];
 }
 
@@ -95,14 +98,21 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const baseUrl = normalizeUrl(instanceUrl);
 	const upload = fwTrack.uploads[0];
 
-	const listenUrl = upload?.listen_url
-		? upload.listen_url.startsWith('http')
-			? upload.listen_url
-			: `${baseUrl}${upload.listen_url}`
+	// Build stream URL: prefer track-level listen_url, fall back to upload's
+	const rawListenUrl = fwTrack.listen_url || upload?.listen_url || '';
+	const listenUrl = rawListenUrl
+		? rawListenUrl.startsWith('http')
+			? rawListenUrl
+			: `${baseUrl}${rawListenUrl}`
 		: '';
 
-	const coverUrl = fwTrack.album?.cover?.urls?.medium_square_crop
-		|| fwTrack.album?.cover?.urls?.original
+	// Album can be a nested object or just an integer ID
+	const album = typeof fwTrack.album === 'object' ? fwTrack.album : undefined;
+	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : album?.id;
+
+	// Cover art lives on the album object
+	const coverUrl = album?.cover?.urls?.medium_square_crop
+		|| album?.cover?.urls?.original
 		|| undefined;
 
 	// Cover URLs may be relative
@@ -112,16 +122,19 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 			: `${baseUrl}${coverUrl}`
 		: undefined;
 
+	// Duration can be at track level or on the upload
+	const duration = fwTrack.duration || upload?.duration;
+
 	return {
 		identifier: fwIdentifier(baseUrl, fwTrack.id),
 		filename: '',
 		title: fwTrack.title,
 		artist: fwTrack.artist.name,
-		album: fwTrack.album?.title,
-		date: fwTrack.album?.release_date || fwTrack.creation_date?.substring(0, 10),
-		duration: upload?.duration,
+		album: album?.title,
+		date: album?.release_date || fwTrack.creation_date?.substring(0, 10),
+		duration,
 		collection: [],
-		genre: fwTrack.tags.length > 0 ? fwTrack.tags : undefined,
+		genre: fwTrack.tags?.length > 0 ? fwTrack.tags : undefined,
 		format: upload?.extension || 'mp3',
 		streamUrl: listenUrl,
 		thumbnailUrl,
@@ -130,7 +143,7 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 			funkwhaleInstance: baseUrl,
 			funkwhaleTrackId: fwTrack.id,
 			funkwhaleArtistId: fwTrack.artist.id,
-			funkwhaleAlbumId: fwTrack.album?.id
+			funkwhaleAlbumId: albumId
 		}
 	};
 }
@@ -152,11 +165,12 @@ async function searchInstance(
 		ordering: '-creation_date'
 	});
 
-	const url = `${baseUrl}/api/v1/search?${urlParams.toString()}`;
+	// FunkWhale v1 uses per-resource search: /api/v1/tracks/?q=<query>
+	const url = `${baseUrl}/api/v1/tracks/?${urlParams.toString()}`;
 	console.log(`[FW] Searching ${baseUrl}: "${query}"`);
 
 	try {
-		const data = await withCache(
+		const data: FWPaginatedResponse<FWTrack> = await withCache(
 			`fw:search:${url}`,
 			async () => {
 				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -165,14 +179,13 @@ async function searchInstance(
 			3 * 60 * 1000
 		);
 
-		// FunkWhale search returns { artists: [...], albums: [...], tracks: [...], tags: [...] }
-		const fwTracks: FWTrack[] = data.tracks || [];
+		const fwTracks = data.results || [];
 		const tracks = fwTracks
 			.filter((t) => t.uploads.length > 0) // Only playable tracks
 			.map((t) => toTrack(t, baseUrl));
 
-		console.log(`[FW] Found ${tracks.length} tracks on ${baseUrl}`);
-		return { tracks, total: tracks.length };
+		console.log(`[FW] Found ${tracks.length} tracks on ${baseUrl} (total: ${data.count})`);
+		return { tracks, total: data.count || tracks.length };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
 		return { tracks: [], total: 0 };

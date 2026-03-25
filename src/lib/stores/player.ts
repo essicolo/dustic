@@ -36,6 +36,7 @@ function createPlayerStore() {
 	// Audio element reference (will be set from component)
 	let audioElement: HTMLAudioElement | null = null;
 	let iosAudioUnlocked = false;
+	let currentBlobUrl: string | null = null;
 
 	return {
 		subscribe,
@@ -142,7 +143,7 @@ function createPlayerStore() {
 		},
 
 		// Play a track
-		play(track: Track) {
+		async play(track: Track) {
 			if (!audioElement) {
 				console.error('[Player] Audio element not set');
 				return;
@@ -195,8 +196,30 @@ function createPlayerStore() {
 				});
 			}
 
+			// Revoke previous blob URL to prevent memory leaks
+			if (currentBlobUrl) {
+				URL.revokeObjectURL(currentBlobUrl);
+				currentBlobUrl = null;
+			}
+
+			// FunkWhale tracks need blob URLs to avoid OpaqueResponseBlocking on <audio>
+			if (track.source === 'funkwhale') {
+				try {
+					console.log('[Player] Fetching FunkWhale audio as blob...');
+					const response = await fetch(track.streamUrl);
+					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+					const blob = await response.blob();
+					currentBlobUrl = URL.createObjectURL(blob);
+					audioElement.src = currentBlobUrl;
+				} catch (err) {
+					console.warn('[Player] Blob fetch failed, trying direct URL:', err);
+					audioElement.src = track.streamUrl;
+				}
+			} else {
+				audioElement.src = track.streamUrl;
+			}
+
 			console.log('[Player] Setting audio src and loading...');
-			audioElement.src = track.streamUrl;
 			audioElement.load();
 
 			console.log('[Player] Calling play()...');

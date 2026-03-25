@@ -95,7 +95,10 @@ function looksLikeIdentifier(input: string): boolean {
 	// If it contains spaces, it's likely a natural language query
 	if (input.includes(' ')) return false;
 	// Must match typical identifier pattern
-	return /^[a-zA-Z0-9._-]+$/.test(input);
+	if (!/^[a-zA-Z0-9._-]+$/.test(input)) return false;
+	// Require either a separator character (hyphen, dot, underscore) or length > 12
+	// to avoid treating simple words like "jazz" as identifiers
+	return /[._-]/.test(input) || input.length > 12;
 }
 
 /**
@@ -486,16 +489,9 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		const formatQuery = format.map((f) => `format:(${f})`).join(' OR ');
 		q += ` AND (${formatQuery})`;
 	} else {
-		// More permissive format filter to avoid excluding valid audio items
-		// Archive.org's format indexing is inconsistent, so we include many variants
-		const commonFormats = [
-			'mp3', 'ogg', 'flac', 'm4a', 'aac', 'wav',
-			'vbr mp3', '128kbps mp3', '192kbps mp3', '256kbps mp3', '320kbps mp3',
-			'VBR', 'Ogg Vorbis', 'FLAC', 'MP3', 'AAC', 'M4A',
-			'64kbps mp3', 'Shorten', 'Apple Lossless Audio'
-		];
-		const formatFilter = commonFormats.map((f) => `format:"${f}"`).join(' OR ');
-		q += ` AND (${formatFilter})`;
+		// Minimal format filter — mediatype:audio already limits to audio items,
+		// so we only need the most common playable formats to keep URLs small
+		q += ` AND (format:"MP3" OR format:"VBR MP3" OR format:"Ogg Vorbis" OR format:"FLAC")`;
 	}
 
 	// Build URL parameters

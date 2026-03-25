@@ -219,13 +219,10 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const albumTitle = albumObj?.title;
 
 	// Build stream URL
-	// Prefer upload's listen_url (has the correct upload UUID) over track-level listen_url
-	// Also: FunkWhale v2 listen endpoint might be at /api/v1/listen/ not /api/v2/listen/
-	let streamRaw = upload?.listen_url || rawListenUrl || '';
-	// Normalize: some instances return /api/v2/listen/ but the endpoint only exists at /api/v1/listen/
-	if (streamRaw.includes('/api/v2/listen/')) {
-		streamRaw = streamRaw.replace('/api/v2/listen/', '/api/v1/listen/');
-	}
+	// v2: track-level listen_url is /api/v2/listen/{track-guid}/ (preferred)
+	// v1: upload-level listen_url is /api/v1/listen/{upload-uuid}/
+	// Use track-level first (matches the API version), upload as fallback
+	const streamRaw = rawListenUrl || upload?.listen_url || '';
 	const streamUrl = streamRaw
 		? streamRaw.startsWith('http')
 			? streamRaw

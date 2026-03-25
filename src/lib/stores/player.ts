@@ -6,6 +6,7 @@ import { queue } from './queue';
 import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { unifiedGetTrack as getTrack } from '$lib/services/sources';
+import { offlineStorage } from '$lib/services/offlineStorage';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -149,6 +150,17 @@ function createPlayerStore() {
 			if (!audioElement) {
 				console.error('[Player] Audio element not set');
 				return;
+			}
+
+			// Check if track is available offline (use blob URL instead of remote URL)
+			try {
+				const offlineTrack = await offlineStorage.getOfflineTrack(track.identifier);
+				if (offlineTrack && offlineTrack.streamUrl !== track.streamUrl) {
+					console.log('[Player] Using offline version:', track.title);
+					track = { ...track, streamUrl: offlineTrack.streamUrl };
+				}
+			} catch {
+				// Offline storage not available, continue with original URL
 			}
 
 			console.log('[Player] Playing:', track.title, track.source || 'ia');

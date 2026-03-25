@@ -1022,12 +1022,19 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 		// Fallback: search offline storage for tracks belonging to this item
 		try {
 			const allOffline = await offlineStorage.getAllTracks();
-			const itemTracks = allOffline
+			const matching = allOffline
 				.filter(
 					(t) =>
 						t.track.identifier.startsWith(identifier + '#') || t.track.identifier === identifier
-				)
-				.map((t) => t.track);
+				);
+
+			// Regenerate blob URLs for offline playback
+			const itemTracks = await Promise.all(
+				matching.map(async (t) => {
+					const offlineReady = await offlineStorage.getOfflineTrack(t.track.identifier);
+					return offlineReady || t.track;
+				})
+			);
 
 			// Sort by index
 			itemTracks.sort((a, b) => {

@@ -34,15 +34,18 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	try {
 		const listenUrl = await resolveListenUrl(baseUrl, trackId, headers, log);
 
-		if (debug) {
-			return new Response(JSON.stringify({ trackId, listenUrl, log }, null, 2), {
+		if (!listenUrl) {
+			// Always return JSON with debug log on failure
+			return new Response(JSON.stringify({ error: 'Could not resolve audio URL', trackId, log }, null, 2), {
+				status: 404,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
 
-		if (!listenUrl) {
-			console.error(`[FW Listen] Could not resolve audio for track ${trackId}:\n${log.join('\n')}`);
-			return new Response('Could not resolve audio URL', { status: 404 });
+		if (debug) {
+			return new Response(JSON.stringify({ trackId, listenUrl, log }, null, 2), {
+				headers: { 'Content-Type': 'application/json' }
+			});
 		}
 
 		// Fetch the audio, forwarding Range header for seeking

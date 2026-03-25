@@ -212,18 +212,20 @@ function createPlayerStore() {
 				currentBlobUrl = null;
 			}
 
-			// FunkWhale tracks: try direct fetch, v1/v2 variants, and CORS proxy
-			if (track.source === 'funkwhale') {
+			// FunkWhale tracks with direct FW URLs need blob fetch for CORS.
+			// But our /api/fw-listen proxy, blob: URLs, and local URLs don't need this.
+			if (
+				track.source === 'funkwhale' &&
+				track.streamUrl.startsWith('http') &&
+				!track.streamUrl.startsWith('blob:')
+			) {
+				// Direct FW URL (has ?upload= param) - fetch as blob for CORS
 				let fetched = false;
-				const urlsToTry = [track.streamUrl];
-				// Try the other API version as fallback
-				if (track.streamUrl.includes('/api/v1/listen/')) {
-					urlsToTry.push(track.streamUrl.replace('/api/v1/listen/', '/api/v2/listen/'));
-				} else if (track.streamUrl.includes('/api/v2/listen/')) {
-					urlsToTry.push(track.streamUrl.replace('/api/v2/listen/', '/api/v1/listen/'));
-				}
-				// Also try via CORS proxy (server-side fetch, avoids browser CORS/auth issues)
-				urlsToTry.push(`/api/cors-proxy?url=${encodeURIComponent(track.streamUrl)}`);
+				const urlsToTry = [
+					track.streamUrl,
+					// Also try via CORS proxy as fallback
+					`/api/cors-proxy?url=${encodeURIComponent(track.streamUrl)}`
+				];
 
 				for (const url of urlsToTry) {
 					try {
@@ -231,7 +233,6 @@ function createPlayerStore() {
 						const response = await fetch(url);
 						if (!response.ok) throw new Error(`HTTP ${response.status}`);
 						const contentType = response.headers.get('content-type') || '';
-						// Verify we got audio, not an error page
 						if (contentType.includes('text/html') || contentType.includes('application/json')) {
 							throw new Error('Got non-audio response');
 						}
@@ -249,6 +250,7 @@ function createPlayerStore() {
 					audioElement.src = track.streamUrl;
 				}
 			} else {
+				// IA tracks, /api/fw-listen proxy URLs, blob: URLs - set src directly
 				audioElement.src = track.streamUrl;
 			}
 

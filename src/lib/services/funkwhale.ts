@@ -218,15 +218,22 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : albumObj?.id;
 	const albumTitle = albumObj?.title;
 
-	// Build stream URL
-	// v2 listen endpoint REQUIRES ?upload= query param - without it returns 404
-	// So: prefer upload's listen_url (has ?upload=) over track-level listen_url
-	const streamRaw = upload?.listen_url || rawListenUrl || '';
-	const streamUrl = streamRaw
-		? streamRaw.startsWith('http')
-			? streamRaw
-			: `${baseUrl}${streamRaw}`
-		: '';
+	// Build stream URL via server-side proxy.
+	// The v2 listen endpoint REQUIRES ?upload= query param, which is often missing
+	// from search results. Our /api/fw-listen proxy resolves the correct URL server-side.
+	// If we have a direct URL with ?upload=, use it; otherwise use the proxy.
+	let streamUrl = '';
+	const trackIdNum = fwTrack.id;
+	if (upload?.listen_url) {
+		// Upload listen_url includes ?upload= — use directly via CORS proxy
+		const raw = upload.listen_url;
+		streamUrl = raw.startsWith('http') ? raw : `${baseUrl}${raw}`;
+	} else if (rawListenUrl && rawListenUrl.includes('upload=')) {
+		streamUrl = rawListenUrl.startsWith('http') ? rawListenUrl : `${baseUrl}${rawListenUrl}`;
+	} else if (trackIdNum) {
+		// No upload URL available — use server-side proxy that resolves uploads
+		streamUrl = `/api/fw-listen?instance=${encodeURIComponent(baseUrl)}&track=${trackIdNum}`;
+	}
 
 	// Cover art - proxy through weserv.nl to avoid OpaqueResponseBlocking on S3 URLs
 	const coverUrl = albumObj?.cover?.urls?.medium_square_crop

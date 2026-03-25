@@ -15,7 +15,8 @@
 		if (downloadingIds.has(identifier)) return;
 		downloadingIds.add(identifier);
 		try {
-			const track = await getTrack(identifier);
+			const cached = results.find((t) => t.identifier === identifier);
+			const track = cached?.streamUrl ? cached : await getTrack(identifier);
 			if (track) {
 				await offline.downloadTrack(track);
 			}
@@ -156,10 +157,18 @@
 		debouncedSearch();
 	}
 
+	/** Find a track from search results, falling back to API fetch */
+	async function resolveTrack(identifier: string): Promise<Track | null> {
+		// Use cached result first (avoids re-fetching FW tracks that lose uploads)
+		const cached = results.find((t) => t.identifier === identifier);
+		if (cached?.streamUrl) return cached;
+		return getTrack(identifier);
+	}
+
 	async function playTrack(identifier: string) {
 		loadingTrack = identifier;
 		try {
-			const track = await getTrack(identifier);
+			const track = await resolveTrack(identifier);
 			if (track) {
 				queue.setQueue([track], 0);
 				player.play(track);
@@ -175,7 +184,7 @@
 	async function addToQueue(identifier: string) {
 		loadingTrack = identifier;
 		try {
-			const track = await getTrack(identifier);
+			const track = await resolveTrack(identifier);
 			if (track) {
 				queue.addToEnd(track);
 			}
@@ -189,19 +198,8 @@
 	async function playAll() {
 		if (results.length === 0) return;
 
-		// Load tracks in batches to avoid rate limiting
-		const trackTasks = results.slice(0, 20).map((item) => async () => {
-			try {
-				return await getTrack(item.identifier);
-			} catch {
-				return null;
-			}
-		});
-
-		// Execute in batches of 3 with 500ms delay between batches
-		const tracks = await batchExecute(trackTasks, 3, 500);
-
-		const validTracks = tracks.filter((t): t is Track => t !== null);
+		// Use cached results directly - no need to re-fetch
+		const validTracks = results.slice(0, 20).filter((t) => t.streamUrl);
 		if (validTracks.length > 0) {
 			queue.setQueue(validTracks, 0);
 			player.play(validTracks[0]);

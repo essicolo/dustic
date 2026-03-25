@@ -133,9 +133,16 @@
 		try {
 			let fetchedTracks: Track[] = [];
 			if (isFW) {
-				// FunkWhale tracks are individual tracks, not albums
-				const track = await getTrack(item.identifier);
-				if (track) fetchedTracks = [track];
+				// FW tracks from search already have full data with streamUrl.
+				// Re-fetching via getTrack() loses uploads (v2 API doesn't return them).
+				// Use item data directly if it has a streamUrl.
+				const cached = item as any;
+				if (cached.streamUrl) {
+					fetchedTracks = [cached as Track];
+				} else {
+					const track = await getTrack(item.identifier);
+					if (track) fetchedTracks = [track];
+				}
 			} else if (type === 'album') {
 				fetchedTracks = await getAllTracks(item.identifier);
 			} else {

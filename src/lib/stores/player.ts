@@ -124,6 +124,12 @@ function createPlayerStore() {
 					MEDIA_ERR_SRC_NOT_SUPPORTED: error?.code === 4
 				});
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+
+				// Auto-skip to next track on playback errors (e.g. FW 404s)
+				if (error?.code === 4 || error?.code === 2) {
+					console.log('[Player] Skipping unplayable track, trying next...');
+					setTimeout(() => this.next(), 500);
+				}
 			});
 
 			element.addEventListener('loadeddata', () => {

@@ -3,7 +3,6 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-	import SourceStatusIndicator from '$lib/components/SourceStatusIndicator.svelte';
 	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
@@ -162,9 +161,7 @@
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
 				<h1 class="text-lg font-semibold">Dustic</h1>
 			</div>
-			<div class="flex-shrink-0 mr-1">
-				<SourceStatusIndicator />
-			</div>
+			<div class="w-12 flex-shrink-0"></div>
 		</div>
 
 		<!-- Overlay for mobile -->
@@ -187,13 +184,10 @@
 			class:lg:translate-x-0={true}
 		>
 			<!-- Logo - Desktop only -->
-			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-0">
+			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
 				<span class="text-xl font-bold">Dustic</span>
 			</a>
-			<div class="hidden lg:block px-4 pb-2">
-				<SourceStatusIndicator />
-			</div>
 
 			<!-- Close button for mobile only -->
 			<div class="flex justify-end lg:hidden pt-1 pb-2">
@@ -267,7 +261,17 @@
 					on:click={toggleIA}
 					class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
 				>
-					<span>archive.org</span>
+					<div class="flex items-center gap-1.5">
+						<span>archive.org</span>
+						<span class="relative inline-block">
+							<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-40" />
+							{#if $sourceStatus.ia === 'online'}
+								<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
+							{:else if $sourceStatus.ia === 'offline'}
+								<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
+							{/if}
+						</span>
+					</div>
 					<Icon icon={iaExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 				</button>
 				{#if iaExpanded}
@@ -292,7 +296,14 @@
 					>
 						<div class="flex items-center gap-1.5">
 							<span>{instance.name}</span>
-							<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-4 h-4 opacity-40" />
+							<span class="relative inline-block">
+								<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-4 h-4 opacity-40" />
+								{#if $sourceStatus.fw[instance.url] === 'online'}
+									<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
+								{:else if $sourceStatus.fw[instance.url] === 'offline'}
+									<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
+								{/if}
+							</span>
 						</div>
 						<Icon icon={fwExpandedMap[instance.url] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 					</button>
@@ -311,7 +322,8 @@
 								<a
 									href="{base}/search?q={encodeURIComponent(tag)}"
 									on:click={closeSidebar}
-									class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+									class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70 truncate"
+									title={tag}
 								>
 									{tag}
 								</a>

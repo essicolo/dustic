@@ -502,7 +502,7 @@ export async function fetchTags(
 
 	// Try dedicated tags endpoint first (v2)
 	try {
-		const tagsUrl = `${baseUrl}/api/v2/tags/?ordering=-length&page_size=${limit}`;
+		const tagsUrl = `${baseUrl}/api/v2/tags/?ordering=name&page_size=100`;
 		const data: FWPaginatedResponse<{ name: string }> = await withCache(
 			`fw:tags-api:${baseUrl}`,
 			async () => {
@@ -513,7 +513,12 @@ export async function fetchTags(
 		);
 
 		if (data.results?.length) {
-			return data.results.map((t) => t.name);
+			// Filter out overly long tags (likely concatenated garbage) and pick short readable ones
+			const good = data.results
+				.map((t) => t.name)
+				.filter((name) => name.length <= 25 && name.length >= 2)
+				.slice(0, limit);
+			if (good.length > 0) return good;
 		}
 	} catch {
 		// tags endpoint not available, fall back

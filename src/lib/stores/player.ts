@@ -212,22 +212,31 @@ function createPlayerStore() {
 				currentBlobUrl = null;
 			}
 
-			// FunkWhale tracks: fetch as blob to avoid OpaqueResponseBlocking
+			// FunkWhale tracks: try direct fetch, v1/v2 variants, and CORS proxy
 			if (track.source === 'funkwhale') {
 				let fetched = false;
 				const urlsToTry = [track.streamUrl];
-				// If URL uses v1 listen, also try v2 as fallback (and vice versa)
+				// Try the other API version as fallback
 				if (track.streamUrl.includes('/api/v1/listen/')) {
 					urlsToTry.push(track.streamUrl.replace('/api/v1/listen/', '/api/v2/listen/'));
 				} else if (track.streamUrl.includes('/api/v2/listen/')) {
 					urlsToTry.push(track.streamUrl.replace('/api/v2/listen/', '/api/v1/listen/'));
 				}
+				// Also try via CORS proxy (server-side fetch, avoids browser CORS/auth issues)
+				urlsToTry.push(`/api/cors-proxy?url=${encodeURIComponent(track.streamUrl)}`);
+
 				for (const url of urlsToTry) {
 					try {
 						console.log('[Player] Fetching FW audio:', url);
 						const response = await fetch(url);
 						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+						const contentType = response.headers.get('content-type') || '';
+						// Verify we got audio, not an error page
+						if (contentType.includes('text/html') || contentType.includes('application/json')) {
+							throw new Error('Got non-audio response');
+						}
 						const blob = await response.blob();
+						if (blob.size < 1000) throw new Error('Response too small to be audio');
 						currentBlobUrl = URL.createObjectURL(blob);
 						audioElement.src = currentBlobUrl;
 						fetched = true;
@@ -237,7 +246,6 @@ function createPlayerStore() {
 					}
 				}
 				if (!fetched) {
-					// Last resort: direct URL (might work if CORS is relaxed)
 					audioElement.src = track.streamUrl;
 				}
 			} else {

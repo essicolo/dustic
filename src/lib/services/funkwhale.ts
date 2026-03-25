@@ -205,6 +205,17 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const uploads = fwTrack.uploads || [];
 	const upload = uploads[0];
 
+	// Debug: log track vs upload UUIDs to diagnose 404s
+	if (uploads.length > 0 || rawListenUrl) {
+		console.log(`[FW] Track "${trackTitle}" URLs:`, {
+			trackGuid: fwTrack.guid,
+			trackListenUrl: rawListenUrl,
+			uploadUuid: upload?.uuid,
+			uploadListenUrl: upload?.listen_url,
+			uploadsCount: uploads.length
+		});
+	}
+
 	// Artist: v1 uses 'artist', v2 uses 'artist_credit' array
 	const artistName = fwTrack.artist?.name
 		|| fwTrack.artist_credit?.[0]?.credit
@@ -229,15 +240,16 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 			: `${baseUrl}${streamRaw}`
 		: '';
 
-	// Cover art (v2 uses S3 presigned URLs which are already absolute)
+	// Cover art - proxy through weserv.nl to avoid OpaqueResponseBlocking on S3 URLs
 	const coverUrl = albumObj?.cover?.urls?.medium_square_crop
 		|| albumObj?.cover?.urls?.original
 		|| undefined;
-	const thumbnailUrl = coverUrl
-		? coverUrl.startsWith('http')
-			? coverUrl
-			: `${baseUrl}${coverUrl}`
-		: undefined;
+	let thumbnailUrl: string | undefined;
+	if (coverUrl) {
+		const absoluteUrl = coverUrl.startsWith('http') ? coverUrl : `${baseUrl}${coverUrl}`;
+		// Proxy through weserv.nl for CORS support (same as IA thumbnails)
+		thumbnailUrl = `https://images.weserv.nl/?url=${encodeURIComponent(absoluteUrl)}&w=300&h=300&fit=cover&output=jpg`;
+	}
 
 	// Duration
 	const duration = fwTrack.duration || upload?.duration;

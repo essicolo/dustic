@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { getAllTracks, getItemMetadata } from '$lib/services/internetArchive';
+	import { getTrack as fwGetTrack, getAlbumTracks as fwGetAlbumTracks, isFunkwhaleTrack } from '$lib/services/funkwhale';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
@@ -48,28 +49,58 @@
 		}
 	});
 
+	$: isFW = isFunkwhaleTrack(itemId);
+
 	async function loadItem() {
 		isLoading = true;
 		error = '';
 
 		try {
-			const [tracksData, metadata] = await Promise.all([
-				getAllTracks(itemId),
-				getItemMetadata(itemId)
-			]);
+			if (isFW) {
+				// FunkWhale track - fetch track and its album tracks
+				const track = await fwGetTrack(itemId);
+				if (!track) {
+					error = 'Track not found on FunkWhale.';
+					return;
+				}
 
-			tracks = tracksData;
-			itemMetadata = metadata.metadata;
+				// Build metadata from FW track info
+				itemMetadata = {
+					title: track.album || track.title,
+					creator: track.artist,
+					date: track.date,
+					identifier: itemId,
+					subject: track.genre
+				};
+
+				// Try to get album tracks if we have an album ID
+				const albumId = track.metadata?.funkwhaleAlbumId;
+				const instanceUrl = track.metadata?.funkwhaleInstance;
+				if (albumId && instanceUrl) {
+					tracks = await fwGetAlbumTracks(instanceUrl, albumId);
+				}
+				if (tracks.length === 0) {
+					tracks = [track];
+				}
+			} else {
+				// Internet Archive item
+				const [tracksData, metadata] = await Promise.all([
+					getAllTracks(itemId),
+					getItemMetadata(itemId)
+				]);
+
+				tracks = tracksData;
+				itemMetadata = metadata.metadata;
+			}
 
 			if (tracks.length === 0) {
-				error = 'No playable audio files found. This item may only contain metadata or non-audio files.';
+				error = 'No playable audio files found.';
 			} else {
 				// Check if URL has a track parameter and auto-play
 				const trackParam = $page.url.searchParams.get('track');
 				if (trackParam !== null) {
 					const trackIndex = parseInt(trackParam, 10);
 					if (!isNaN(trackIndex) && trackIndex >= 0 && trackIndex < tracks.length) {
-						// Auto-play the specified track
 						queue.setQueue(tracks, trackIndex);
 						player.play(tracks[trackIndex]);
 					}
@@ -308,6 +339,18 @@
 					>
 						<Icon icon="solar:share-linear" width="24" />
 					</button>
+					{#if isFW}
+					{@const parts = itemId.split(':')}
+					<a
+						href="https://{parts[1]}"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn btn-ghost btn-circle"
+						title="View on {parts[1]}"
+					>
+						<Icon icon="solar:link-circle-linear" width="24" />
+					</a>
+				{:else}
 					<a
 						href="https://archive.org/details/{itemId}"
 						target="_blank"
@@ -317,6 +360,7 @@
 					>
 						<Icon icon="solar:link-circle-linear" width="24" />
 					</a>
+				{/if}
 				</div>
 
 				<!-- Description -->

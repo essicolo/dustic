@@ -3,6 +3,7 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+	import SourceStatusIndicator from '$lib/components/SourceStatusIndicator.svelte';
 	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
@@ -11,9 +12,10 @@
 	import { fade } from 'svelte/transition';
 	import { player } from '$lib/stores/player';
 	import { offline } from '$lib/stores/offline';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser, dev } from '$app/environment';
 	import { fetchTags } from '$lib/services/funkwhale';
+	import { sourceStatus } from '$lib/stores/sourceStatus';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -73,6 +75,9 @@
 	}
 
 	onMount(async () => {
+		// Start source availability monitoring
+		sourceStatus.start();
+
 		// Initialize offline storage
 		offline.loadOfflineTracks();
 
@@ -141,6 +146,7 @@
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
 			if (scrollTimeout) clearTimeout(scrollTimeout);
+			sourceStatus.stop();
 		};
 	});
 </script>
@@ -160,7 +166,9 @@
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
 				<h1 class="text-lg font-semibold">Dustic</h1>
 			</div>
-			<div class="w-12 flex-shrink-0"></div><!-- Spacer for symmetry -->
+			<div class="flex-shrink-0 mr-1">
+				<SourceStatusIndicator />
+			</div>
 		</div>
 
 		<!-- Overlay for mobile -->
@@ -183,10 +191,13 @@
 			class:lg:translate-x-0={true}
 		>
 			<!-- Logo - Desktop only -->
-			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
+			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-0">
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
 				<span class="text-xl font-bold">Dustic</span>
 			</a>
+			<div class="hidden lg:block px-4 pb-2">
+				<SourceStatusIndicator />
+			</div>
 
 			<!-- Close button for mobile only -->
 			<div class="flex justify-end lg:hidden pt-1 pb-2">

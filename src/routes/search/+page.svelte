@@ -344,9 +344,9 @@
 					{/if}
 				</div>
 
-				<!-- Collections -->
+				<!-- Collections (IA only) -->
 				<div class="mb-6">
-					<h4 class="text-sm font-semibold mb-2">Collections</h4>
+					<h4 class="text-sm font-semibold mb-2">Collections <span class="font-normal text-base-content/40">(archive.org)</span></h4>
 					<div class="space-y-2">
 						{#each POPULAR_COLLECTIONS as collection}
 							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
@@ -364,9 +364,9 @@
 					</div>
 				</div>
 
-				<!-- Sort -->
+				<!-- Sort (IA only) -->
 				<div>
-					<h4 class="text-sm font-semibold mb-2">Sort By</h4>
+					<h4 class="text-sm font-semibold mb-2">Sort By <span class="font-normal text-base-content/40">(archive.org)</span></h4>
 					<div class="space-y-1">
 						<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
 							<input
@@ -430,9 +430,9 @@
 						</div>
 					</div>
 
-					<!-- Collections -->
+					<!-- Collections (IA only) -->
 					<div class="mb-6">
-						<h4 class="text-sm font-semibold mb-2">Collections</h4>
+						<h4 class="text-sm font-semibold mb-2">Collections <span class="font-normal text-base-content/40">(archive.org)</span></h4>
 						<div class="space-y-2">
 							{#each POPULAR_COLLECTIONS as collection}
 								<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
@@ -450,9 +450,9 @@
 						</div>
 					</div>
 
-					<!-- Sort -->
+					<!-- Sort (IA only) -->
 					<div class="mb-6">
-						<h4 class="text-sm font-semibold mb-2">Sort By</h4>
+						<h4 class="text-sm font-semibold mb-2">Sort By <span class="font-normal text-base-content/40">(archive.org)</span></h4>
 						<div class="space-y-1">
 							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
 								<input

@@ -362,15 +362,21 @@ export async function searchByTag(
 /**
  * Fetch popular tags from a FunkWhale instance
  */
+/**
+ * Discover popular tags by fetching recent tracks and counting their tags.
+ * FunkWhale v1 doesn't have a dedicated /tags/ listing endpoint on all instances,
+ * so we extract tags from track metadata instead.
+ */
 export async function fetchTags(
 	instanceUrl: string,
-	limit: number = 10
+	limit: number = 8
 ): Promise<string[]> {
 	const baseUrl = normalizeUrl(instanceUrl);
-	const url = `${baseUrl}/api/v1/tags/?page_size=${limit}&ordering=-length`;
+	// Fetch a batch of recent tracks to extract tags from
+	const url = `${baseUrl}/api/v1/tracks/?page_size=50&ordering=-creation_date`;
 
 	try {
-		const data = await withCache(
+		const data: FWPaginatedResponse<FWTrack> = await withCache(
 			`fw:tags:${baseUrl}`,
 			async () => {
 				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -379,8 +385,20 @@ export async function fetchTags(
 			30 * 60 * 1000 // Cache tags for 30 minutes
 		);
 
-		const results = data.results || data || [];
-		return results.map((t: any) => t.name || t).filter(Boolean);
+		// Count tag occurrences across all tracks
+		const tagCounts = new Map<string, number>();
+		for (const track of data.results || []) {
+			for (const tag of track.tags || []) {
+				const normalized = tag.toLowerCase();
+				tagCounts.set(normalized, (tagCounts.get(normalized) || 0) + 1);
+			}
+		}
+
+		// Sort by frequency and return top tags
+		return [...tagCounts.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, limit)
+			.map(([tag]) => tag);
 	} catch (error: any) {
 		console.warn(`[FW] Failed to fetch tags from ${baseUrl}:`, error?.message || error);
 		return [];

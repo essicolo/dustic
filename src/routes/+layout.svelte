@@ -291,6 +291,13 @@
 						<Icon icon={fwExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 					</button>
 					{#if fwExpanded}
+						<a
+							href="{base}/search?q=music"
+							on:click={closeSidebar}
+							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+						>
+							Browse tracks
+						</a>
 						{#if fwTagsLoading[instance.url]}
 							<div class="pl-8 pr-4 py-1.5 text-xs text-base-content/40">Loading tags...</div>
 						{:else if fwTagsMap[instance.url]?.length}

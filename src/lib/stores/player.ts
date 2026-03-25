@@ -5,7 +5,7 @@ import type { Track } from '$lib/types';
 import { queue } from './queue';
 import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
-import { getTrack } from '$lib/services/internetArchive';
+import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 
 export interface PlayerState {
 	currentTrack: Track | null;

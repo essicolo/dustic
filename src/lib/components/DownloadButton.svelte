@@ -2,7 +2,7 @@
 	import { offline, isOfflineAvailable } from '$lib/stores/offline';
 	import type { Track, ArchiveItem } from '$lib/types';
 	import Icon from '@iconify/svelte';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 
 	export let track: Track | ArchiveItem;
 	export let size: 'xs' | 'sm' | 'md' = 'sm';

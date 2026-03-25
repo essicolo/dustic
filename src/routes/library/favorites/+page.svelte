@@ -2,7 +2,7 @@
 	import { library } from '$lib/stores/library';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';

@@ -27,6 +27,10 @@ export const DEFAULT_AUTOPLAY_RULES = [
 	{ id: 'random', name: 'Random Discovery', enabled: true, weight: 2 }
 ];
 
+export const DEFAULT_FUNKWHALE_INSTANCES = [
+	{ url: 'https://open.audio', name: 'open.audio', enabled: true }
+];
+
 export const CONFIG = {
 	maxHistorySize: 100,
 	maxQueueSize: 500,

@@ -10,7 +10,8 @@
 	import { player } from '$lib/stores/player';
 
 	// Services & Utils
-	import { getTrack, getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
+	import { getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { shareTrack } from '$lib/utils/share';
 
 	// Components
@@ -19,6 +20,7 @@
 
 	// Types
 	import type { ArchiveItem, Track } from '$lib/types';
+	import { isFunkwhaleTrack } from '$lib/services/funkwhale';
 
 	export let item: ArchiveItem;
 	export let type: 'album' | 'track' = 'album';
@@ -117,7 +119,10 @@
 
 	$: isFavorite = $library.favorites.includes(item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
-	$: thumb = getThumbnailUrl(item.identifier);
+	$: isFW = isFunkwhaleTrack(item.identifier);
+	$: thumb = isFW
+		? ((item as any).thumbnailUrl || '')
+		: getThumbnailUrl(item.identifier);
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;
@@ -200,7 +205,7 @@
 	}
 
 	function handleNavigate() {
-		if (type === 'album') {
+		if (type === 'album' && !isFW) {
 			goto(`${base}/item/${item.identifier}`);
 		} else {
 			handlePlay();
@@ -311,6 +316,9 @@
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
 			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
+				{#if isFW}
+					<span class="badge badge-xs badge-outline opacity-60 ml-1 flex-shrink-0" title="From FunkWhale">FW</span>
+				{/if}
 			</h2>
 			<button
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"

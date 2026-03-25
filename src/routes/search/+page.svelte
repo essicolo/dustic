@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { smartSearch as searchAPI, getTrack } from '$lib/services/internetArchive';
+	import { unifiedSearch as searchAPI, unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';

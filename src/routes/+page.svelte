@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { search as searchAPI, getTrack, getAllTracks } from '$lib/services/internetArchive';
+	import { search as searchAPI, getAllTracks } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';

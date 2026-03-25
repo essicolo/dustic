@@ -4,7 +4,7 @@
 	import { library } from '$lib/stores/library';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import Icon from '$lib/components/Icon.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 

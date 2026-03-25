@@ -555,7 +555,7 @@
 			{:else}
 				<div class="text-center py-20 text-base-content/50">
 					<p class="text-lg">Start searching for music, audiobooks, and podcasts</p>
-					<p class="text-sm mt-2">from the Internet Archive</p>
+					<p class="text-sm mt-2">from the Internet Archive and FunkWhale</p>
 				</div>
 			{/if}
 		</main>

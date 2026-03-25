@@ -129,7 +129,11 @@
 		isFetching = true;
 		try {
 			let fetchedTracks: Track[] = [];
-			if (type === 'album') {
+			if (isFW) {
+				// FunkWhale tracks are individual tracks, not albums
+				const track = await getTrack(item.identifier);
+				if (track) fetchedTracks = [track];
+			} else if (type === 'album') {
 				fetchedTracks = await getAllTracks(item.identifier);
 			} else {
 				const track = await getTrack(item.identifier);
@@ -326,7 +330,11 @@
 					e.stopPropagation();
 					const artist = (item as any).artist || item.creator || '';
 					if (artist && artist !== 'Unknown Artist') {
-						goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+						if (isFW) {
+							goto(`${base}/search?q=${encodeURIComponent(artist)}`);
+						} else {
+							goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+						}
 					}
 				}}
 				title="Search for more by this artist"

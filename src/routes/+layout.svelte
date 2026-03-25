@@ -292,16 +292,11 @@
 					</button>
 					{#if fwExpanded}
 						<a
-							href={instance.url}
-							target="_blank"
-							rel="noopener noreferrer"
+							href="{base}/search?q=*"
 							on:click={closeSidebar}
 							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
 						>
-							<div class="flex items-center gap-1.5">
-								<span>Browse instance</span>
-								<Icon icon="solar:arrow-right-up-linear" width="12" class="text-base-content/40" />
-							</div>
+							Recent tracks
 						</a>
 						{#if fwTagsLoading[instance.url]}
 							<div class="pl-8 pr-4 py-1.5 text-xs text-base-content/40">Loading tags...</div>

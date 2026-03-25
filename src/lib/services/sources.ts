@@ -24,8 +24,21 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 	// Pass through IA errors
 	const error = iaResult.status === 'fulfilled' ? iaResult.value.error : undefined;
 
+	// Interleave results: alternate IA and FW tracks so both sources are visible
+	const merged: typeof iaItems = [];
+	let ia = 0, fw = 0;
+	while (ia < iaItems.length || fw < fwItems.length) {
+		// Add a few IA results, then a FW result (roughly 3:1 ratio)
+		for (let i = 0; i < 3 && ia < iaItems.length; i++) {
+			merged.push(iaItems[ia++]);
+		}
+		if (fw < fwItems.length) {
+			merged.push(fwItems[fw++]);
+		}
+	}
+
 	return {
-		items: [...iaItems, ...fwItems],
+		items: merged,
 		total: iaTotal + fwTotal,
 		page: params.page || 1,
 		pageSize: params.pageSize || 50,

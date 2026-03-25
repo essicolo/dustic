@@ -286,7 +286,7 @@
 					>
 						<div class="flex items-center gap-1.5">
 							<span>{instance.name}</span>
-							<span class="badge badge-xs badge-outline opacity-40">FW</span>
+							<img src="https://www.funkwhale.audio/theme/images/icon-monochrome.svg" alt="FunkWhale" class="w-4 h-4 opacity-40" />
 						</div>
 						<Icon icon={fwExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 					</button>

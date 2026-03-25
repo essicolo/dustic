@@ -317,7 +317,7 @@
 			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
 				{#if isFW}
-					<span class="badge badge-xs badge-outline opacity-60 ml-1 flex-shrink-0" title="From FunkWhale">FW</span>
+					<img src="https://www.funkwhale.audio/theme/images/icon-monochrome.svg" alt="FunkWhale" title="From FunkWhale" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
 				{/if}
 			</h2>
 			<button

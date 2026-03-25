@@ -81,6 +81,10 @@ export interface SearchParams {
 	sort?: 'relevance' | 'date' | 'downloads';
 	page?: number;
 	pageSize?: number;
+	sources?: {
+		ia?: boolean;
+		fw?: boolean;
+	};
 }
 
 export interface SearchResult {

@@ -3,6 +3,7 @@
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
+	import { base } from '$app/paths';
 	import type { Track, SearchParams } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
@@ -34,6 +35,8 @@
 	let searchQuery = '';
 	let selectedCollections: string[] = [];
 	let sortBy: 'relevance' | 'date' | 'downloads' = 'relevance';
+	let sourceIA = true;
+	let sourceFW = true;
 	let currentPage = 1;
 	let pageSize = 50;
 
@@ -97,7 +100,8 @@
 			query: searchQuery,
 			sort: sortBy,
 			page: currentPage,
-			pageSize
+			pageSize,
+			sources: { ia: sourceIA, fw: sourceFW }
 		};
 
 		if (selectedCollections.length > 0) {
@@ -345,6 +349,33 @@
 					{/if}
 				</div>
 
+				<!-- Source Toggles -->
+				<div class="mb-6">
+					<h4 class="text-sm font-semibold mb-2">Sources</h4>
+					<div class="space-y-2">
+						<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+							<input
+								type="checkbox"
+								bind:checked={sourceIA}
+								on:change={() => { if (searchQuery.trim()) handleSearch(); }}
+								class="checkbox checkbox-sm checkbox-primary"
+							/>
+							<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-60" />
+							<span class="text-sm">archive.org</span>
+						</label>
+						<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+							<input
+								type="checkbox"
+								bind:checked={sourceFW}
+								on:change={() => { if (searchQuery.trim()) handleSearch(); }}
+								class="checkbox checkbox-sm checkbox-primary"
+							/>
+							<img src="{base}/funkwhale-icon.svg" alt="FW" class="w-4 h-4 opacity-60" />
+							<span class="text-sm">open.audio</span>
+						</label>
+					</div>
+				</div>
+
 				<!-- Collections (IA only) -->
 				<div class="mb-6">
 					<h4 class="text-sm font-semibold mb-2">Collections <span class="font-normal text-base-content/40">(archive.org)</span></h4>
@@ -428,6 +459,23 @@
 							<button on:click={toggleFilters} class="btn btn-ghost btn-sm btn-square">
 								<Icon icon="solar:close-circle-bold" width="24" />
 							</button>
+						</div>
+					</div>
+
+					<!-- Source Toggles -->
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2">Sources</h4>
+						<div class="space-y-2">
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+								<input type="checkbox" bind:checked={sourceIA} on:change={() => { if (searchQuery.trim()) handleSearch(); }} class="checkbox checkbox-sm checkbox-primary" />
+								<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-60" />
+								<span class="text-sm">archive.org</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded">
+								<input type="checkbox" bind:checked={sourceFW} on:change={() => { if (searchQuery.trim()) handleSearch(); }} class="checkbox checkbox-sm checkbox-primary" />
+								<img src="{base}/funkwhale-icon.svg" alt="FW" class="w-4 h-4 opacity-60" />
+								<span class="text-sm">open.audio</span>
+							</label>
 						</div>
 					</div>
 

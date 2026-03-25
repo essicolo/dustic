@@ -9,20 +9,34 @@ import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './
  * Results are merged with IA results first, then FunkWhale results appended.
  */
 export async function unifiedSearch(params: SearchParams): Promise<SearchResult> {
-	// Search both sources in parallel
-	const [iaResult, fwResult] = await Promise.allSettled([
-		iaSearch(params),
-		fwSearch(params)
-	]);
+	const enableIA = params.sources?.ia !== false;
+	const enableFW = params.sources?.fw !== false;
 
-	const iaItems = iaResult.status === 'fulfilled' ? iaResult.value.items : [];
-	const iaTotal = iaResult.status === 'fulfilled' ? iaResult.value.total : 0;
+	// Search enabled sources in parallel
+	const promises: [Promise<SearchResult> | null, Promise<SearchResult> | null] = [
+		enableIA ? iaSearch(params) : null,
+		enableFW ? fwSearch(params) : null
+	];
 
-	const fwItems = fwResult.status === 'fulfilled' ? fwResult.value.items : [];
-	const fwTotal = fwResult.status === 'fulfilled' ? fwResult.value.total : 0;
+	const settled = await Promise.allSettled(
+		promises.filter((p): p is Promise<SearchResult> => p !== null)
+	);
+
+	// Map results back based on which sources were enabled
+	let iaSettled: PromiseSettledResult<SearchResult> | undefined;
+	let fwSettled: PromiseSettledResult<SearchResult> | undefined;
+	let idx = 0;
+	if (enableIA) iaSettled = settled[idx++];
+	if (enableFW) fwSettled = settled[idx++];
+
+	const iaItems = iaSettled?.status === 'fulfilled' ? iaSettled.value.items : [];
+	const iaTotal = iaSettled?.status === 'fulfilled' ? iaSettled.value.total : 0;
+
+	const fwItems = fwSettled?.status === 'fulfilled' ? fwSettled.value.items : [];
+	const fwTotal = fwSettled?.status === 'fulfilled' ? fwSettled.value.total : 0;
 
 	// Pass through IA errors
-	const error = iaResult.status === 'fulfilled' ? iaResult.value.error : undefined;
+	const error = iaSettled?.status === 'fulfilled' ? iaSettled.value.error : undefined;
 
 	// Interleave results: alternate IA and FW tracks so both sources are visible
 	const merged: typeof iaItems = [];
@@ -35,15 +49,6 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 		if (fw < fwItems.length) {
 			merged.push(fwItems[fw++]);
 		}
-	}
-
-	console.log(`[Sources] IA status: ${iaResult.status}, FW status: ${fwResult.status}`);
-	console.log(`[Sources] Merged: ${iaItems.length} IA + ${fwItems.length} FW = ${merged.length} items`);
-	if (fwItems.length > 0) {
-		console.log(`[Sources] First FW item:`, JSON.stringify({ id: fwItems[0].identifier, title: fwItems[0].title, artist: fwItems[0].artist }));
-	}
-	if (fwResult.status === 'rejected') {
-		console.error(`[Sources] FW search failed:`, (fwResult as PromiseRejectedResult).reason);
 	}
 
 	return {

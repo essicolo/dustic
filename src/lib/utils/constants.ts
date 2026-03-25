@@ -31,6 +31,15 @@ export const DEFAULT_FUNKWHALE_INSTANCES = [
 	{ url: 'https://open.audio', name: 'open.audio', enabled: true }
 ];
 
+export const FUNKWHALE_CATEGORIES = [
+	{ id: 'rock', name: 'Rock' },
+	{ id: 'jazz', name: 'Jazz' },
+	{ id: 'electronic', name: 'Electronic' },
+	{ id: 'classical', name: 'Classical' },
+	{ id: 'hip-hop', name: 'Hip-Hop' },
+	{ id: 'folk', name: 'Folk' }
+];
+
 export const CONFIG = {
 	maxHistorySize: 100,
 	maxQueueSize: 500,

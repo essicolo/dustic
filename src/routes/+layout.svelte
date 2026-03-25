@@ -3,7 +3,7 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
+	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
@@ -13,7 +13,6 @@
 	import { offline } from '$lib/stores/offline';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser, dev } from '$app/environment';
-	import { fetchTags } from '$lib/services/funkwhale';
 	import { sourceStatus } from '$lib/stores/sourceStatus';
 
 	$: currentPath = $page.url.pathname;
@@ -27,8 +26,6 @@
 	// Collapsible state for each source group
 	let iaExpanded = false;
 	let fwExpandedMap: Record<string, boolean> = {};
-	let fwTagsMap: Record<string, string[]> = {};
-	let fwTagsLoading: Record<string, boolean> = {};
 
 	$: funkwhaleInstances = ($settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES).filter(i => i.enabled);
 
@@ -46,27 +43,7 @@
 
 	function toggleFW(url: string) {
 		fwExpandedMap[url] = !fwExpandedMap[url];
-		fwExpandedMap = fwExpandedMap; // trigger reactivity
-
-		// Fetch tags when expanding if not already loaded
-		if (fwExpandedMap[url] && !fwTagsMap[url] && !fwTagsLoading[url]) {
-			loadFWTags(url);
-		}
-	}
-
-	async function loadFWTags(url: string) {
-		fwTagsLoading[url] = true;
-		fwTagsLoading = fwTagsLoading;
-		try {
-			const tags = await fetchTags(url, 8);
-			fwTagsMap[url] = tags;
-			fwTagsMap = fwTagsMap;
-		} catch {
-			fwTagsMap[url] = [];
-			fwTagsMap = fwTagsMap;
-		}
-		fwTagsLoading[url] = false;
-		fwTagsLoading = fwTagsLoading;
+		fwExpandedMap = fwExpandedMap;
 	}
 
 	onMount(async () => {
@@ -308,27 +285,25 @@
 						<Icon icon={fwExpandedMap[instance.url] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 					</button>
 					{#if fwExpandedMap[instance.url]}
+						{@const host = new URL(instance.url).host}
 						<a
-							href="{base}/search?q=music"
+							href="{base}/fw/{host}"
 							on:click={closeSidebar}
 							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+							class:bg-primary={currentPath === `${base}/fw/${host}`}
+							class:text-primary-content={currentPath === `${base}/fw/${host}`}
 						>
-							Browse tracks
+							Recent tracks
 						</a>
-						{#if fwTagsLoading[instance.url]}
-							<div class="pl-8 pr-4 py-1.5 text-xs text-base-content/40">Loading tags...</div>
-						{:else if fwTagsMap[instance.url]?.length}
-							{#each fwTagsMap[instance.url] as tag}
-								<a
-									href="{base}/search?q={encodeURIComponent(tag)}"
-									on:click={closeSidebar}
-									class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70 truncate"
-									title={tag}
-								>
-									{tag}
-								</a>
-							{/each}
-						{/if}
+						{#each FUNKWHALE_CATEGORIES as cat}
+							<a
+								href="{base}/fw/{host}?q={encodeURIComponent(cat.id)}"
+								on:click={closeSidebar}
+								class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+							>
+								{cat.name}
+							</a>
+						{/each}
 					{/if}
 				{/each}
 

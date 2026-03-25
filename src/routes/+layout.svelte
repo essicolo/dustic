@@ -26,7 +26,7 @@
 	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Collapsible state for each source group
-	let iaExpanded = true;
+	let iaExpanded = false;
 	let fwExpandedMap: Record<string, boolean> = {};
 	let fwTagsMap: Record<string, string[]> = {};
 	let fwTagsLoading: Record<string, boolean> = {};
@@ -68,10 +68,6 @@
 		}
 		fwTagsLoading[url] = false;
 		fwTagsLoading = fwTagsLoading;
-	}
-
-	function isFWExpanded(url: string): boolean {
-		return fwExpandedMap[url] ?? false;
 	}
 
 	onMount(async () => {
@@ -290,7 +286,6 @@
 
 				<!-- FunkWhale instances (each collapsible) -->
 				{#each funkwhaleInstances as instance}
-					{@const fwExpanded = isFWExpanded(instance.url)}
 					<button
 						on:click={() => toggleFW(instance.url)}
 						class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
@@ -299,9 +294,9 @@
 							<span>{instance.name}</span>
 							<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-4 h-4 opacity-40" />
 						</div>
-						<Icon icon={fwExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
+						<Icon icon={fwExpandedMap[instance.url] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 					</button>
-					{#if fwExpanded}
+					{#if fwExpandedMap[instance.url]}
 						<a
 							href="{base}/search?q=music"
 							on:click={closeSidebar}

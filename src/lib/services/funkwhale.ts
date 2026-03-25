@@ -298,6 +298,143 @@ export async function getAlbumTracks(
 }
 
 /**
+ * Search tracks by artist on a FunkWhale instance
+ */
+export async function searchByArtist(
+	instanceUrl: string,
+	artistId: number,
+	excludeIdentifier?: string
+): Promise<Track[]> {
+	const baseUrl = normalizeUrl(instanceUrl);
+	const url = `${baseUrl}/api/v1/tracks/?artist=${artistId}&page_size=20&ordering=-creation_date`;
+
+	try {
+		const data: FWPaginatedResponse<FWTrack> = await withCache(
+			`fw:artist-tracks:${baseUrl}:${artistId}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+				return response.json();
+			},
+			10 * 60 * 1000
+		);
+
+		return data.results
+			.filter((t) => t.uploads.length > 0)
+			.map((t) => toTrack(t, baseUrl))
+			.filter((t) => t.identifier !== excludeIdentifier);
+	} catch (error: any) {
+		console.warn(`[FW] Failed to search by artist:`, error?.message || error);
+		return [];
+	}
+}
+
+/**
+ * Search tracks by tag on a FunkWhale instance
+ */
+export async function searchByTag(
+	instanceUrl: string,
+	tag: string,
+	excludeIdentifier?: string
+): Promise<Track[]> {
+	const baseUrl = normalizeUrl(instanceUrl);
+	const url = `${baseUrl}/api/v1/tracks/?tag=${encodeURIComponent(tag)}&page_size=20&ordering=-creation_date`;
+
+	try {
+		const data: FWPaginatedResponse<FWTrack> = await withCache(
+			`fw:tag-tracks:${baseUrl}:${tag}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+				return response.json();
+			},
+			10 * 60 * 1000
+		);
+
+		return data.results
+			.filter((t) => t.uploads.length > 0)
+			.map((t) => toTrack(t, baseUrl))
+			.filter((t) => t.identifier !== excludeIdentifier);
+	} catch (error: any) {
+		console.warn(`[FW] Failed to search by tag:`, error?.message || error);
+		return [];
+	}
+}
+
+/**
+ * Fetch popular tags from a FunkWhale instance
+ */
+export async function fetchTags(
+	instanceUrl: string,
+	limit: number = 10
+): Promise<string[]> {
+	const baseUrl = normalizeUrl(instanceUrl);
+	const url = `${baseUrl}/api/v1/tags/?page_size=${limit}&ordering=-length`;
+
+	try {
+		const data = await withCache(
+			`fw:tags:${baseUrl}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+				return response.json();
+			},
+			30 * 60 * 1000 // Cache tags for 30 minutes
+		);
+
+		const results = data.results || data || [];
+		return results.map((t: any) => t.name || t).filter(Boolean);
+	} catch (error: any) {
+		console.warn(`[FW] Failed to fetch tags from ${baseUrl}:`, error?.message || error);
+		return [];
+	}
+}
+
+/**
+ * Get random tracks from a FunkWhale instance
+ */
+export async function getRandomTracks(
+	instanceUrl: string,
+	pageSize: number = 20
+): Promise<Track[]> {
+	const baseUrl = normalizeUrl(instanceUrl);
+	const url = `${baseUrl}/api/v1/tracks/?page_size=${pageSize}&ordering=-creation_date`;
+
+	try {
+		const data: FWPaginatedResponse<FWTrack> = await withCache(
+			`fw:random:${baseUrl}`,
+			async () => {
+				const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+				return response.json();
+			},
+			5 * 60 * 1000
+		);
+
+		return data.results
+			.filter((t) => t.uploads.length > 0)
+			.map((t) => toTrack(t, baseUrl));
+	} catch (error: any) {
+		console.warn(`[FW] Failed to get random tracks:`, error?.message || error);
+		return [];
+	}
+}
+
+/**
+ * Extract instance URL and metadata from a FunkWhale track
+ */
+export function parseFunkwhaleTrack(track: Track): {
+	instanceUrl: string;
+	trackId: number;
+	artistId?: number;
+	albumId?: number;
+} | null {
+	if (!isFunkwhaleTrack(track.identifier)) return null;
+	return {
+		instanceUrl: track.metadata?.funkwhaleInstance || '',
+		trackId: track.metadata?.funkwhaleTrackId || 0,
+		artistId: track.metadata?.funkwhaleArtistId,
+		albumId: track.metadata?.funkwhaleAlbumId
+	};
+}
+
+/**
  * Check if an identifier is a FunkWhale track
  */
 export function isFunkwhaleTrack(identifier: string): boolean {

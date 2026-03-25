@@ -13,6 +13,7 @@
 	import { offline } from '$lib/stores/offline';
 	import { onMount } from 'svelte';
 	import { browser, dev } from '$app/environment';
+	import { fetchTags } from '$lib/services/funkwhale';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -25,6 +26,8 @@
 	// Collapsible state for each source group
 	let iaExpanded = true;
 	let fwExpandedMap: Record<string, boolean> = {};
+	let fwTagsMap: Record<string, string[]> = {};
+	let fwTagsLoading: Record<string, boolean> = {};
 
 	$: funkwhaleInstances = ($settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES).filter(i => i.enabled);
 
@@ -43,6 +46,26 @@
 	function toggleFW(url: string) {
 		fwExpandedMap[url] = !fwExpandedMap[url];
 		fwExpandedMap = fwExpandedMap; // trigger reactivity
+
+		// Fetch tags when expanding if not already loaded
+		if (fwExpandedMap[url] && !fwTagsMap[url] && !fwTagsLoading[url]) {
+			loadFWTags(url);
+		}
+	}
+
+	async function loadFWTags(url: string) {
+		fwTagsLoading[url] = true;
+		fwTagsLoading = fwTagsLoading;
+		try {
+			const tags = await fetchTags(url, 8);
+			fwTagsMap[url] = tags;
+			fwTagsMap = fwTagsMap;
+		} catch {
+			fwTagsMap[url] = [];
+			fwTagsMap = fwTagsMap;
+		}
+		fwTagsLoading[url] = false;
+		fwTagsLoading = fwTagsLoading;
 	}
 
 	function isFWExpanded(url: string): boolean {
@@ -273,8 +296,21 @@
 							on:click={closeSidebar}
 							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
 						>
-							Browse music
+							Browse all
 						</a>
+						{#if fwTagsLoading[instance.url]}
+							<div class="pl-8 pr-4 py-1.5 text-xs text-base-content/40">Loading tags...</div>
+						{:else if fwTagsMap[instance.url]?.length}
+							{#each fwTagsMap[instance.url] as tag}
+								<a
+									href="{base}/search?q={encodeURIComponent(tag)}"
+									on:click={closeSidebar}
+									class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+								>
+									{tag}
+								</a>
+							{/each}
+						{/if}
 					{/if}
 				{/each}
 

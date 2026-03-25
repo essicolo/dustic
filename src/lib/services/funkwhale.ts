@@ -24,7 +24,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 
 	try {
 		// Try v2 endpoint first (FunkWhale 2.0+)
-		const response = await fetch(`${baseUrl}/api/v2/recordings/?page_size=1`, {
+		const response = await fetch(`${baseUrl}/api/v2/tracks/?page_size=1`, {
 			method: 'GET',
 			signal: AbortSignal.timeout(5000)
 		});
@@ -60,7 +60,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 
 /** Get the tracks/recordings endpoint path for the detected API version */
 function tracksPath(version: ApiVersion): string {
-	return version === 'v2' ? '/api/v2/recordings/' : '/api/v1/tracks/';
+	return version === 'v2' ? '/api/v2/tracks/' : '/api/v1/tracks/';
 }
 
 /** Get the search query parameter name for the detected API version */
@@ -78,6 +78,13 @@ interface FWArtist {
 	content_category?: string;
 }
 
+interface FWArtistCredit {
+	artist: FWArtist;
+	credit: string;
+	joinphrase: string;
+	index: number;
+}
+
 interface FWCover {
 	uuid?: string;
 	urls?: {
@@ -91,9 +98,8 @@ interface FWAlbum {
 	id?: number;
 	guid?: string;
 	title?: string;
-	name?: string; // v2 uses 'name' instead of 'title'
 	artist?: FWArtist;
-	artistCredit?: Array<{ name: string; guid?: string }>;
+	artist_credit?: FWArtistCredit[];
 	cover?: FWCover;
 	release_date?: string;
 	tracks_count?: number;
@@ -111,20 +117,15 @@ interface FWTrack {
 	id?: number;
 	guid?: string;
 	title?: string;
-	name?: string; // v2 uses 'name' instead of 'title'
-	artist?: FWArtist;
-	artistCredit?: Array<{ name: string; guid?: string }>;
+	artist?: FWArtist; // v1
+	artist_credit?: FWArtistCredit[]; // v2
 	album?: FWAlbum | number;
-	release?: FWAlbum; // v2 uses 'release' instead of 'album'
 	uploads?: FWUpload[];
 	creation_date?: string;
-	creationDate?: string; // v2 uses camelCase
 	position?: number;
 	disc_number?: number;
 	is_playable?: boolean;
-	playable?: boolean; // v2
 	listen_url?: string;
-	listenUrl?: string; // v2 uses camelCase
 	duration?: number;
 	tags?: string[];
 }
@@ -190,27 +191,27 @@ function cleanQueryForFW(query: string): string {
 function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const baseUrl = normalizeUrl(instanceUrl);
 
-	// Handle v1 vs v2 field names
-	const trackTitle = fwTrack.title || fwTrack.name || 'Unknown';
+	const trackTitle = fwTrack.title || 'Unknown';
 	const trackId = fwTrack.id || fwTrack.guid || 0;
-	const creationDate = fwTrack.creation_date || fwTrack.creationDate;
-	const rawListenUrl = fwTrack.listen_url || fwTrack.listenUrl;
+	const creationDate = fwTrack.creation_date;
+	const rawListenUrl = fwTrack.listen_url;
 	const uploads = fwTrack.uploads || [];
 	const upload = uploads[0];
 
-	// Artist: v1 uses 'artist', v2 uses 'artistCredit'
+	// Artist: v1 uses 'artist', v2 uses 'artist_credit' array
 	const artistName = fwTrack.artist?.name
-		|| fwTrack.artistCredit?.[0]?.name
+		|| fwTrack.artist_credit?.[0]?.credit
+		|| fwTrack.artist_credit?.[0]?.artist?.name
 		|| 'Unknown Artist';
-	const artistId = fwTrack.artist?.id || fwTrack.artist?.guid;
+	const artistId = fwTrack.artist?.id
+		|| fwTrack.artist_credit?.[0]?.artist?.id;
 
-	// Album: v1 uses 'album', v2 uses 'release'
-	const albumObj = fwTrack.release
-		|| (typeof fwTrack.album === 'object' ? fwTrack.album : undefined);
-	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : (albumObj?.id || albumObj?.guid);
-	const albumTitle = albumObj?.title || albumObj?.name;
+	// Album object (v1 and v2 both use 'album')
+	const albumObj = typeof fwTrack.album === 'object' ? fwTrack.album : undefined;
+	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : albumObj?.id;
+	const albumTitle = albumObj?.title;
 
-	// Build stream URL
+	// Build stream URL (listen_url is relative in v2, e.g. /api/v2/listen/<uuid>/)
 	const streamRaw = rawListenUrl || upload?.listen_url || '';
 	const streamUrl = streamRaw
 		? streamRaw.startsWith('http')
@@ -218,7 +219,7 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 			: `${baseUrl}${streamRaw}`
 		: '';
 
-	// Cover art
+	// Cover art (v2 uses S3 presigned URLs which are already absolute)
 	const coverUrl = albumObj?.cover?.urls?.medium_square_crop
 		|| albumObj?.cover?.urls?.original
 		|| undefined;
@@ -296,7 +297,7 @@ async function searchInstance(
 
 		const fwTracks = data.results || [];
 		const tracks = fwTracks
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.playable || t.is_playable)
+			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl));
 
 		console.log(`[FW] Found ${tracks.length} tracks on ${baseUrl} (total: ${data.count})`);
@@ -373,7 +374,7 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 		);
 
 		// v1 requires uploads, v2 may use 'playable' flag
-		if (!fwTrack.uploads?.length && !fwTrack.playable && !fwTrack.is_playable) {
+		if (!fwTrack.uploads?.length && !fwTrack.is_playable && !fwTrack.listen_url) {
 			console.warn(`[FW] Track ${trackId} has no uploads and is not playable`);
 			return null;
 		}
@@ -408,7 +409,7 @@ export async function getAlbumTracks(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.playable)
+			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl));
 	} catch (error: any) {
 		console.warn(`[FW] Failed to fetch album tracks:`, error?.message || error);
@@ -440,7 +441,7 @@ export async function searchByArtist(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.playable)
+			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl))
 			.filter((t) => t.identifier !== excludeIdentifier);
 	} catch (error: any) {
@@ -473,7 +474,7 @@ export async function searchByTag(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.playable)
+			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl))
 			.filter((t) => t.identifier !== excludeIdentifier);
 	} catch (error: any) {
@@ -483,13 +484,35 @@ export async function searchByTag(
 }
 
 /**
- * Discover popular tags by fetching recent tracks and counting their tags.
+ * Discover popular tags. Tries the dedicated /api/v2/tags/ endpoint first,
+ * falls back to extracting tags from recent tracks.
  */
 export async function fetchTags(
 	instanceUrl: string,
 	limit: number = 8
 ): Promise<string[]> {
 	const baseUrl = normalizeUrl(instanceUrl);
+
+	// Try dedicated tags endpoint first (v2)
+	try {
+		const tagsUrl = `${baseUrl}/api/v2/tags/?ordering=-length&page_size=${limit}`;
+		const data: FWPaginatedResponse<{ name: string }> = await withCache(
+			`fw:tags-api:${baseUrl}`,
+			async () => {
+				const response = await fetchWithRetry(tagsUrl, {}, { maxAttempts: 2 });
+				return response.json();
+			},
+			30 * 60 * 1000
+		);
+
+		if (data.results?.length) {
+			return data.results.map((t) => t.name);
+		}
+	} catch {
+		// tags endpoint not available, fall back
+	}
+
+	// Fallback: extract tags from recent tracks
 	const apiVersion = await detectApiVersion(baseUrl);
 	const path = tracksPath(apiVersion);
 	const url = `${baseUrl}${path}?page_size=50&ordering=-creation_date`;
@@ -504,7 +527,6 @@ export async function fetchTags(
 			30 * 60 * 1000
 		);
 
-		// Count tag occurrences across all tracks
 		const tagCounts = new Map<string, number>();
 		for (const track of data.results || []) {
 			for (const tag of track.tags || []) {
@@ -513,7 +535,6 @@ export async function fetchTags(
 			}
 		}
 
-		// Sort by frequency and return top tags
 		return [...tagCounts.entries()]
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, limit)
@@ -547,7 +568,7 @@ export async function getRandomTracks(
 		);
 
 		return data.results
-			.filter((t) => (t.uploads && t.uploads.length > 0) || t.playable)
+			.filter((t) => (t.uploads && t.uploads.length > 0) || t.is_playable || t.listen_url)
 			.map((t) => toTrack(t, baseUrl));
 	} catch (error: any) {
 		console.warn(`[FW] Failed to get random tracks:`, error?.message || error);

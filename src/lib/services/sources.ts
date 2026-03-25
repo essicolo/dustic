@@ -37,6 +37,15 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 		}
 	}
 
+	console.log(`[Sources] IA status: ${iaResult.status}, FW status: ${fwResult.status}`);
+	console.log(`[Sources] Merged: ${iaItems.length} IA + ${fwItems.length} FW = ${merged.length} items`);
+	if (fwItems.length > 0) {
+		console.log(`[Sources] First FW item:`, JSON.stringify({ id: fwItems[0].identifier, title: fwItems[0].title, artist: fwItems[0].artist }));
+	}
+	if (fwResult.status === 'rejected') {
+		console.error(`[Sources] FW search failed:`, (fwResult as PromiseRejectedResult).reason);
+	}
+
 	return {
 		items: merged,
 		total: iaTotal + fwTotal,

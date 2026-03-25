@@ -108,6 +108,10 @@
 			const result = await searchAPI(params);
 			results = result.items;
 			totalResults = result.total;
+			const fwCount = result.items.filter((i: any) => i.identifier?.startsWith('fw:')).length;
+			if (fwCount > 0) {
+				console.log(`[Search] ${result.items.length} total results (${fwCount} from FunkWhale)`);
+			}
 
 			// Show specific errors (e.g., dark/restricted items)
 			if (result.error) {

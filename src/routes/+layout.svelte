@@ -3,7 +3,8 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
+	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
+	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
@@ -20,7 +21,12 @@
 	let showHeader = true;
 	let lastScrollY = 0;
 	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
-	let collectionsExpanded = true; // Collections section collapsible state
+
+	// Collapsible state for each source group
+	let iaExpanded = true;
+	let fwExpandedMap: Record<string, boolean> = {};
+
+	$: funkwhaleInstances = ($settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES).filter(i => i.enabled);
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -30,8 +36,17 @@
 		isSidebarOpen = false;
 	}
 
-	function toggleCollections() {
-		collectionsExpanded = !collectionsExpanded;
+	function toggleIA() {
+		iaExpanded = !iaExpanded;
+	}
+
+	function toggleFW(url: string) {
+		fwExpandedMap[url] = !fwExpandedMap[url];
+		fwExpandedMap = fwExpandedMap; // trigger reactivity
+	}
+
+	function isFWExpanded(url: string): boolean {
+		return fwExpandedMap[url] ?? false;
 	}
 
 	onMount(async () => {
@@ -212,20 +227,25 @@
 
 				<div class="border-t border-base-300 my-3"></div>
 
-				<!-- Collapsible Collections Section -->
+				<!-- Sources heading -->
+				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+					Sources
+				</div>
+
+				<!-- Internet Archive (collapsible) -->
 				<button
-					on:click={toggleCollections}
-					class="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider hover:text-base-content/60 transition-colors"
+					on:click={toggleIA}
+					class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
 				>
-					<span>Collections</span>
-					<Icon icon={collectionsExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" />
+					<span>archive.org</span>
+					<Icon icon={iaExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
 				</button>
-				{#if collectionsExpanded}
+				{#if iaExpanded}
 					{#each POPULAR_COLLECTIONS as collection}
 						<a
 							href="{base}/collection/{collection.id}"
 							on:click={closeSidebar}
-							class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
+							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
 							class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
 							class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
 						>
@@ -233,6 +253,30 @@
 						</a>
 					{/each}
 				{/if}
+
+				<!-- FunkWhale instances (each collapsible) -->
+				{#each funkwhaleInstances as instance}
+					{@const fwExpanded = isFWExpanded(instance.url)}
+					<button
+						on:click={() => toggleFW(instance.url)}
+						class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
+					>
+						<div class="flex items-center gap-1.5">
+							<span>{instance.name}</span>
+							<span class="badge badge-xs badge-outline opacity-40">FW</span>
+						</div>
+						<Icon icon={fwExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
+					</button>
+					{#if fwExpanded}
+						<a
+							href="{base}/search?q=music"
+							on:click={closeSidebar}
+							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
+						>
+							Browse music
+						</a>
+					{/if}
+				{/each}
 
 				<div class="border-t border-base-300 my-3"></div>
 

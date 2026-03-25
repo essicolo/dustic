@@ -147,7 +147,7 @@
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
 			<h3 class="card-title mb-4">
-				<Icon icon="solar:global-bold" width="24" />
+				<img src="/funkwhale-icon.svg" alt="FunkWhale" class="w-6 h-6" />
 				FunkWhale Sources
 			</h3>
 			<p class="text-sm text-base-content/70 mb-4">

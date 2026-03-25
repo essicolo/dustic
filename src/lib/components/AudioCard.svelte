@@ -123,6 +123,9 @@
 	$: thumb = isFW
 		? ((item as any).thumbnailUrl || '')
 		: getThumbnailUrl(item.identifier);
+	$: sourceName = isFW
+		? (item.identifier.split(':')[1] || 'FunkWhale')
+		: 'Internet Archive';
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;
@@ -321,7 +324,9 @@
 			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
 				{#if isFW}
-					<img src="/funkwhale-icon.svg" alt="FunkWhale" title="From FunkWhale" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
+					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
+				{:else}
+					<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
 				{/if}
 			</h2>
 			<button

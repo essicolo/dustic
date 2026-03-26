@@ -218,22 +218,21 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : albumObj?.id;
 	const albumTitle = albumObj?.title;
 
-	// Build stream URL via server-side proxy.
-	// The v2 listen endpoint REQUIRES ?upload= query param, which is often missing
-	// from search results. Our /api/fw-listen proxy resolves the correct URL server-side.
-	// If we have a direct URL with ?upload=, use it; otherwise use the proxy.
+	// Build stream URL.
+	// Only tracks with uploads can be played — is_playable:false means no audio file exists.
+	// The v2 listen endpoint REQUIRES ?upload= query param in the URL.
 	let streamUrl = '';
-	const trackIdNum = fwTrack.id;
 	if (upload?.listen_url) {
-		// Upload listen_url includes ?upload= — use directly via CORS proxy
+		// Upload listen_url includes ?upload= — the reliable path
 		const raw = upload.listen_url;
 		streamUrl = raw.startsWith('http') ? raw : `${baseUrl}${raw}`;
 	} else if (rawListenUrl && rawListenUrl.includes('upload=')) {
 		streamUrl = rawListenUrl.startsWith('http') ? rawListenUrl : `${baseUrl}${rawListenUrl}`;
-	} else if (trackIdNum) {
-		// No upload URL available — use server-side proxy that resolves uploads
-		streamUrl = `/api/fw-listen?instance=${encodeURIComponent(baseUrl)}&track=${trackIdNum}`;
+	} else if (fwTrack.is_playable && rawListenUrl) {
+		// Track is marked playable but no upload data — try server proxy as fallback
+		streamUrl = `/api/fw-listen?instance=${encodeURIComponent(baseUrl)}&track=${fwTrack.id}`;
 	}
+	// If is_playable:false and no uploads — genuinely no audio, streamUrl stays empty
 
 	// Cover art - proxy through weserv.nl to avoid OpaqueResponseBlocking on S3 URLs
 	const coverUrl = albumObj?.cover?.urls?.medium_square_crop
@@ -296,7 +295,8 @@ export async function searchInstance(
 	const urlParams = new URLSearchParams({
 		[qParam]: cleanedQuery,
 		page_size: pageSize.toString(),
-		ordering: '-creation_date'
+		ordering: '-creation_date',
+		playable: 'true'
 	});
 
 	const url = `${baseUrl}${path}?${urlParams.toString()}`;
@@ -428,7 +428,7 @@ export async function getAlbumTracks(
 	// Try v1 first - it includes uploads with listen_url
 	for (const version of ['v1', 'v2'] as ApiVersion[]) {
 		const path = tracksPath(version);
-		const url = `${baseUrl}${path}?album=${albumId}&page_size=100&ordering=position`;
+		const url = `${baseUrl}${path}?album=${albumId}&page_size=100&ordering=position&playable=true`;
 
 		try {
 			const data: FWPaginatedResponse<FWTrack> = await withCache(
@@ -465,7 +465,7 @@ export async function searchByArtist(
 	const baseUrl = normalizeUrl(instanceUrl);
 	const apiVersion = await detectApiVersion(baseUrl);
 	const path = tracksPath(apiVersion);
-	const url = `${baseUrl}${path}?artist=${artistId}&page_size=20&ordering=-creation_date`;
+	const url = `${baseUrl}${path}?artist=${artistId}&page_size=20&ordering=-creation_date&playable=true`;
 
 	try {
 		const data: FWPaginatedResponse<FWTrack> = await withCache(
@@ -497,7 +497,7 @@ export async function searchByTag(
 	const baseUrl = normalizeUrl(instanceUrl);
 	const apiVersion = await detectApiVersion(baseUrl);
 	const path = tracksPath(apiVersion);
-	const url = `${baseUrl}${path}?tag=${encodeURIComponent(tag)}&page_size=20&ordering=-creation_date`;
+	const url = `${baseUrl}${path}?tag=${encodeURIComponent(tag)}&page_size=20&ordering=-creation_date&playable=true`;
 
 	try {
 		const data: FWPaginatedResponse<FWTrack> = await withCache(
@@ -595,7 +595,7 @@ export async function getRandomTracks(
 	const baseUrl = normalizeUrl(instanceUrl);
 	const apiVersion = await detectApiVersion(baseUrl);
 	const path = tracksPath(apiVersion);
-	const url = `${baseUrl}${path}?page_size=${pageSize}&ordering=-creation_date`;
+	const url = `${baseUrl}${path}?page_size=${pageSize}&ordering=-creation_date&playable=true`;
 
 	try {
 		const data: FWPaginatedResponse<FWTrack> = await withCache(

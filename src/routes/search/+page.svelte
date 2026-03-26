@@ -81,7 +81,8 @@
 	}
 
 	async function handleSearch() {
-		if (!searchQuery.trim()) {
+		const hasFilters = selectedContentType || selectedTag;
+		if (!searchQuery.trim() && !hasFilters) {
 			results = [];
 			totalResults = 0;
 			isTyping = false;
@@ -93,8 +94,13 @@
 		isTyping = false;
 		error = '';
 
+		// Use tag or content type name as fallback query when search box is empty
+		const effectiveQuery = searchQuery.trim()
+			|| selectedTag
+			|| (selectedContentType ? CONTENT_TYPES.find(ct => ct.id === selectedContentType)?.name.toLowerCase() || '' : '');
+
 		const params: SearchParams = {
-			query: searchQuery,
+			query: effectiveQuery,
 			sort: sortBy,
 			page: currentPage,
 			pageSize,
@@ -144,18 +150,14 @@
 		selectedContentType = selectedContentType === id ? '' : id;
 		// Clear tag when switching content types (tags differ per type)
 		selectedTag = '';
-		if (searchQuery.trim()) {
-			currentPage = 1;
-			handleSearch();
-		}
+		currentPage = 1;
+		handleSearch();
 	}
 
 	function selectTag(tag: string) {
 		selectedTag = selectedTag === tag ? '' : tag;
-		if (searchQuery.trim()) {
-			currentPage = 1;
-			handleSearch();
-		}
+		currentPage = 1;
+		handleSearch();
 	}
 
 	async function resolveTrack(identifier: string): Promise<Track | null> {

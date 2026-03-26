@@ -13,8 +13,8 @@
 			<h2 class="text-xl font-semibold mb-3">What is Dustic?</h2>
 			<p class="text-base-content/80 leading-relaxed">
 				Dustic is a minimalist audio player that streams music, audiobooks, podcasts, and other audio
-				content directly from the Internet Archive. Browse millions of free audio recordings, from
-				live concerts to historical radio programs, all in a clean, modern interface.
+				content from the Internet Archive and FunkWhale. Browse millions of free audio recordings,
+				from live concerts to historical radio programs, all in a clean, modern interface.
 			</p>
 		</section>
 
@@ -67,31 +67,55 @@
 
 		<!-- Data Source -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Audio Source</h2>
-			<p class="text-base-content/80 leading-relaxed mb-3">
-				All audio content is streamed from the <strong>Internet Archive</strong> (archive.org), a
-				non-profit digital library offering free access to millions of historical and cultural
-				artifacts. Dustic does not host any audio files - it simply provides a convenient interface
-				to discover and play content from the Internet Archive's vast collection.
-			</p>
-			<a
-				href="https://archive.org"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="link link-primary"
-			>
-				Visit Internet Archive
-			</a>
+			<h2 class="text-xl font-semibold mb-3">Audio Sources</h2>
+			<div class="space-y-4 text-base-content/80 leading-relaxed">
+				<div>
+					<h3 class="font-semibold text-base-content mb-1">Internet Archive</h3>
+					<p class="mb-2">
+						The <strong>Internet Archive</strong> (archive.org) is a non-profit digital library offering
+						free access to millions of historical and cultural artifacts, including live concerts,
+						audiobooks, podcasts, and radio programs.
+					</p>
+					<a
+						href="https://archive.org"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="link link-primary text-sm"
+					>
+						Visit archive.org
+					</a>
+				</div>
+				<div>
+					<h3 class="font-semibold text-base-content mb-1">FunkWhale</h3>
+					<p class="mb-2">
+						<strong>FunkWhale</strong> is a decentralized, community-driven music platform.
+						You can connect to public FunkWhale instances in Settings to search and stream
+						their music libraries alongside Internet Archive content.
+					</p>
+					<a
+						href="https://funkwhale.audio"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="link link-primary text-sm"
+					>
+						Visit funkwhale.audio
+					</a>
+				</div>
+				<p class="text-sm text-base-content/60">
+					Dustic does not host any audio files. It provides a unified interface to discover
+					and play content from these sources.
+				</p>
+			</div>
 		</section>
 
 		<!-- Content Disclaimer -->
 		<section class="card bg-base-200 p-6 border-l-4 border-info">
 			<h2 class="text-xl font-semibold mb-3">Content Disclaimer</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				All content available through Dustic is served directly from the Internet Archive.
-				The creator of Dustic is not responsible for the content, accuracy, or availability
-				of any audio files or metadata provided by the Internet Archive. Questions or concerns
-				about specific content should be directed to the Internet Archive.
+				All content available through Dustic is served directly from the Internet Archive
+				and connected FunkWhale instances. The creator of Dustic is not responsible for the
+				content, accuracy, or availability of any audio files or metadata provided by these
+				sources.
 			</p>
 		</section>
 

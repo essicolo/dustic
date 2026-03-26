@@ -296,7 +296,7 @@
 				<Icon icon="solar:music-library-2-bold" width="64" class="text-base-content/20 mx-auto" />
 			</div>
 			<h3 class="text-2xl font-bold mb-2">Welcome to Dustic</h3>
-			<p class="text-base-content/60 mb-6">Start exploring music from the Internet Archive</p>
+			<p class="text-base-content/60 mb-6">Start exploring music from the Internet Archive and FunkWhale</p>
 			<div class="flex gap-3 justify-center flex-wrap">
 				<a href="{base}/search" class="btn btn-primary">
 					<Icon icon="solar:magnifer-bold" width="20" />

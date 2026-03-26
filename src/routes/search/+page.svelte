@@ -49,7 +49,6 @@
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
-	let showSearchHelp = false;
 	let shareMessage = '';
 	let showShareToast = false;
 
@@ -257,7 +256,7 @@
 				bind:value={searchQuery}
 				on:input={onSearchInput}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-				placeholder='Try: jazz, creator:"Miles Davis", subject:"live concert"'
+				placeholder="Search for artists, albums, tracks..."
 				class="input input-bordered w-full pr-12"
 				autocomplete="off"
 				enterkeyhint="search"
@@ -275,26 +274,6 @@
 			</div>
 		</div>
 
-		<!-- Search Help -->
-		<button
-			on:click={() => showSearchHelp = !showSearchHelp}
-			class="text-xs text-base-content/50 hover:text-base-content/80 mt-2 flex items-center gap-1"
-		>
-			<Icon icon={showSearchHelp ? 'solar:minus-circle-linear' : 'solar:info-circle-linear'} width="14" />
-			<span>{showSearchHelp ? 'Hide' : 'Show'} search tips</span>
-		</button>
-
-		{#if showSearchHelp}
-			<div class="mt-2 p-3 bg-base-200 rounded-lg text-xs space-y-2">
-				<p class="font-semibold text-sm">Search Tips:</p>
-				<ul class="space-y-1 list-disc list-inside text-base-content/70">
-					<li><code class="bg-base-300 px-1 rounded">creator:"Artist Name"</code> - Search by artist</li>
-					<li><code class="bg-base-300 px-1 rounded">subject:"jazz"</code> - Search by genre/subject</li>
-					<li><code class="bg-base-300 px-1 rounded">"exact phrase"</code> - Search for exact phrase</li>
-					<li><code class="bg-base-300 px-1 rounded">title:album AND creator:artist</code> - Combine searches</li>
-				</ul>
-			</div>
-		{/if}
 	</div>
 
 	<!-- Content Type Tabs -->

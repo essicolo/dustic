@@ -212,47 +212,9 @@ function createPlayerStore() {
 				currentBlobUrl = null;
 			}
 
-			// FunkWhale tracks with direct FW URLs need blob fetch for CORS.
-			// But our /api/fw-listen proxy, blob: URLs, and local URLs don't need this.
-			if (
-				track.source === 'funkwhale' &&
-				track.streamUrl.startsWith('http') &&
-				!track.streamUrl.startsWith('blob:')
-			) {
-				// Direct FW URL (has ?upload= param) - fetch as blob for CORS
-				let fetched = false;
-				const urlsToTry = [
-					track.streamUrl,
-					// Also try via CORS proxy as fallback
-					`/api/cors-proxy?url=${encodeURIComponent(track.streamUrl)}`
-				];
-
-				for (const url of urlsToTry) {
-					try {
-						console.log('[Player] Fetching FW audio:', url);
-						const response = await fetch(url);
-						if (!response.ok) throw new Error(`HTTP ${response.status}`);
-						const contentType = response.headers.get('content-type') || '';
-						if (contentType.includes('text/html') || contentType.includes('application/json')) {
-							throw new Error('Got non-audio response');
-						}
-						const blob = await response.blob();
-						if (blob.size < 1000) throw new Error('Response too small to be audio');
-						currentBlobUrl = URL.createObjectURL(blob);
-						audioElement.src = currentBlobUrl;
-						fetched = true;
-						break;
-					} catch (err) {
-						console.warn('[Player] FW fetch failed:', url, (err as Error).message);
-					}
-				}
-				if (!fetched) {
-					audioElement.src = track.streamUrl;
-				}
-			} else {
-				// IA tracks, /api/fw-listen proxy URLs, blob: URLs - set src directly
-				audioElement.src = track.streamUrl;
-			}
+			// All FW tracks now use /api/fw-listen proxy (local URL, no CORS).
+			// IA tracks, blob: URLs, and proxy URLs all just set src directly.
+			audioElement.src = track.streamUrl;
 
 			audioElement.load();
 			const playPromise = audioElement.play();

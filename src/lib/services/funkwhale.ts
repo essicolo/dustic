@@ -218,21 +218,22 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const albumId = typeof fwTrack.album === 'number' ? fwTrack.album : albumObj?.id;
 	const albumTitle = albumObj?.title;
 
-	// Build stream URL.
-	// Only tracks with uploads can be played — is_playable:false means no audio file exists.
-	// The v2 listen endpoint REQUIRES ?upload= query param in the URL.
+	// Build stream URL — always proxy through /api/fw-listen to avoid CORS and rate-limiting.
+	// The v2 listen endpoint requires ?upload= param and open.audio rate-limits browser requests.
 	let streamUrl = '';
 	if (upload?.listen_url) {
-		// Upload listen_url includes ?upload= — the reliable path
+		// Upload listen_url includes ?upload= — proxy this direct URL
 		const raw = upload.listen_url;
-		streamUrl = raw.startsWith('http') ? raw : `${baseUrl}${raw}`;
+		const absoluteUrl = raw.startsWith('http') ? raw : `${baseUrl}${raw}`;
+		streamUrl = `/api/fw-listen?url=${encodeURIComponent(absoluteUrl)}`;
 	} else if (rawListenUrl && rawListenUrl.includes('upload=')) {
-		streamUrl = rawListenUrl.startsWith('http') ? rawListenUrl : `${baseUrl}${rawListenUrl}`;
-	} else if (fwTrack.is_playable && rawListenUrl) {
-		// Track is marked playable but no upload data — try server proxy as fallback
+		const absoluteUrl = rawListenUrl.startsWith('http') ? rawListenUrl : `${baseUrl}${rawListenUrl}`;
+		streamUrl = `/api/fw-listen?url=${encodeURIComponent(absoluteUrl)}`;
+	} else if (fwTrack.is_playable && fwTrack.id) {
+		// Playable but no upload data — let proxy resolve it
 		streamUrl = `/api/fw-listen?instance=${encodeURIComponent(baseUrl)}&track=${fwTrack.id}`;
 	}
-	// If is_playable:false and no uploads — genuinely no audio, streamUrl stays empty
+	// If not playable and no uploads — no audio exists, streamUrl stays empty
 
 	// Cover art - proxy through weserv.nl to avoid OpaqueResponseBlocking on S3 URLs
 	const coverUrl = albumObj?.cover?.urls?.medium_square_crop

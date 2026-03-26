@@ -340,7 +340,7 @@
 					e.stopPropagation();
 					const artist = (item as any).artist || item.creator || '';
 					if (artist && artist !== 'Unknown Artist') {
-						goto(`${base}/search?q=${encodeURIComponent(artist)}`);
+						goto(`${base}/search?q=${encodeURIComponent('"' + artist + '"')}`);
 					}
 				}}
 				title="Search for more by this artist"

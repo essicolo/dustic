@@ -92,10 +92,12 @@ export function cleanSearchInput(input: string): string {
 		cleaned = cleaned.replace(/"/, '');
 	}
 
-	// Escape Lucene special characters that users don't intend as operators
-	// e.g. "Godspeed You! Black Emperor" — the ! is Lucene NOT
-	// Only escape chars commonly found in artist/album names, not field syntax
-	cleaned = cleaned.replace(/!/g, '\\!');
+	// Escape Lucene special characters outside of quoted strings
+	// e.g. Godspeed You! Black Emperor — the ! is Lucene NOT
+	// Inside quotes, ! is already treated as literal by Lucene
+	cleaned = cleaned.replace(/"[^"]*"/g, (match) => match.replace(/!/g, '\x00'))
+		.replace(/!/g, '\\!')
+		.replace(/\x00/g, '!');
 
 	return cleaned;
 }

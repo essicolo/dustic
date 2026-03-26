@@ -11,9 +11,14 @@ describe('getThumbnailUrl', () => {
 });
 
 describe('cleanSearchInput', () => {
-	it('should escape ! to prevent Lucene NOT operator', () => {
+	it('should escape ! outside quotes to prevent Lucene NOT operator', () => {
 		const result = cleanSearchInput('Godspeed You! Black Emperor');
 		expect(result).toBe('Godspeed You\\! Black Emperor');
+	});
+
+	it('should not escape ! inside quoted phrases', () => {
+		const result = cleanSearchInput('"Godspeed You! Black Emperor"');
+		expect(result).toBe('"Godspeed You! Black Emperor"');
 	});
 
 	it('should balance unmatched quotes', () => {

@@ -83,6 +83,7 @@ export interface SearchParams {
 	pageSize?: number;
 	contentType?: string; // 'music' | 'podcasts' | 'audiobooks' | 'radio'
 	tag?: string; // genre/style tag filter
+	creator?: string; // Filter by creator/artist name (used for "search by artist")
 	sources?: {
 		ia?: boolean;
 		fw?: boolean;

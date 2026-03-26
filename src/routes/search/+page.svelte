@@ -34,6 +34,7 @@
 	import { browser } from '$app/environment';
 
 	let searchQuery = '';
+	let searchCreator = ''; // Artist/creator filter (from artist click)
 	let selectedContentType = '';
 	let selectedTag = '';
 	let sortBy: 'relevance' | 'date' | 'downloads' = 'relevance';
@@ -60,11 +61,16 @@
 		if (browser) {
 			const urlParams = new URLSearchParams(window.location.search);
 			const q = urlParams.get('q');
+			const artist = urlParams.get('artist');
 			const ct = urlParams.get('type');
 			const tag = urlParams.get('tag');
 			if (ct) selectedContentType = ct;
 			if (tag) selectedTag = tag;
-			if (q) {
+			if (artist) {
+				searchCreator = artist;
+				searchQuery = artist; // Show artist name in search box
+				handleSearch();
+			} else if (q) {
 				searchQuery = q;
 				handleSearch();
 			}
@@ -72,9 +78,15 @@
 		}
 	});
 
-	$: if (browser && initialized && !userIsEditing && $page.url.searchParams.get('q')) {
+	$: if (browser && initialized && !userIsEditing) {
 		const q = $page.url.searchParams.get('q');
-		if (q && q !== searchQuery) {
+		const artist = $page.url.searchParams.get('artist');
+		if (artist && artist !== searchCreator) {
+			searchCreator = artist;
+			searchQuery = artist;
+			handleSearch();
+		} else if (q && q !== searchQuery) {
+			searchCreator = '';
 			searchQuery = q;
 			handleSearch();
 		}
@@ -107,6 +119,9 @@
 			sources: { ia: sourceIA, fw: sourceFW }
 		};
 
+		if (searchCreator) {
+			params.creator = searchCreator;
+		}
 		if (selectedContentType) {
 			params.contentType = selectedContentType;
 		}
@@ -131,7 +146,6 @@
 			}
 		} finally {
 			isSearching = false;
-			userIsEditing = false;
 		}
 	}
 
@@ -143,6 +157,7 @@
 	function onSearchInput() {
 		isTyping = true;
 		userIsEditing = true;
+		searchCreator = ''; // Clear artist filter when user edits query
 		debouncedSearch();
 	}
 
@@ -257,6 +272,8 @@
 				type="search"
 				bind:value={searchQuery}
 				on:input={onSearchInput}
+				on:focus={() => { userIsEditing = true; }}
+				on:blur={() => { userIsEditing = false; }}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search for artists, albums, tracks..."
 				class="input input-bordered w-full pr-12"

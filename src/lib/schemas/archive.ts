@@ -24,7 +24,7 @@ export const IASearchResponseSchema = z.object({
 	response: z.object({
 		docs: z.array(z.object({
 			identifier: z.string(),
-			title: z.string().optional(),
+			title: z.union([z.string(), z.array(z.string())]).optional(),
 			creator: z.union([z.string(), z.array(z.string())]).optional(),
 			date: z.string().optional(),
 			subject: z.union([z.string(), z.array(z.string())]).optional(),

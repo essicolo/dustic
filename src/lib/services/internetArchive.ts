@@ -60,7 +60,7 @@ export function invalidateQualityCache(): void {
  * Clean a search input that might be a URL or identifier
  * Strips archive.org URLs, trims whitespace
  */
-function cleanSearchInput(input: string): string {
+export function cleanSearchInput(input: string): string {
 	let cleaned = input.trim();
 
 	// Strip full archive.org URLs
@@ -91,6 +91,13 @@ function cleanSearchInput(input: string): string {
 		// (adding a closing quote would match wrong tokens like `"Pink AND mediatype:audio"`)
 		cleaned = cleaned.replace(/"/, '');
 	}
+
+	// Escape Lucene special characters outside of quoted strings
+	// e.g. Godspeed You! Black Emperor — the ! is Lucene NOT
+	// Inside quotes, ! is already treated as literal by Lucene
+	cleaned = cleaned.replace(/"[^"]*"/g, (match) => match.replace(/!/g, '\x00'))
+		.replace(/!/g, '\\!')
+		.replace(/\x00/g, '!');
 
 	return cleaned;
 }
@@ -218,7 +225,7 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -355,6 +362,11 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 
 	let q = query;
 
+	// Add creator filter for artist searches (exact match)
+	if (params.creator) {
+		q += ` AND creator:"${params.creator}"`;
+	}
+
 	// Only add mediatype filter, no format restrictions
 	q += ` AND mediatype:audio`;
 
@@ -389,7 +401,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -442,7 +454,7 @@ async function searchByCreatorAndDate(creator: string, date: string): Promise<Se
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -482,6 +494,11 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 
 	// Build search query
 	let q = query;
+
+	// Add creator filter for artist searches (exact match)
+	if (params.creator) {
+		q += ` AND creator:"${params.creator}"`;
+	}
 
 	// Add mediatype filter for audio
 	q += ` AND mediatype:audio`;
@@ -541,7 +558,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '', // Will be populated when fetching full metadata
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',

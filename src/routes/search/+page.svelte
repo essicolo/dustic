@@ -131,7 +131,6 @@
 			}
 		} finally {
 			isSearching = false;
-			userIsEditing = false;
 		}
 	}
 
@@ -257,6 +256,8 @@
 				type="search"
 				bind:value={searchQuery}
 				on:input={onSearchInput}
+				on:focus={() => { userIsEditing = true; }}
+				on:blur={() => { userIsEditing = false; }}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search for artists, albums, tracks..."
 				class="input input-bordered w-full pr-12"

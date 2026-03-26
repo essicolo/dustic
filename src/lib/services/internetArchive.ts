@@ -218,7 +218,7 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -389,7 +389,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -442,7 +442,7 @@ async function searchByCreatorAndDate(creator: string, date: string): Promise<Se
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '',
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',
@@ -541,7 +541,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		const items: Track[] = data.response.docs.map((doc) => ({
 			identifier: doc.identifier,
 			filename: '', // Will be populated when fetching full metadata
-			title: doc.title || 'Untitled',
+			title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
 			artist: Array.isArray(doc.creator)
 				? doc.creator[0]
 				: doc.creator || 'Unknown Artist',

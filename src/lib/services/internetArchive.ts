@@ -60,7 +60,7 @@ export function invalidateQualityCache(): void {
  * Clean a search input that might be a URL or identifier
  * Strips archive.org URLs, trims whitespace
  */
-function cleanSearchInput(input: string): string {
+export function cleanSearchInput(input: string): string {
 	let cleaned = input.trim();
 
 	// Strip full archive.org URLs
@@ -91,6 +91,11 @@ function cleanSearchInput(input: string): string {
 		// (adding a closing quote would match wrong tokens like `"Pink AND mediatype:audio"`)
 		cleaned = cleaned.replace(/"/, '');
 	}
+
+	// Escape Lucene special characters that users don't intend as operators
+	// e.g. "Godspeed You! Black Emperor" — the ! is Lucene NOT
+	// Only escape chars commonly found in artist/album names, not field syntax
+	cleaned = cleaned.replace(/!/g, '\\!');
 
 	return cleaned;
 }

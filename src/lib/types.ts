@@ -81,6 +81,8 @@ export interface SearchParams {
 	sort?: 'relevance' | 'date' | 'downloads';
 	page?: number;
 	pageSize?: number;
+	contentType?: string; // 'music' | 'podcasts' | 'audiobooks' | 'radio'
+	tag?: string; // genre/style tag filter
 	sources?: {
 		ia?: boolean;
 		fw?: boolean;

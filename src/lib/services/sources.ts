@@ -3,19 +3,81 @@
 import type { Track, SearchParams, SearchResult } from '$lib/types';
 import { smartSearch as iaSearch, getTrack as iaGetTrack } from './internetArchive';
 import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './funkwhale';
+import { CONTENT_TYPES } from '$lib/utils/constants';
+
+/**
+ * Apply content type filtering to search params.
+ * Maps content types to IA collections and FW tag queries.
+ */
+function applyContentType(params: SearchParams): SearchParams {
+	if (!params.contentType) return params;
+
+	const ct = CONTENT_TYPES.find((t) => t.id === params.contentType);
+	if (!ct) return params;
+
+	const updated = { ...params };
+
+	// Set IA collections from content type (unless already specified)
+	if (!updated.collection?.length && ct.iaCollections.length > 0) {
+		updated.collection = ct.iaCollections;
+	}
+
+	// For FW: prepend content type tags to the query
+	// (FW doesn't support tag filtering in the API, so we add keywords)
+	if (ct.fwTags.length > 0) {
+		// Store FW tags for the FW search to use
+		(updated as any)._fwTags = ct.fwTags;
+	}
+
+	return updated;
+}
+
+/**
+ * Apply tag filter to search params.
+ * Tags are added as keywords to the search query for both sources.
+ */
+function applyTag(params: SearchParams): SearchParams {
+	if (!params.tag) return params;
+
+	const updated = { ...params };
+	// For IA: add subject:"tag" to query
+	// For FW: add tag as keyword
+	const tag = params.tag;
+	if (updated.query) {
+		updated.query = `${updated.query} ${tag}`;
+	} else {
+		updated.query = tag;
+	}
+
+	return updated;
+}
 
 /**
  * Unified search across all sources (Internet Archive + FunkWhale instances)
- * Results are merged with IA results first, then FunkWhale results appended.
+ * Supports content type filtering and tag-based discovery.
  */
 export async function unifiedSearch(params: SearchParams): Promise<SearchResult> {
 	const enableIA = params.sources?.ia !== false;
 	const enableFW = params.sources?.fw !== false;
 
+	// Apply content type and tag filters
+	let enriched = applyContentType(params);
+	enriched = applyTag(enriched);
+
+	// For FW, build a separate query with content type tags if needed
+	const fwParams = { ...enriched };
+	const fwTags = (enriched as any)._fwTags as string[] | undefined;
+	if (fwTags?.length) {
+		// If no query, use first FW tag as the query
+		if (!fwParams.query) {
+			fwParams.query = fwTags[0];
+		}
+	}
+
 	// Search enabled sources in parallel
 	const promises: [Promise<SearchResult> | null, Promise<SearchResult> | null] = [
-		enableIA ? iaSearch(params) : null,
-		enableFW ? fwSearch(params) : null
+		enableIA ? iaSearch(enriched) : null,
+		enableFW ? fwSearch(fwParams) : null
 	];
 
 	const settled = await Promise.allSettled(

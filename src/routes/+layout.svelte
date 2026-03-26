@@ -3,7 +3,7 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES } from '$lib/utils/constants';
+	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES, CONTENT_TYPES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
@@ -228,83 +228,55 @@
 
 				<div class="border-t border-base-300 my-3"></div>
 
-				<!-- Sources heading -->
+				<!-- Browse by content type -->
+				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+					Browse
+				</div>
+
+				{#each CONTENT_TYPES as ct}
+					<a
+						href="{base}/browse/{ct.id}"
+						on:click={closeSidebar}
+						class="flex items-center gap-2.5 px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+						class:bg-primary={currentPath.startsWith(`${base}/browse/${ct.id}`)}
+						class:text-primary-content={currentPath.startsWith(`${base}/browse/${ct.id}`)}
+					>
+						<Icon icon={ct.icon} width="16" class="opacity-70" />
+						{ct.name}
+					</a>
+				{/each}
+
+				<div class="border-t border-base-300 my-3"></div>
+
+				<!-- Sources status -->
 				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
 					Sources
 				</div>
 
-				<!-- Internet Archive (collapsible) -->
-				<button
-					on:click={toggleIA}
-					class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
-				>
-					<div class="flex items-center gap-1.5">
-						<span>archive.org</span>
+				<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
+					<span class="relative inline-block">
+						<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-50" />
+						{#if $sourceStatus.ia === 'online'}
+							<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
+						{:else if $sourceStatus.ia === 'offline'}
+							<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
+						{/if}
+					</span>
+					<span>archive.org</span>
+				</div>
+
+				{#each funkwhaleInstances as instance}
+					<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
 						<span class="relative inline-block">
-							<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-40" />
-							{#if $sourceStatus.ia === 'online'}
+							<img src="{base}/funkwhale-icon.svg" alt="FW" class="w-4 h-4 opacity-50" />
+							{#if $sourceStatus.fw[instance.url] === 'online'}
 								<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
-							{:else if $sourceStatus.ia === 'offline'}
+							{:else if $sourceStatus.fw[instance.url] === 'offline'}
 								<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
 							{/if}
 						</span>
+						<span>{instance.name}</span>
 					</div>
-					<Icon icon={iaExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
-				</button>
-				{#if iaExpanded}
-					{#each POPULAR_COLLECTIONS as collection}
-						<a
-							href="{base}/collection/{collection.id}"
-							on:click={closeSidebar}
-							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
-							class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
-							class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
-						>
-							{collection.name}
-						</a>
-					{/each}
-				{/if}
-
-				<!-- FunkWhale instances (each collapsible) -->
-				{#each funkwhaleInstances as instance}
-					<button
-						on:click={() => toggleFW(instance.url)}
-						class="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-base-300 transition-colors text-sm font-medium"
-					>
-						<div class="flex items-center gap-1.5">
-							<span>{instance.name}</span>
-							<span class="relative inline-block">
-								<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-4 h-4 opacity-40" />
-								{#if $sourceStatus.fw[instance.url] === 'online'}
-									<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
-								{:else if $sourceStatus.fw[instance.url] === 'offline'}
-									<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
-								{/if}
-							</span>
-						</div>
-						<Icon icon={fwExpandedMap[instance.url] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" class="text-base-content/40" />
-					</button>
-					{#if fwExpandedMap[instance.url]}
-						{@const host = new URL(instance.url).host}
-						<a
-							href="{base}/fw/{host}"
-							on:click={closeSidebar}
-							class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
-							class:bg-primary={currentPath === `${base}/fw/${host}`}
-							class:text-primary-content={currentPath === `${base}/fw/${host}`}
-						>
-							Recent tracks
-						</a>
-						{#each FUNKWHALE_CATEGORIES as cat}
-							<a
-								href="{base}/fw/{host}?q={encodeURIComponent(cat.id)}"
-								on:click={closeSidebar}
-								class="block pl-8 pr-4 py-1.5 rounded-lg hover:bg-base-300 transition-all text-sm text-base-content/70"
-							>
-								{cat.name}
-							</a>
-						{/each}
-					{/if}
 				{/each}
 
 				<div class="border-t border-base-300 my-3"></div>

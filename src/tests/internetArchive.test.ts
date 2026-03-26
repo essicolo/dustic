@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { getThumbnailUrl } from '$lib/services/internetArchive';
 
 describe('getThumbnailUrl', () => {
-	it('should return the correct proxied thumbnail URL', () => {
+	it('should return a weserv.nl proxied thumbnail URL', () => {
 		const identifier = 'test_identifier';
-		const expectedUrl = `https://archive.org/services/img/${identifier}`;
 		const result = getThumbnailUrl(identifier);
-		expect(result).toBe(`/api/cors-proxy?url=${encodeURIComponent(expectedUrl)}`);
+		expect(result).toContain('images.weserv.nl');
+		expect(result).toContain(encodeURIComponent(`https://archive.org/services/img/${identifier}`));
 	});
 });

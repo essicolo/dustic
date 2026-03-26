@@ -40,9 +40,9 @@
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
 
-	// Auto-collapse actions on mobile in list view for better space usage
+	// Use collapsed (three-dot menu) for both layouts by default
 	$: effectiveActionsLayout = actionsLayout === 'auto'
-		? (layout === 'list' ? 'collapsed' : 'full')
+		? 'collapsed'
 		: actionsLayout;
 
 	// --- Portal Action for Dropdown ---

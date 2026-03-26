@@ -325,7 +325,7 @@
 		{#each activeTags as tag}
 			<button
 				on:click={() => selectTag(tag)}
-				class="badge badge-md cursor-pointer transition-colors hover:badge-primary"
+				class="badge badge-md cursor-pointer transition-colors hover:bg-base-300"
 				class:badge-primary={selectedTag === tag}
 				class:badge-outline={selectedTag !== tag}
 			>

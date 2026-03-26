@@ -385,7 +385,7 @@
 					<div class="flex flex-wrap gap-2 mt-4">
 						{#each subjects.slice(0, 10) as subject}
 							<button
-								class="badge badge-sm hover:badge-primary transition-colors cursor-pointer"
+								class="badge badge-sm hover:bg-base-300 transition-colors cursor-pointer"
 								on:click={() => goto(`${base}/search?q=subject:"${encodeURIComponent(subject)}"`)}
 								title="Search for more in {subject}"
 							>

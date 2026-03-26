@@ -123,7 +123,7 @@
 			{#each (contentType.tags || POPULAR_TAGS) as tag}
 				<button
 					on:click={() => selectTag(tag)}
-					class="badge badge-lg cursor-pointer transition-colors hover:badge-primary"
+					class="badge badge-lg cursor-pointer transition-colors hover:bg-base-300"
 					class:badge-primary={activeTag === tag}
 					class:badge-outline={activeTag !== tag}
 				>

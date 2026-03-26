@@ -208,10 +208,7 @@
 					class:bg-primary={currentPath.startsWith(`${base}/curated`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/curated`)}
 				>
-					<div class="flex items-center gap-2">
-						<span>Curated</span>
-						<Icon icon="solar:star-bold" width="14" class="text-primary" />
-					</div>
+					Curated
 				</a>
 				<a
 					href="https://dustic.bearblog.dev/"
@@ -220,10 +217,7 @@
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 				>
-					<div class="flex items-center gap-2">
-						<span>Magazine</span>
-						<Icon icon="solar:arrow-right-up-linear" width="14" class="text-base-content/40" />
-					</div>
+					Magazine
 				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
@@ -237,11 +231,10 @@
 					<a
 						href="{base}/browse/{ct.id}"
 						on:click={closeSidebar}
-						class="flex items-center gap-2.5 px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 						class:bg-primary={currentPath.startsWith(`${base}/browse/${ct.id}`)}
 						class:text-primary-content={currentPath.startsWith(`${base}/browse/${ct.id}`)}
 					>
-						<Icon icon={ct.icon} width="16" class="opacity-70" />
 						{ct.name}
 					</a>
 				{/each}

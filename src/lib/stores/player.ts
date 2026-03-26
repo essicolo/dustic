@@ -40,6 +40,8 @@ function createPlayerStore() {
 	let currentBlobUrl: string | null = null;
 	let consecutiveErrors = 0;
 	const MAX_CONSECUTIVE_ERRORS = 3;
+	// Track identifiers that failed playback so autoplay can avoid them
+	const failedIdentifiers = new Set<string>();
 
 	return {
 		subscribe,
@@ -120,6 +122,12 @@ function createPlayerStore() {
 				const error = element.error;
 				console.error('[Player] Audio error:', error?.code, error?.message);
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+
+				// Track failed identifiers so autoplay can avoid them
+				const state = get({ subscribe });
+				if (state.currentTrack) {
+					failedIdentifiers.add(state.currentTrack.identifier);
+				}
 
 				// Auto-skip on playback errors, but stop after MAX_CONSECUTIVE_ERRORS
 				if (error?.code === 4 || error?.code === 2) {
@@ -299,25 +307,34 @@ function createPlayerStore() {
 
 			update((s) => ({ ...s, isLoading: true }));
 
-			try {
-				const nextTrackMeta = await getAutoplayTrack(currentTrack);
-				if (nextTrackMeta) {
+			// Try up to 3 times to find a playable track
+			for (let attempt = 0; attempt < 3; attempt++) {
+				try {
+					const nextTrackMeta = await getAutoplayTrack(currentTrack);
+					if (!nextTrackMeta) break;
+
+					// Skip tracks we already know are broken
+					if (failedIdentifiers.has(nextTrackMeta.identifier)) {
+						console.log(`[Autoplay] Skipping known-failed: ${nextTrackMeta.identifier}`);
+						continue;
+					}
+
 					// Fetch full track data
 					const track = await getTrack(nextTrackMeta.identifier);
-					if (track) {
+					if (track && track.streamUrl) {
 						queue.addToEnd(track);
 						const addedTrack = queue.next();
 						if (addedTrack) {
 							this.play(addedTrack);
+							return;
 						}
 					}
-				} else {
-					update((s) => ({ ...s, isLoading: false, isPlaying: false }));
+				} catch (e) {
+					console.warn('[Autoplay] Attempt failed:', e);
 				}
-			} catch (e) {
-				console.error('Autoplay failed:', e);
-				update((s) => ({ ...s, isLoading: false, isPlaying: false }));
 			}
+
+			update((s) => ({ ...s, isLoading: false, isPlaying: false }));
 		},
 
 		// Skip to previous track

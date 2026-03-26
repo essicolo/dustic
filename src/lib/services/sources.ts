@@ -40,9 +40,13 @@ function applyTag(params: SearchParams): SearchParams {
 	if (!params.tag) return params;
 
 	const updated = { ...params };
-	// For IA: add subject:"tag" to query
-	// For FW: add tag as keyword
 	const tag = params.tag;
+
+	// Don't duplicate if the query already contains the tag
+	if (updated.query && updated.query.toLowerCase().includes(tag.toLowerCase())) {
+		return updated;
+	}
+
 	if (updated.query) {
 		updated.query = `${updated.query} ${tag}`;
 	} else {

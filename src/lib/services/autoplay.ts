@@ -13,11 +13,15 @@ import {
 import { autoplayStore } from '$lib/stores/autoplay';
 import { get } from 'svelte/store';
 
-/** Pick a random item from an array, excluding current track */
-function pickRandom(tracks: Track[], excludeId?: string): Track | null {
-	const filtered = excludeId ? tracks.filter((t) => t.identifier !== excludeId) : tracks;
+/** Pick a random item from an array, excluding specified identifiers */
+function pickRandom(tracks: Track[], excludeIds: Set<string> | string = new Set()): Track | null {
+	const excludeSet = typeof excludeIds === 'string' ? new Set([excludeIds]) : excludeIds;
+	const filtered = tracks.filter((t) => !excludeSet.has(t.identifier));
 	return filtered.length > 0 ? filtered[Math.floor(Math.random() * filtered.length)] : null;
 }
+
+// Tracks already tried by autoplay this session, to avoid repeating
+const autoplayTriedIds = new Set<string>();
 
 // ---- Internet Archive strategies ----
 
@@ -28,7 +32,7 @@ async function iaFindNextInAlbum(currentTrack: Track): Promise<Track | null> {
 			query: `creator:"${currentTrack.artist}" AND title:"${currentTrack.album}"`,
 			pageSize: 20
 		});
-		return pickRandom(result.items, currentTrack.identifier);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -41,7 +45,7 @@ async function iaFindSameArtist(currentTrack: Track): Promise<Track | null> {
 			query: `creator:"${currentTrack.artist}"`,
 			pageSize: 20
 		});
-		return pickRandom(result.items, currentTrack.identifier);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -55,7 +59,7 @@ async function iaFindSimilarGenre(currentTrack: Track): Promise<Track | null> {
 			.map((g) => `subject:"${g}"`)
 			.join(' OR ');
 		const result = await iaSearch({ query: genreQuery, pageSize: 20 });
-		return pickRandom(result.items, currentTrack.identifier);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -68,7 +72,7 @@ async function iaFindSameCollection(currentTrack: Track): Promise<Track | null> 
 			query: `collection:${currentTrack.collection[0]}`,
 			pageSize: 20
 		});
-		return pickRandom(result.items, currentTrack.identifier);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -84,7 +88,7 @@ async function iaFindSameDecade(currentTrack: Track): Promise<Track | null> {
 			query: `date:[${decade} TO ${decade + 9}]`,
 			pageSize: 20
 		});
-		return pickRandom(result.items, currentTrack.identifier);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -97,7 +101,7 @@ async function iaFindRandom(): Promise<Track | null> {
 			sort: 'downloads',
 			pageSize: 100
 		});
-		return pickRandom(result.items);
+		return pickRandom(result.items, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -110,7 +114,7 @@ async function fwFindNextInAlbum(currentTrack: Track): Promise<Track | null> {
 	if (!info?.albumId || !info.instanceUrl) return null;
 	try {
 		const tracks = await getAlbumTracks(info.instanceUrl, info.albumId);
-		return pickRandom(tracks, currentTrack.identifier);
+		return pickRandom(tracks, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -121,7 +125,7 @@ async function fwFindSameArtist(currentTrack: Track): Promise<Track | null> {
 	if (!info?.artistId || !info.instanceUrl) return null;
 	try {
 		const tracks = await searchByArtist(info.instanceUrl, info.artistId, currentTrack.identifier);
-		return pickRandom(tracks);
+		return pickRandom(tracks, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -131,10 +135,9 @@ async function fwFindSimilarGenre(currentTrack: Track): Promise<Track | null> {
 	const info = parseFunkwhaleTrack(currentTrack);
 	if (!info?.instanceUrl || !currentTrack.genre || currentTrack.genre.length === 0) return null;
 	try {
-		// Try each tag until we find results
 		for (const tag of currentTrack.genre.slice(0, 3)) {
 			const tracks = await searchByTag(info.instanceUrl, tag, currentTrack.identifier);
-			const pick = pickRandom(tracks);
+			const pick = pickRandom(tracks, autoplayTriedIds);
 			if (pick) return pick;
 		}
 		return null;
@@ -148,7 +151,7 @@ async function fwFindRandom(currentTrack: Track): Promise<Track | null> {
 	if (!info?.instanceUrl) return null;
 	try {
 		const tracks = await getRandomTracks(info.instanceUrl, 50);
-		return pickRandom(tracks, currentTrack.identifier);
+		return pickRandom(tracks, autoplayTriedIds);
 	} catch {
 		return null;
 	}
@@ -208,6 +211,17 @@ export async function getNextTrack(currentTrack: Track | null): Promise<Track | 
 	// Calculate total weight
 	const totalWeight = enabledRules.reduce((sum, rule) => sum + rule.weight, 0);
 
+	// Add current track to tried set
+	autoplayTriedIds.add(currentTrack.identifier);
+
+	// Prevent the tried set from growing unbounded
+	if (autoplayTriedIds.size > 200) {
+		const entries = [...autoplayTriedIds];
+		autoplayTriedIds.clear();
+		// Keep the most recent 50
+		entries.slice(-50).forEach((id) => autoplayTriedIds.add(id));
+	}
+
 	// Try rules in weighted random order
 	const shuffledRules = [...enabledRules].sort(() => Math.random() - 0.5);
 
@@ -219,6 +233,7 @@ export async function getNextTrack(currentTrack: Track | null): Promise<Track | 
 				try {
 					const track = await strategy(currentTrack);
 					if (track) {
+						autoplayTriedIds.add(track.identifier);
 						console.log(`[Autoplay] Found next track using rule: ${rule.name} (${isFW ? 'FW' : 'IA'})`);
 						return track;
 					}
@@ -237,6 +252,7 @@ export async function getNextTrack(currentTrack: Track | null): Promise<Track | 
 			try {
 				const track = await strategy(currentTrack);
 				if (track) {
+					autoplayTriedIds.add(track.identifier);
 					console.log(`[Autoplay] Found next track using fallback rule: ${rule.name} (${isFW ? 'FW' : 'IA'})`);
 					return track;
 				}

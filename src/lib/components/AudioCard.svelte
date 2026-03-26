@@ -63,31 +63,26 @@
 		if (!actionsButton || !actionsMenu) return;
 
 		const btnRect = actionsButton.getBoundingClientRect();
-		// Get actual menu width instead of using fixed value
-		const menuWidth = actionsMenu.offsetWidth || 224;
 		const gap = 4;
-
-		// Calculate available space
-		const spaceRight = window.innerWidth - btnRect.right;
-		const spaceLeft = btnRect.left;
 
 		// Position vertically below the button
 		const top = btnRect.bottom + window.scrollY + gap;
 		actionsMenu.style.top = `${top}px`;
 
-		// Position horizontally - prefer right-aligned but check for overflow
-		if (spaceRight >= menuWidth) {
-			// Enough space on the right, align menu's right edge with button's right edge
-			actionsMenu.style.right = `${window.innerWidth - btnRect.right}px`;
+		// Force layout so we get the real width
+		const menuWidth = actionsMenu.scrollWidth || actionsMenu.offsetWidth || 224;
+
+		// Always try to right-align (menu's right edge = button's right edge)
+		const rightEdge = window.innerWidth - btnRect.right;
+		const leftEdge = btnRect.right - menuWidth;
+
+		if (leftEdge >= gap) {
+			// Right-aligned fits within viewport
+			actionsMenu.style.right = `${rightEdge}px`;
 			actionsMenu.style.left = 'auto';
-		} else if (spaceLeft >= menuWidth) {
-			// Not enough space on right, align menu's left edge with button's left edge
-			actionsMenu.style.left = `${btnRect.left + window.scrollX}px`;
-			actionsMenu.style.right = 'auto';
 		} else {
-			// Not enough space on either side, align to viewport with padding
-			const left = Math.max(gap, Math.min(btnRect.left + window.scrollX, window.innerWidth - menuWidth - gap));
-			actionsMenu.style.left = `${left}px`;
+			// Doesn't fit right-aligned, pin to left edge of viewport
+			actionsMenu.style.left = `${gap}px`;
 			actionsMenu.style.right = 'auto';
 		}
 	}

@@ -31,7 +31,7 @@ export const CONTENT_TYPES: ContentType[] = [
 	},
 	{
 		id: 'podcasts',
-		name: 'Podcasts & Radio',
+		name: 'Podcasts',
 		icon: 'solar:microphone-3-bold',
 		iaCollections: ['audio_podcast', 'radioprograms'],
 		fwTags: ['podcast', 'radio'],

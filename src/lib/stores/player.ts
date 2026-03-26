@@ -40,8 +40,9 @@ function createPlayerStore() {
 	let currentBlobUrl: string | null = null;
 	let consecutiveErrors = 0;
 	const MAX_CONSECUTIVE_ERRORS = 3;
-	// Track identifiers that failed playback so autoplay can avoid them
-	const failedIdentifiers = new Set<string>();
+	// Track the last track that actually played successfully, so autoplay
+	// can use it as basis instead of a failed track
+	let lastSuccessfulTrack: Track | null = null;
 
 	return {
 		subscribe,
@@ -123,18 +124,14 @@ function createPlayerStore() {
 				console.error('[Player] Audio error:', error?.code, error?.message);
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
 
-				// Track failed identifiers so autoplay can avoid them
-				const state = get({ subscribe });
-				if (state.currentTrack) {
-					failedIdentifiers.add(state.currentTrack.identifier);
-				}
-
 				// Auto-skip on playback errors, but stop after MAX_CONSECUTIVE_ERRORS
 				if (error?.code === 4 || error?.code === 2) {
 					consecutiveErrors++;
 					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
 						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
-						setTimeout(() => this.next(), 500);
+						// Use autoplayNext with last successful track as basis,
+						// NOT the failed track (which would search for the wrong artist)
+						setTimeout(() => this.autoplayNext(), 500);
 					} else {
 						console.warn('[Player] Too many consecutive errors, stopping playback');
 						consecutiveErrors = 0;
@@ -144,6 +141,11 @@ function createPlayerStore() {
 
 			element.addEventListener('loadeddata', () => {
 				consecutiveErrors = 0; // Reset on successful load
+				// Remember this track as last successful for autoplay fallback
+				const state = get({ subscribe });
+				if (state.currentTrack) {
+					lastSuccessfulTrack = state.currentTrack;
+				}
 			});
 
 			element.addEventListener('waiting', () => {});
@@ -303,23 +305,16 @@ function createPlayerStore() {
 		// Get next track via autoplay
 		async autoplayNext() {
 			const state = get({ subscribe });
-			const currentTrack = state.currentTrack;
+			// Use the last successfully played track as basis for autoplay,
+			// NOT the current (possibly failed) track. This prevents autoplay
+			// from searching for the wrong artist after a playback failure.
+			const basisTrack = lastSuccessfulTrack || state.currentTrack;
 
 			update((s) => ({ ...s, isLoading: true }));
 
-			// Try up to 3 times to find a playable track
-			for (let attempt = 0; attempt < 3; attempt++) {
-				try {
-					const nextTrackMeta = await getAutoplayTrack(currentTrack);
-					if (!nextTrackMeta) break;
-
-					// Skip tracks we already know are broken
-					if (failedIdentifiers.has(nextTrackMeta.identifier)) {
-						console.log(`[Autoplay] Skipping known-failed: ${nextTrackMeta.identifier}`);
-						continue;
-					}
-
-					// Fetch full track data
+			try {
+				const nextTrackMeta = await getAutoplayTrack(basisTrack);
+				if (nextTrackMeta) {
 					const track = await getTrack(nextTrackMeta.identifier);
 					if (track && track.streamUrl) {
 						queue.addToEnd(track);
@@ -329,9 +324,9 @@ function createPlayerStore() {
 							return;
 						}
 					}
-				} catch (e) {
-					console.warn('[Autoplay] Attempt failed:', e);
 				}
+			} catch (e) {
+				console.warn('[Autoplay] Failed:', e);
 			}
 
 			update((s) => ({ ...s, isLoading: false, isPlaying: false }));

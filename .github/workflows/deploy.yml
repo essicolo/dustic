@@ -43,6 +43,9 @@ jobs:
       - name: Generate version files
         run: node scripts/generate-version.js
 
+      - name: Generate SvelteKit types
+        run: npx svelte-kit sync
+
       - name: Run tests
         run: npm test
 

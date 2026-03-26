@@ -40,9 +40,10 @@
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
 
-	// Auto-collapse actions on mobile in list view for better space usage
+	// Auto-collapse actions on small screens, full on desktop
+	let windowWidth = 0;
 	$: effectiveActionsLayout = actionsLayout === 'auto'
-		? (layout === 'list' ? 'collapsed' : 'full')
+		? (windowWidth < 640 ? 'collapsed' : 'full')
 		: actionsLayout;
 
 	// --- Portal Action for Dropdown ---
@@ -275,6 +276,8 @@
 		}
 	}
 </script>
+
+<svelte:window bind:innerWidth={windowWidth} />
 
 <div
 	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group"

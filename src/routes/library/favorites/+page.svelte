@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { library } from '$lib/stores/library';
-	import { player, currentTrack } from '$lib/stores/player';
+	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
-	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -18,15 +16,8 @@
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
-	let loadingTrack: string | null = null;
 	let showOfflineOnly = false;
 	let viewMode: 'grid' | 'list' = 'list';
-	let failedImages = new Set<string>(); // Track failed image loads
-
-	function handleImageError(identifier: string) {
-		failedImages.add(identifier);
-		failedImages = failedImages; // Trigger reactivity
-	}
 
 	// Load view preference from localStorage
 	onMount(() => {
@@ -62,40 +53,12 @@
 		isLoading = false;
 	}
 
-	async function playTrack(identifier: string) {
-		loadingTrack = identifier;
-		try {
-			const track = await getTrack(identifier);
-			if (track) {
-				queue.setQueue([track], 0);
-				player.play(track);
-			}
-		} catch (e) {
-			console.error('Failed to play track:', e);
-		} finally {
-			loadingTrack = null;
-		}
-	}
-
 	async function playAll() {
 		const validTracks = tracks.filter((t): t is Track => t !== null);
 		if (validTracks.length > 0) {
 			queue.setQueue(validTracks, 0);
 			player.play(validTracks[0]);
 		}
-	}
-
-	function removeFavorite(trackId: string) {
-		library.toggleFavorite(trackId);
-		tracks = tracks.filter((t) => t?.identifier !== trackId);
-	}
-
-	function isCurrentTrack(identifier: string): boolean {
-		if (!$currentTrack) return false;
-		// Handle chapter identifiers (format: "itemId#index")
-		const currentId = $currentTrack.identifier.split('#')[0];
-		const trackId = identifier.split('#')[0];
-		return currentId === trackId;
 	}
 
 	function setViewMode(mode: 'grid' | 'list') {
@@ -193,49 +156,14 @@
 		<!-- Grid View -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 			{#each filteredTracks as track (track.identifier)}
-				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="tile">
-					<div slot="extra-actions" class="flex items-center gap-2">
-						<button
-							on:click={() => removeFavorite(track.identifier)}
-							class="btn btn-ghost btn-sm btn-circle ml-auto"
-							title="Remove from favorites"
-						>
-							<Icon icon="solar:heart-bold" width="16" className="text-red-500" />
-						</button>
-					</div>
-				</AudioCard>
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="tile" />
 			{/each}
 		</div>
 	{:else}
 		<!-- List View -->
 		<div class="space-y-2">
 			{#each filteredTracks as track (track.identifier)}
-				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list">
-					<div slot="extra-actions" class="ml-auto flex items-center gap-2">
-						<button
-							on:click={() => playTrack(track.identifier)}
-							class="btn btn-sm"
-							class:btn-primary={!isCurrentTrack(track.identifier)}
-							class:btn-ghost={isCurrentTrack(track.identifier)}
-							disabled={loadingTrack === track.identifier}
-						>
-							{#if loadingTrack === track.identifier}
-								<span class="loading loading-spinner loading-xs"></span>
-							{:else if isCurrentTrack(track.identifier)}
-								<Icon icon="solar:pause-bold" width="16" />
-							{:else}
-								<Icon icon="solar:play-bold" width="16" />
-							{/if}
-						</button>
-						<button
-							on:click={() => removeFavorite(track.identifier)}
-							class="btn btn-ghost btn-sm"
-							title="Remove from favorites"
-						>
-							<Icon icon="solar:close-circle-linear" width="16" />
-						</button>
-					</div>
-				</AudioCard>
+				<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list" />
 			{/each}
 		</div>
 	{/if}

@@ -3,6 +3,7 @@
 	import { history } from '$lib/stores/history';
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { player } from '$lib/stores/player';
+	import { settings } from '$lib/stores/settings';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
@@ -47,7 +48,8 @@
 			settings: {
 				volume: $player.volume,
 				repeat: $player.repeat,
-				audioQuality: 'medium' // Default to medium on export if not explicitly stored
+				audioQuality: $settings.audioQuality || 'medium',
+				funkwhaleInstances: $settings.funkwhaleInstances
 			}
 		};
 
@@ -123,6 +125,12 @@
 		// Load settings
 		if (profile.settings) {
 			player.setVolume(profile.settings.volume);
+			if (profile.settings.audioQuality) {
+				settings.setAudioQuality(profile.settings.audioQuality);
+			}
+			if (profile.settings.funkwhaleInstances) {
+				settings.setFunkwhaleInstances(profile.settings.funkwhaleInstances);
+			}
 		}
 	}
 </script>

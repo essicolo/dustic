@@ -3,15 +3,17 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-	import { POPULAR_COLLECTIONS } from '$lib/utils/constants';
+	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES, CONTENT_TYPES } from '$lib/utils/constants';
+	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
 	import { fade } from 'svelte/transition';
 	import { player } from '$lib/stores/player';
 	import { offline } from '$lib/stores/offline';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser, dev } from '$app/environment';
+	import { sourceStatus } from '$lib/stores/sourceStatus';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -20,7 +22,12 @@
 	let showHeader = true;
 	let lastScrollY = 0;
 	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
-	let collectionsExpanded = true; // Collections section collapsible state
+
+	// Collapsible state for each source group
+	let iaExpanded = false;
+	let fwExpandedMap: Record<string, boolean> = {};
+
+	$: funkwhaleInstances = ($settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES).filter(i => i.enabled);
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -30,11 +37,19 @@
 		isSidebarOpen = false;
 	}
 
-	function toggleCollections() {
-		collectionsExpanded = !collectionsExpanded;
+	function toggleIA() {
+		iaExpanded = !iaExpanded;
+	}
+
+	function toggleFW(url: string) {
+		fwExpandedMap[url] = !fwExpandedMap[url];
+		fwExpandedMap = fwExpandedMap;
 	}
 
 	onMount(async () => {
+		// Start source availability monitoring
+		sourceStatus.start();
+
 		// Initialize offline storage
 		offline.loadOfflineTracks();
 
@@ -103,6 +118,7 @@
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
 			if (scrollTimeout) clearTimeout(scrollTimeout);
+			sourceStatus.stop();
 		};
 	});
 </script>
@@ -122,7 +138,7 @@
 				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
 				<h1 class="text-lg font-semibold">Dustic</h1>
 			</div>
-			<div class="w-12 flex-shrink-0"></div><!-- Spacer for symmetry -->
+			<div class="w-12 flex-shrink-0"></div>
 		</div>
 
 		<!-- Overlay for mobile -->
@@ -192,10 +208,7 @@
 					class:bg-primary={currentPath.startsWith(`${base}/curated`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/curated`)}
 				>
-					<div class="flex items-center gap-2">
-						<span>Curated</span>
-						<Icon icon="solar:star-bold" width="14" class="text-primary" />
-					</div>
+					Curated
 				</a>
 				<a
 					href="https://dustic.bearblog.dev/"
@@ -204,35 +217,60 @@
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 				>
-					<div class="flex items-center gap-2">
-						<span>Magazine</span>
-						<Icon icon="solar:arrow-right-up-linear" width="14" class="text-base-content/40" />
-					</div>
+					Magazine
 				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
 
-				<!-- Collapsible Collections Section -->
-				<button
-					on:click={toggleCollections}
-					class="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider hover:text-base-content/60 transition-colors"
-				>
-					<span>Collections</span>
-					<Icon icon={collectionsExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="14" />
-				</button>
-				{#if collectionsExpanded}
-					{#each POPULAR_COLLECTIONS as collection}
-						<a
-							href="{base}/collection/{collection.id}"
-							on:click={closeSidebar}
-							class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm"
-							class:bg-primary={currentPath === `${base}/collection/${collection.id}`}
-							class:text-primary-content={currentPath === `${base}/collection/${collection.id}`}
-						>
-							{collection.name}
-						</a>
-					{/each}
-				{/if}
+				<!-- Browse by content type -->
+				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+					Browse
+				</div>
+
+				{#each CONTENT_TYPES as ct}
+					<a
+						href="{base}/browse/{ct.id}"
+						on:click={closeSidebar}
+						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
+						class:bg-primary={currentPath.startsWith(`${base}/browse/${ct.id}`)}
+						class:text-primary-content={currentPath.startsWith(`${base}/browse/${ct.id}`)}
+					>
+						{ct.name}
+					</a>
+				{/each}
+
+				<div class="border-t border-base-300 my-3"></div>
+
+				<!-- Sources status -->
+				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+					Sources
+				</div>
+
+				<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
+					<span class="relative inline-block">
+						<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-50" />
+						{#if $sourceStatus.ia === 'online'}
+							<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
+						{:else if $sourceStatus.ia === 'offline'}
+							<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
+						{/if}
+					</span>
+					<span>archive.org</span>
+				</div>
+
+				{#each funkwhaleInstances as instance}
+					<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
+						<span class="relative inline-block">
+							<img src="{base}/funkwhale-icon.svg" alt="FW" class="w-4 h-4 opacity-50" />
+							{#if $sourceStatus.fw[instance.url] === 'online'}
+								<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
+							{:else if $sourceStatus.fw[instance.url] === 'offline'}
+								<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
+							{/if}
+						</span>
+						<span>{instance.name}</span>
+					</div>
+				{/each}
 
 				<div class="border-t border-base-300 my-3"></div>
 

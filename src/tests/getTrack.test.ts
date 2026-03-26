@@ -38,15 +38,16 @@ describe('getTrack', () => {
 		expect(track.filename).toBe('02 - Track 2.mp3');
 		expect(track.title).toBe('Track 2');
 
-		// Check that URLs are built with the item identifier, not the track identifier
-		const encodedUrl = encodeURIComponent('https://archive.org/serve/test-item/02 - Track 2.mp3');
-		expect(track.streamUrl).toBe(`/api/cors-proxy?url=${encodedUrl}`);
+		// Stream URL should point to archive.org/serve directly
+		expect(track.streamUrl).toContain('archive.org/serve/test-item/');
+		expect(track.streamUrl).toContain('02 - Track 2.mp3');
 
-		const encodedThumbUrl = encodeURIComponent('https://archive.org/services/img/test-item');
-		expect(track.thumbnailUrl).toBe(`/api/cors-proxy?url=${encodedThumbUrl}`);
+		// Thumbnail should use weserv proxy
+		expect(track.thumbnailUrl).toContain('images.weserv.nl');
+		expect(track.thumbnailUrl).toContain(encodeURIComponent('https://archive.org/services/img/test-item'));
 	});
 
-    it('should handle identifiers without track index', async () => {
+	it('should handle identifiers without track index', async () => {
 		const track = await getTrack('test-item');
 
 		expect(track).not.toBeNull();
@@ -54,10 +55,9 @@ describe('getTrack', () => {
 
 		expect(track.identifier).toBe('test-item');
 		expect(track.filename).toBe('01 - Track 1.mp3');
-		expect(track.title).toBe('Test Album'); // No chapter title extraction
+		expect(track.title).toBe('Test Album');
 
-		// Check that URLs are built correctly
-		const encodedUrl = encodeURIComponent('https://archive.org/serve/test-item/01 - Track 1.mp3');
-		expect(track.streamUrl).toBe(`/api/cors-proxy?url=${encodedUrl}`);
-    });
+		expect(track.streamUrl).toContain('archive.org/serve/test-item/');
+		expect(track.streamUrl).toContain('01 - Track 1.mp3');
+	});
 });

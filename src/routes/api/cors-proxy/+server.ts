@@ -3,6 +3,8 @@ import type { RequestHandler } from './$types';
 const ALLOWED_DOMAINS = [
 	'archive.org',
 	'*.archive.org',
+	'open.audio',
+	'*.funkwhale.audio',
 	'ia600000.us.archive.org',
 	'ia600001.us.archive.org',
 	'ia600002.us.archive.org',

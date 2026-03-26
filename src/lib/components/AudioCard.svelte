@@ -10,7 +10,8 @@
 	import { player } from '$lib/stores/player';
 
 	// Services & Utils
-	import { getTrack, getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
+	import { getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { shareTrack } from '$lib/utils/share';
 
 	// Components
@@ -19,6 +20,7 @@
 
 	// Types
 	import type { ArchiveItem, Track } from '$lib/types';
+	import { isFunkwhaleTrack } from '$lib/services/funkwhale';
 
 	export let item: ArchiveItem;
 	export let type: 'album' | 'track' = 'album';
@@ -38,9 +40,10 @@
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
 
-	// Auto-collapse actions on mobile in list view for better space usage
+	// Auto-collapse actions on small screens, full on desktop
+	let windowWidth = 0;
 	$: effectiveActionsLayout = actionsLayout === 'auto'
-		? (layout === 'list' ? 'collapsed' : 'full')
+		? (windowWidth < 640 ? 'collapsed' : 'full')
 		: actionsLayout;
 
 	// --- Portal Action for Dropdown ---
@@ -61,31 +64,26 @@
 		if (!actionsButton || !actionsMenu) return;
 
 		const btnRect = actionsButton.getBoundingClientRect();
-		// Get actual menu width instead of using fixed value
-		const menuWidth = actionsMenu.offsetWidth || 224;
 		const gap = 4;
-
-		// Calculate available space
-		const spaceRight = window.innerWidth - btnRect.right;
-		const spaceLeft = btnRect.left;
 
 		// Position vertically below the button
 		const top = btnRect.bottom + window.scrollY + gap;
 		actionsMenu.style.top = `${top}px`;
 
-		// Position horizontally - prefer right-aligned but check for overflow
-		if (spaceRight >= menuWidth) {
-			// Enough space on the right, align menu's right edge with button's right edge
-			actionsMenu.style.right = `${window.innerWidth - btnRect.right}px`;
+		// Force layout so we get the real width
+		const menuWidth = actionsMenu.scrollWidth || actionsMenu.offsetWidth || 224;
+
+		// Always try to right-align (menu's right edge = button's right edge)
+		const rightEdge = window.innerWidth - btnRect.right;
+		const leftEdge = btnRect.right - menuWidth;
+
+		if (leftEdge >= gap) {
+			// Right-aligned fits within viewport
+			actionsMenu.style.right = `${rightEdge}px`;
 			actionsMenu.style.left = 'auto';
-		} else if (spaceLeft >= menuWidth) {
-			// Not enough space on right, align menu's left edge with button's left edge
-			actionsMenu.style.left = `${btnRect.left + window.scrollX}px`;
-			actionsMenu.style.right = 'auto';
 		} else {
-			// Not enough space on either side, align to viewport with padding
-			const left = Math.max(gap, Math.min(btnRect.left + window.scrollX, window.innerWidth - menuWidth - gap));
-			actionsMenu.style.left = `${left}px`;
+			// Doesn't fit right-aligned, pin to left edge of viewport
+			actionsMenu.style.left = `${gap}px`;
 			actionsMenu.style.right = 'auto';
 		}
 	}
@@ -117,14 +115,31 @@
 
 	$: isFavorite = $library.favorites.includes(item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
-	$: thumb = getThumbnailUrl(item.identifier);
+	$: isFW = isFunkwhaleTrack(item.identifier);
+	$: thumb = isFW
+		? ((item as any).thumbnailUrl || '')
+		: getThumbnailUrl(item.identifier);
+	$: sourceName = isFW
+		? (item.identifier.split(':')[1] || 'FunkWhale')
+		: 'Internet Archive';
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;
 		isFetching = true;
 		try {
 			let fetchedTracks: Track[] = [];
-			if (type === 'album') {
+			if (isFW) {
+				// FW tracks from search already have full data with streamUrl.
+				// Re-fetching via getTrack() loses uploads (v2 API doesn't return them).
+				// Use item data directly if it has a streamUrl.
+				const cached = item as any;
+				if (cached.streamUrl) {
+					fetchedTracks = [cached as Track];
+				} else {
+					const track = await getTrack(item.identifier);
+					if (track) fetchedTracks = [track];
+				}
+			} else if (type === 'album') {
 				fetchedTracks = await getAllTracks(item.identifier);
 			} else {
 				const track = await getTrack(item.identifier);
@@ -200,7 +215,7 @@
 	}
 
 	function handleNavigate() {
-		if (type === 'album') {
+		if (type === 'album' && !isFW) {
 			goto(`${base}/item/${item.identifier}`);
 		} else {
 			handlePlay();
@@ -262,6 +277,8 @@
 	}
 </script>
 
+<svelte:window bind:innerWidth={windowWidth} />
+
 <div
 	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group"
 	class:card-side={layout === 'list'}
@@ -311,6 +328,11 @@
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
 			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
 				{item.title}
+				{#if isFW}
+					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
+				{:else}
+					<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
+				{/if}
 			</h2>
 			<button
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
@@ -318,7 +340,11 @@
 					e.stopPropagation();
 					const artist = (item as any).artist || item.creator || '';
 					if (artist && artist !== 'Unknown Artist') {
-						goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+						if (isFW) {
+							goto(`${base}/search?q=${encodeURIComponent(artist)}`);
+						} else {
+							goto(`${base}/search?q=creator:"${encodeURIComponent(artist)}"`);
+						}
 					}
 				}}
 				title="Search for more by this artist"

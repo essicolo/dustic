@@ -3,6 +3,7 @@
 	import { history } from '$lib/stores/history';
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { player } from '$lib/stores/player';
+	import { settings } from '$lib/stores/settings';
 	import { offline } from '$lib/stores/offline';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
@@ -57,7 +58,8 @@
 			settings: {
 				volume: $player.volume,
 				repeat: $player.repeat,
-				audioQuality: 'medium'
+				audioQuality: $settings.audioQuality || 'medium',
+				funkwhaleInstances: $settings.funkwhaleInstances
 			}
 		};
 
@@ -140,6 +142,12 @@
 		// Load settings
 		if (profile.settings) {
 			player.setVolume(profile.settings.volume);
+			if (profile.settings.audioQuality) {
+				settings.setAudioQuality(profile.settings.audioQuality);
+			}
+			if (profile.settings.funkwhaleInstances) {
+				settings.setFunkwhaleInstances(profile.settings.funkwhaleInstances);
+			}
 		}
 	}
 </script>
@@ -287,7 +295,7 @@
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:settings-bold" width="20" className="text-base-content/70 flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Settings</strong> - Volume and repeat mode preferences
+						<strong>Settings</strong> - Volume, audio quality, and source configuration
 					</div>
 				</li>
 			</ul>

@@ -5,7 +5,8 @@ import type { Track } from '$lib/types';
 import { queue } from './queue';
 import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
-import { getTrack } from '$lib/services/internetArchive';
+import { unifiedGetTrack as getTrack } from '$lib/services/sources';
+import { offlineStorage } from '$lib/services/offlineStorage';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -36,6 +37,12 @@ function createPlayerStore() {
 	// Audio element reference (will be set from component)
 	let audioElement: HTMLAudioElement | null = null;
 	let iosAudioUnlocked = false;
+	let currentBlobUrl: string | null = null;
+	let consecutiveErrors = 0;
+	const MAX_CONSECUTIVE_ERRORS = 3;
+	// Track the last track that actually played successfully, so autoplay
+	// can use it as basis instead of a failed track
+	let lastSuccessfulTrack: Track | null = null;
 
 	return {
 		subscribe,
@@ -114,45 +121,59 @@ function createPlayerStore() {
 
 			element.addEventListener('error', (e) => {
 				const error = element.error;
-				console.error('[Player] Audio error event:', {
-					code: error?.code,
-					message: error?.message,
-					MEDIA_ERR_ABORTED: error?.code === 1,
-					MEDIA_ERR_NETWORK: error?.code === 2,
-					MEDIA_ERR_DECODE: error?.code === 3,
-					MEDIA_ERR_SRC_NOT_SUPPORTED: error?.code === 4
-				});
+				console.error('[Player] Audio error:', error?.code, error?.message);
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+
+				// Auto-skip on playback errors, but stop after MAX_CONSECUTIVE_ERRORS
+				if (error?.code === 4 || error?.code === 2) {
+					consecutiveErrors++;
+					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
+						// Use autoplayNext with last successful track as basis,
+						// NOT the failed track (which would search for the wrong artist)
+						setTimeout(() => this.autoplayNext(), 500);
+					} else {
+						console.warn('[Player] Too many consecutive errors, stopping playback');
+						consecutiveErrors = 0;
+					}
+				}
 			});
 
 			element.addEventListener('loadeddata', () => {
-				console.log('[Player] Audio loadeddata - ready to play');
+				consecutiveErrors = 0; // Reset on successful load
+				// Remember this track as last successful for autoplay fallback
+				const state = get({ subscribe });
+				if (state.currentTrack) {
+					lastSuccessfulTrack = state.currentTrack;
+				}
 			});
 
-			element.addEventListener('waiting', () => {
-				console.log('[Player] Audio waiting - buffering...');
-			});
-
-			element.addEventListener('stalled', () => {
-				console.log('[Player] Audio stalled - network issue?');
-			});
+			element.addEventListener('waiting', () => {});
+			element.addEventListener('stalled', () => {});
 
 			// Set initial volume
 			element.volume = initialState.volume;
 		},
 
 		// Play a track
-		play(track: Track) {
+		async play(track: Track) {
 			if (!audioElement) {
 				console.error('[Player] Audio element not set');
 				return;
 			}
 
-			console.log('[Player] Starting playback:', {
-				title: track.title,
-				streamUrl: track.streamUrl,
-				iosUnlocked: iosAudioUnlocked
-			});
+			// Check if track is available offline (use blob URL instead of remote URL)
+			try {
+				const offlineTrack = await offlineStorage.getOfflineTrack(track.identifier);
+				if (offlineTrack && offlineTrack.streamUrl !== track.streamUrl) {
+					console.log('[Player] Using offline version:', track.title);
+					track = { ...track, streamUrl: offlineTrack.streamUrl };
+				}
+			} catch {
+				// Offline storage not available, continue with original URL
+			}
+
+			console.log('[Player] Playing:', track.title, track.source || 'ia');
 
 			update((state) => ({
 				...state,
@@ -195,26 +216,23 @@ function createPlayerStore() {
 				});
 			}
 
-			console.log('[Player] Setting audio src and loading...');
+			// Revoke previous blob URL to prevent memory leaks
+			if (currentBlobUrl) {
+				URL.revokeObjectURL(currentBlobUrl);
+				currentBlobUrl = null;
+			}
+
+			// All FW tracks now use /api/fw-listen proxy (local URL, no CORS).
+			// IA tracks, blob: URLs, and proxy URLs all just set src directly.
 			audioElement.src = track.streamUrl;
+
 			audioElement.load();
-
-			console.log('[Player] Calling play()...');
 			const playPromise = audioElement.play();
-
 			if (playPromise !== undefined) {
-				playPromise
-					.then(() => {
-						console.log('[Player] Play started successfully');
-					})
-					.catch((error) => {
-						console.error('[Player] Play error:', {
-							name: error.name,
-							message: error.message,
-							code: error.code
-						});
-						update((state) => ({ ...state, isLoading: false }));
-					});
+				playPromise.catch((error) => {
+					console.error('[Player] Play error:', error.message);
+					update((state) => ({ ...state, isLoading: false }));
+				});
 			}
 		},
 
@@ -287,29 +305,31 @@ function createPlayerStore() {
 		// Get next track via autoplay
 		async autoplayNext() {
 			const state = get({ subscribe });
-			const currentTrack = state.currentTrack;
+			// Use the last successfully played track as basis for autoplay,
+			// NOT the current (possibly failed) track. This prevents autoplay
+			// from searching for the wrong artist after a playback failure.
+			const basisTrack = lastSuccessfulTrack || state.currentTrack;
 
 			update((s) => ({ ...s, isLoading: true }));
 
 			try {
-				const nextTrackMeta = await getAutoplayTrack(currentTrack);
+				const nextTrackMeta = await getAutoplayTrack(basisTrack);
 				if (nextTrackMeta) {
-					// Fetch full track data
 					const track = await getTrack(nextTrackMeta.identifier);
-					if (track) {
+					if (track && track.streamUrl) {
 						queue.addToEnd(track);
 						const addedTrack = queue.next();
 						if (addedTrack) {
 							this.play(addedTrack);
+							return;
 						}
 					}
-				} else {
-					update((s) => ({ ...s, isLoading: false, isPlaying: false }));
 				}
 			} catch (e) {
-				console.error('Autoplay failed:', e);
-				update((s) => ({ ...s, isLoading: false, isPlaying: false }));
+				console.warn('[Autoplay] Failed:', e);
 			}
+
+			update((s) => ({ ...s, isLoading: false, isPlaying: false }));
 		},
 
 		// Skip to previous track

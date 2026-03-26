@@ -27,8 +27,7 @@ function createLibraryStore() {
 	const { subscribe, set, update } = writable<LibraryState>(initialState);
 
 	// Helper to trigger auto-save
-	function triggerAutoSave() {
-		const state = get({ subscribe });
+	function triggerAutoSave(state: LibraryState) {
 		const profile = loadFromStorage() || {
 			schemaVersion: 1,
 			exported: Date.now(),
@@ -83,7 +82,7 @@ function createLibraryStore() {
 						: [...state.favorites, trackId],
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},
@@ -120,7 +119,7 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 			return id;
@@ -142,7 +141,7 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},
@@ -155,7 +154,7 @@ function createLibraryStore() {
 					playlists: rest,
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},
@@ -180,7 +179,7 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},
@@ -202,7 +201,7 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},
@@ -228,7 +227,7 @@ function createLibraryStore() {
 					},
 					isDirty: true
 				};
-				triggerAutoSave();
+				triggerAutoSave(newState);
 				return newState;
 			});
 		},

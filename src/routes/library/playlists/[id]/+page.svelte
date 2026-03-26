@@ -5,7 +5,7 @@
 	import { queue } from '$lib/stores/queue';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getTrack } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import type { Track } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';

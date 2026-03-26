@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { browser } from '$app/environment';
-	import { getTrack, getAllTracks } from '$lib/services/internetArchive';
+	import { getAllTracks } from '$lib/services/internetArchive';
+	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { offline } from '$lib/stores/offline';

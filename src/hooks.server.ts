@@ -9,9 +9,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com", // unsafe-eval needed for Eruda debugger
 		"style-src 'self' 'unsafe-inline'",
 		"font-src 'self' data:", // data: needed for Eruda icon fonts
-		"img-src 'self' data: blob: https://archive.org https://*.archive.org https://images.weserv.nl", // Added weserv.nl for thumbnail proxy
-		"media-src 'self' blob: https://archive.org https://*.archive.org",
-		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com https://cloudflareinsights.com https://images.weserv.nl",
+		"img-src 'self' data: blob: https://archive.org https://*.archive.org https://images.weserv.nl https:", // https: needed for FunkWhale instance cover art
+		"media-src 'self' blob: https://archive.org https://*.archive.org https:", // https: needed for FunkWhale instance audio streaming
+		"connect-src 'self' https://archive.org https://*.archive.org https://api.iconify.design https://api.unisvg.com https://api.simplesvg.com https://cloudflareinsights.com https://images.weserv.nl https:", // https: needed for user-configured FunkWhale instances
 		"worker-src 'self' blob:"
 	].join('; ');
 

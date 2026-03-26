@@ -43,7 +43,12 @@ export const UserProfileSchema = z.object({
 	settings: z.object({
 		volume: z.number(),
 		repeat: z.enum(['off', 'one', 'all']),
-		audioQuality: z.enum(['lowest', 'medium', 'best'])
+		audioQuality: z.enum(['lowest', 'medium', 'best']),
+		funkwhaleInstances: z.array(z.object({
+			url: z.string(),
+			name: z.string(),
+			enabled: z.boolean()
+		})).optional()
 	}),
 	favorites: z.array(z.string()),
 	playlists: z.record(z.any()),

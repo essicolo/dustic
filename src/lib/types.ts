@@ -1,7 +1,9 @@
 // Core types for Dustic
 
+export type TrackSource = 'internetarchive' | 'funkwhale';
+
 export interface Track {
-	identifier: string; // IA identifier
+	identifier: string; // IA identifier or fw:<instance>:<id>
 	filename: string; // Audio file
 	title: string;
 	artist: string;
@@ -13,7 +15,14 @@ export interface Track {
 	format: string; // mp3, ogg, etc.
 	streamUrl: string;
 	thumbnailUrl?: string;
-	metadata: Record<string, any>; // raw IA metadata
+	source?: TrackSource; // defaults to 'internetarchive' for backwards compat
+	metadata: Record<string, any>; // raw metadata
+}
+
+export interface FunkwhaleInstance {
+	url: string; // base URL, e.g. https://open.audio
+	name: string; // display name
+	enabled: boolean;
 }
 
 export interface ArchiveItem {
@@ -61,6 +70,7 @@ export interface UserProfile {
 		repeat: 'off' | 'one' | 'all';
 		audioQuality: AudioQuality; // Audio quality preference for streaming and downloads
 		defaultCollection?: string;
+		funkwhaleInstances?: FunkwhaleInstance[];
 	};
 }
 
@@ -71,6 +81,12 @@ export interface SearchParams {
 	sort?: 'relevance' | 'date' | 'downloads';
 	page?: number;
 	pageSize?: number;
+	contentType?: string; // 'music' | 'podcasts' | 'audiobooks' | 'radio'
+	tag?: string; // genre/style tag filter
+	sources?: {
+		ia?: boolean;
+		fw?: boolean;
+	};
 }
 
 export interface SearchResult {

@@ -118,9 +118,9 @@
 			{/each}
 		</div>
 
-		<!-- Tag chips -->
+		<!-- Tag chips (content-type-specific) -->
 		<div class="flex flex-wrap gap-2 mb-6">
-			{#each POPULAR_TAGS as tag}
+			{#each (contentType.tags || POPULAR_TAGS) as tag}
 				<button
 					on:click={() => selectTag(tag)}
 					class="badge badge-lg cursor-pointer transition-colors hover:badge-primary"

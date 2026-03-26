@@ -15,6 +15,7 @@ export interface ContentType {
 	icon: string; // Iconify icon name
 	iaCollections: string[]; // IA collection IDs to search
 	fwTags: string[]; // FW tag/keyword searches
+	tags: string[]; // Discovery tags for this content type
 }
 
 export const CONTENT_TYPES: ContentType[] = [
@@ -23,32 +24,32 @@ export const CONTENT_TYPES: ContentType[] = [
 		name: 'Music',
 		icon: 'solar:music-notes-bold',
 		iaCollections: ['audio_music', 'etree', '78rpm'],
-		fwTags: [] // FW is music by default, no filter needed
+		fwTags: [], // FW is music by default, no filter needed
+		tags: ['rock', 'jazz', 'electronic', 'classical', 'hip-hop', 'folk',
+			'blues', 'ambient', 'punk', 'metal', 'soul', 'reggae',
+			'country', 'latin', 'world', 'experimental']
 	},
 	{
 		id: 'podcasts',
-		name: 'Podcasts',
+		name: 'Podcasts & Radio',
 		icon: 'solar:microphone-3-bold',
-		iaCollections: ['audio_podcast'],
-		fwTags: ['podcast']
+		iaCollections: ['audio_podcast', 'radioprograms'],
+		fwTags: ['podcast', 'radio'],
+		tags: ['interview', 'news', 'comedy', 'politics', 'science',
+			'history', 'technology', 'culture', 'storytelling', 'education']
 	},
 	{
 		id: 'audiobooks',
 		name: 'Audiobooks',
 		icon: 'solar:book-bold',
 		iaCollections: ['librivoxaudio'],
-		fwTags: ['audiobook', 'spoken-word']
-	},
-	{
-		id: 'radio',
-		name: 'Radio',
-		icon: 'solar:radio-bold',
-		iaCollections: ['radioprograms'],
-		fwTags: ['radio']
+		fwTags: ['audiobook', 'spoken-word'],
+		tags: ['fiction', 'poetry', 'drama', 'philosophy', 'science-fiction',
+			'mystery', 'romance', 'adventure', 'classic', 'short-stories']
 	}
 ];
 
-// Popular genre/style tags shown as discovery chips
+// Fallback tags shown when no content type is selected
 export const POPULAR_TAGS = [
 	'rock', 'jazz', 'electronic', 'classical', 'hip-hop', 'folk',
 	'blues', 'ambient', 'punk', 'metal', 'soul', 'reggae',

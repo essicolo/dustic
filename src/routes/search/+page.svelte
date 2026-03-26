@@ -143,6 +143,8 @@
 
 	function selectContentType(id: string) {
 		selectedContentType = selectedContentType === id ? '' : id;
+		// Clear tag when switching content types (tags differ per type)
+		selectedTag = '';
 		if (searchQuery.trim()) {
 			currentPage = 1;
 			handleSearch();
@@ -239,6 +241,9 @@
 
 	$: totalPages = Math.ceil(totalResults / pageSize);
 	$: hasActiveFilters = selectedContentType !== '' || selectedTag !== '' || sortBy !== 'relevance' || !sourceIA || !sourceFW;
+	$: activeTags = selectedContentType
+		? (CONTENT_TYPES.find(ct => ct.id === selectedContentType)?.tags ?? POPULAR_TAGS)
+		: POPULAR_TAGS;
 </script>
 
 <div class="p-4 md:p-8">
@@ -315,9 +320,9 @@
 		{/each}
 	</div>
 
-	<!-- Tag Chips -->
+	<!-- Tag Chips (content-type-aware) -->
 	<div class="flex flex-wrap gap-1.5 mb-4">
-		{#each POPULAR_TAGS as tag}
+		{#each activeTags as tag}
 			<button
 				on:click={() => selectTag(tag)}
 				class="badge badge-md cursor-pointer transition-colors hover:badge-primary"

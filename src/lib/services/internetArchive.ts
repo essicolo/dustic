@@ -83,6 +83,15 @@ function cleanSearchInput(input: string): string {
 	// (remove space between field name colon and quoted value)
 	cleaned = cleaned.replace(/\b(creator|subject|title|identifier|collection|mediatype|format):\s+"/gi, '$1:"');
 
+	// Balance unmatched quotes to prevent IA query parser errors
+	// (common during search-as-you-type: user types `"Pink Floyd"` character by character)
+	const quoteCount = (cleaned.match(/"/g) || []).length;
+	if (quoteCount % 2 !== 0) {
+		// Remove the unmatched quote rather than adding one
+		// (adding a closing quote would match wrong tokens like `"Pink AND mediatype:audio"`)
+		cleaned = cleaned.replace(/"/, '');
+	}
+
 	return cleaned;
 }
 

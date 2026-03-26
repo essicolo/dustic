@@ -18,6 +18,15 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
@@ -31,20 +40,15 @@ jobs:
           NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH"
           npm version $NEW_VERSION --no-git-tag-version
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm install
-
       - name: Generate version files
         run: node scripts/generate-version.js
 
+      - name: Run tests
+        run: npm test
+
       - name: Commit version bump
         run: |
-          git add package.json src/lib/version.ts static/version.json
-          git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]" || true
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          git add package.json package-lock.json src/lib/version.ts static/version.json
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || true
           git push || true

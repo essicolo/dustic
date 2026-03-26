@@ -362,6 +362,11 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 
 	let q = query;
 
+	// Add creator filter for artist searches (exact match)
+	if (params.creator) {
+		q += ` AND creator:"${params.creator}"`;
+	}
+
 	// Only add mediatype filter, no format restrictions
 	q += ` AND mediatype:audio`;
 
@@ -489,6 +494,11 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 
 	// Build search query
 	let q = query;
+
+	// Add creator filter for artist searches (exact match)
+	if (params.creator) {
+		q += ` AND creator:"${params.creator}"`;
+	}
 
 	// Add mediatype filter for audio
 	q += ` AND mediatype:audio`;

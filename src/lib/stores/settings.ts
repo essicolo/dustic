@@ -12,6 +12,7 @@ export interface Settings {
 	repeat: 'off' | 'one' | 'all';
 	defaultCollection?: string;
 	funkwhaleInstances?: FunkwhaleInstance[];
+	favoriteInfluencedAutoplay?: boolean;
 }
 
 // Load from storage or use defaults
@@ -132,6 +133,17 @@ function createSettingsStore() {
 						i.url === url ? { ...i, enabled: !i.enabled } : i
 					)
 				};
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		/**
+		 * Toggle favorites-influenced autoplay
+		 */
+		setFavoriteInfluencedAutoplay(enabled: boolean) {
+			update((state) => {
+				const newState = { ...state, favoriteInfluencedAutoplay: enabled };
 				saveSettings(newState);
 				return newState;
 			});

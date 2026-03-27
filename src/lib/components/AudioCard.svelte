@@ -113,7 +113,7 @@
 	}
 
 
-	$: isFavorite = $library.favorites.includes(item.identifier);
+	$: isFavorite = $library.favorites.some((f) => f.id === item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: isFW = isFunkwhaleTrack(item.identifier);
 	$: thumb = isFW
@@ -198,7 +198,7 @@
 	function handleToggleFavorite(e: Event) {
 		e.stopPropagation();
 		showActions = false;
-		library.toggleFavorite(item.identifier);
+		library.toggleFavorite(item.identifier, type === 'album' ? 'album' : 'track');
 	}
 
 	function handleAddToPlaylist(e: Event, playlistId: string) {

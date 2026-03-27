@@ -71,6 +71,7 @@ export const AUDIO_FORMATS = ['mp3', 'ogg', 'flac', 'wav', 'm4a', 'aac', 'aiff',
 export const DEFAULT_AUTOPLAY_RULES = [
 	{ id: 'same-album', name: 'Same Album', enabled: true, weight: 60 },
 	{ id: 'same-artist', name: 'Same Artist', enabled: true, weight: 30 },
+	{ id: 'from-favorites', name: 'From Favorites', enabled: true, weight: 10 },
 	{ id: 'similar-genre', name: 'Similar Genre', enabled: true, weight: 8 },
 	{ id: 'same-collection', name: 'Same Collection', enabled: false, weight: 0 },
 	{ id: 'same-decade', name: 'Same Decade', enabled: false, weight: 0 },

@@ -2,6 +2,14 @@
 
 export type TrackSource = 'internetarchive' | 'funkwhale';
 
+export type FavoriteType = 'track' | 'album';
+
+export interface FavoriteEntry {
+	id: string; // Track identifier or album identifier
+	type: FavoriteType;
+	addedAt: number; // timestamp
+}
+
 export interface Track {
 	identifier: string; // IA identifier or fw:<instance>:<id>
 	filename: string; // Audio file
@@ -61,7 +69,7 @@ export type AudioQuality = 'lowest' | 'medium' | 'best';
 export interface UserProfile {
 	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
-	favorites: string[]; // Track identifiers
+	favorites: FavoriteEntry[];
 	playlists: Record<string, Playlist>;
 	history: HistoryEntry[]; // Last 100
 	autoplayRules: AutoplayRule[]; // Custom rule configuration
@@ -71,6 +79,7 @@ export interface UserProfile {
 		audioQuality: AudioQuality; // Audio quality preference for streaming and downloads
 		defaultCollection?: string;
 		funkwhaleInstances?: FunkwhaleInstance[];
+		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
 	};
 }
 

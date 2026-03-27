@@ -27,14 +27,17 @@ export function importProfile(file: File): Promise<UserProfile> {
 		reader.onload = (e) => {
 			try {
 				const content = e.target?.result as string;
-				const profile = JSON.parse(content) as UserProfile;
+				const raw = JSON.parse(content);
 
-				// Validate profile structure
-				if (!validateProfile(profile)) {
+				// Validate profile structure (basic shape check)
+				if (!validateProfile(raw)) {
 					throw new Error('Invalid profile format');
 				}
 
-				resolve(profile);
+				// Migrate old string[] favorites to FavoriteEntry[] before using as UserProfile
+				migrateFavorites(raw);
+
+				resolve(raw as UserProfile);
 			} catch (error) {
 				reject(new Error('Failed to parse profile file'));
 			}
@@ -46,6 +49,19 @@ export function importProfile(file: File): Promise<UserProfile> {
 
 		reader.readAsText(file);
 	});
+}
+
+/**
+ * Migrate old string[] favorites to FavoriteEntry[] in-place
+ */
+function migrateFavorites(profile: any): void {
+	if (Array.isArray(profile.favorites) && profile.favorites.length > 0 && typeof profile.favorites[0] === 'string') {
+		profile.favorites = profile.favorites.map((id: string) => ({
+			id,
+			type: 'track',
+			addedAt: Date.now()
+		}));
+	}
 }
 
 /**
@@ -70,7 +86,7 @@ function validateProfile(profile: any): profile is UserProfile {
  */
 export function createDefaultProfile(): UserProfile {
 	return {
-		schemaVersion: 1,
+		schemaVersion: 2,
 		exported: Date.now(),
 		favorites: [],
 		playlists: {},
@@ -88,10 +104,19 @@ export function createDefaultProfile(): UserProfile {
  * Merge imported profile with current data
  */
 export function mergeProfiles(current: UserProfile, imported: UserProfile): UserProfile {
+	// Merge favorites: union by id, keep the one with earlier addedAt
+	const favMap = new Map(current.favorites.map((f) => [f.id, f]));
+	for (const f of imported.favorites) {
+		if (!favMap.has(f.id)) {
+			favMap.set(f.id, f);
+		}
+	}
+
 	return {
 		...imported,
-		schemaVersion: 1,
+		schemaVersion: 2,
 		exported: Date.now(),
+		favorites: [...favMap.values()],
 		// Keep newer history entries
 		history: [
 			...imported.history,

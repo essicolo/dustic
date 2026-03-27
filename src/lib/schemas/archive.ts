@@ -37,6 +37,12 @@ export const IASearchResponseSchema = z.object({
 	})
 });
 
+export const FavoriteEntrySchema = z.object({
+	id: z.string(),
+	type: z.enum(['track', 'album']),
+	addedAt: z.number()
+});
+
 export const UserProfileSchema = z.object({
 	schemaVersion: z.number(),
 	exported: z.number(),
@@ -48,9 +54,10 @@ export const UserProfileSchema = z.object({
 			url: z.string(),
 			name: z.string(),
 			enabled: z.boolean()
-		})).optional()
+		})).optional(),
+		favoriteInfluencedAutoplay: z.boolean().optional()
 	}),
-	favorites: z.array(z.string()),
+	favorites: z.array(FavoriteEntrySchema),
 	playlists: z.record(z.any()),
 	history: z.array(z.any()),
 	autoplayRules: z.array(z.any())

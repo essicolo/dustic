@@ -49,7 +49,7 @@
 
 	function handleExport() {
 		const profile: UserProfile = {
-			schemaVersion: 1,
+			schemaVersion: 2,
 			exported: Date.now(),
 			favorites: $library.favorites,
 			playlists: $library.playlists,
@@ -59,7 +59,8 @@
 				volume: $player.volume,
 				repeat: $player.repeat,
 				audioQuality: $settings.audioQuality || 'medium',
-				funkwhaleInstances: $settings.funkwhaleInstances
+				funkwhaleInstances: $settings.funkwhaleInstances,
+				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
 			}
 		};
 
@@ -147,6 +148,9 @@
 			}
 			if (profile.settings.funkwhaleInstances) {
 				settings.setFunkwhaleInstances(profile.settings.funkwhaleInstances);
+			}
+			if (profile.settings.favoriteInfluencedAutoplay !== undefined) {
+				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
 			}
 		}
 	}

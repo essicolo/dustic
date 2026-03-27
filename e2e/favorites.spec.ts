@@ -18,33 +18,37 @@ test.describe('Favorites', () => {
 	});
 
 	test('favorites persist in localStorage', async ({ page }) => {
-		// Inject a favorite directly into localStorage
+		// Inject a favorite directly into localStorage using new FavoriteEntry format
 		await page.goto('/');
 		await page.evaluate(() => {
 			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
 			profile.favorites = profile.favorites || [];
-			if (!profile.favorites.includes('test-track-123')) {
-				profile.favorites.push('test-track-123');
+			const exists = profile.favorites.some((f: any) => f.id === 'test-track-123');
+			if (!exists) {
+				profile.favorites.push({ id: 'test-track-123', type: 'track', addedAt: Date.now() });
 			}
 			localStorage.setItem('dustic-profile', JSON.stringify(profile));
 		});
 
 		// Reload and check it persisted
 		await page.reload();
-		const favorites = await page.evaluate(() => {
+		const favoriteIds = await page.evaluate(() => {
 			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			return profile.favorites || [];
+			return (profile.favorites || []).map((f: any) => typeof f === 'string' ? f : f.id);
 		});
-		expect(favorites).toContain('test-track-123');
+		expect(favoriteIds).toContain('test-track-123');
 	});
 
 	test('removing a favorite persists after reload', async ({ page }) => {
-		// Set up a favorite in localStorage
+		// Set up favorites in localStorage using new FavoriteEntry format
 		await page.goto('/');
 		await page.evaluate(() => {
 			const profile = {
-				schemaVersion: 1,
-				favorites: ['track-to-remove', 'track-to-keep'],
+				schemaVersion: 2,
+				favorites: [
+					{ id: 'track-to-remove', type: 'track', addedAt: Date.now() },
+					{ id: 'track-to-keep', type: 'track', addedAt: Date.now() }
+				],
 				playlists: {},
 				history: [],
 				autoplayRules: [],
@@ -59,17 +63,17 @@ test.describe('Favorites', () => {
 		// Simulate removing a favorite via the store
 		await page.evaluate(() => {
 			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			profile.favorites = profile.favorites.filter((id: string) => id !== 'track-to-remove');
+			profile.favorites = profile.favorites.filter((f: any) => f.id !== 'track-to-remove');
 			localStorage.setItem('dustic-profile', JSON.stringify(profile));
 		});
 
 		// Reload and verify persistence
 		await page.reload();
-		const favorites = await page.evaluate(() => {
+		const favoriteIds = await page.evaluate(() => {
 			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			return profile.favorites || [];
+			return (profile.favorites || []).map((f: any) => typeof f === 'string' ? f : f.id);
 		});
-		expect(favorites).not.toContain('track-to-remove');
-		expect(favorites).toContain('track-to-keep');
+		expect(favoriteIds).not.toContain('track-to-remove');
+		expect(favoriteIds).toContain('track-to-keep');
 	});
 });

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { autoplayStore } from '$lib/stores/autoplay';
+	import { settings } from '$lib/stores/settings';
 
 	let draggedIndex: number | null = null;
 
@@ -51,6 +52,24 @@
 				<div class="font-medium">Enable Autoplay</div>
 				<div class="text-sm text-base-content/70">
 					Automatically play similar tracks when queue ends
+				</div>
+			</div>
+		</label>
+	</div>
+
+	<!-- Favorites Influence Toggle -->
+	<div class="alert">
+		<label class="flex items-center gap-3 cursor-pointer w-full">
+			<input
+				type="checkbox"
+				checked={$settings.favoriteInfluencedAutoplay !== false}
+				on:change={() => settings.setFavoriteInfluencedAutoplay($settings.favoriteInfluencedAutoplay === false)}
+				class="toggle toggle-primary"
+			/>
+			<div class="flex-1">
+				<div class="font-medium">Use Favorites in Autoplay</div>
+				<div class="text-sm text-base-content/70">
+					Let the "From Favorites" rule pick tracks from your favorites
 				</div>
 			</div>
 		</label>

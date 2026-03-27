@@ -31,12 +31,14 @@ describe('library store', () => {
 		await library.toggleFavorite('track-1');
 
 		let state = get(library);
-		expect(state.favorites).toContain('track-1');
+		expect(state.favorites.some((f) => f.id === 'track-1')).toBe(true);
 
 		// Check that auto-save was called with the NEW state (including track-1)
 		expect(scheduleAutoSave).toHaveBeenCalledWith(
 			expect.objectContaining({
-				favorites: expect.arrayContaining(['track-1'])
+				favorites: expect.arrayContaining([
+					expect.objectContaining({ id: 'track-1', type: 'track' })
+				])
 			})
 		);
 
@@ -44,12 +46,14 @@ describe('library store', () => {
 		await library.toggleFavorite('track-1');
 
 		state = get(library);
-		expect(state.favorites).not.toContain('track-1');
+		expect(state.favorites.some((f) => f.id === 'track-1')).toBe(false);
 
 		// Check that auto-save was called with track-1 REMOVED
 		expect(scheduleAutoSave).toHaveBeenLastCalledWith(
 			expect.objectContaining({
-				favorites: expect.not.arrayContaining(['track-1'])
+				favorites: expect.not.arrayContaining([
+					expect.objectContaining({ id: 'track-1' })
+				])
 			})
 		);
 	});

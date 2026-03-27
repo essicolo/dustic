@@ -244,7 +244,7 @@
 							</div>
 							<div class="flex-1">
 								<h4 class="font-semibold">Favorites</h4>
-								<p class="text-sm text-base-content/60">{favorites.length} {favorites.length === 1 ? 'track' : 'tracks'}</p>
+								<p class="text-sm text-base-content/60">{favorites.length} {favorites.length === 1 ? 'item' : 'items'}</p>
 							</div>
 							<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
 						</div>

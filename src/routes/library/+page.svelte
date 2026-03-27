@@ -18,7 +18,7 @@
 		>
 			<div class="card-body">
 				<h3 class="card-title">Favorites</h3>
-				<p class="text-base-content/70">{$library.favorites.length} tracks</p>
+				<p class="text-base-content/70">{$library.favorites.length} items</p>
 			</div>
 		</a>
 	</section>

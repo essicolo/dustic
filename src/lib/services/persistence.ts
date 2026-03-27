@@ -8,7 +8,7 @@ import { UserProfileSchema } from '$lib/schemas/archive';
 const STORAGE_KEY = 'dustic-profile';
 // Storage schema version - only increment when data structure changes (breaking changes)
 // This is SEPARATE from app version and should rarely change
-const STORAGE_SCHEMA_VERSION = 1;
+const STORAGE_SCHEMA_VERSION = 2;
 
 /**
  * Load profile from localStorage
@@ -28,7 +28,18 @@ export function loadFromStorage(): UserProfile | null {
 		// Migrate data if schema changed
 		if (schemaVersion < STORAGE_SCHEMA_VERSION) {
 			console.log(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
-			// Add migration logic here if schema changes in the future
+
+			// v1 → v2: favorites changed from string[] to FavoriteEntry[]
+			if (schemaVersion < 2 && Array.isArray(rawProfile.favorites)) {
+				const oldFavorites = rawProfile.favorites;
+				if (oldFavorites.length > 0 && typeof oldFavorites[0] === 'string') {
+					rawProfile.favorites = oldFavorites.map((id: string) => ({
+						id,
+						type: 'track',
+						addedAt: Date.now()
+					}));
+				}
+			}
 		}
 
 		rawProfile.schemaVersion = STORAGE_SCHEMA_VERSION;

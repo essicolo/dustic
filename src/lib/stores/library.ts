@@ -1,7 +1,7 @@
 // Library store - favorites and playlists
 
 import { writable, get } from 'svelte/store';
-import type { Playlist } from '$lib/types';
+import type { Playlist, FavoriteEntry, FavoriteType } from '$lib/types';
 import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 
 // Simple UUID generator
@@ -10,7 +10,7 @@ function generateId(): string {
 }
 
 export interface LibraryState {
-	favorites: string[]; // Track identifiers
+	favorites: FavoriteEntry[];
 	playlists: Record<string, Playlist>;
 	isDirty: boolean; // Has unsaved changes
 }
@@ -59,16 +59,16 @@ function createLibraryStore() {
 		},
 
 		// Favorites
-		async toggleFavorite(trackId: string) {
+		async toggleFavorite(id: string, favoriteType: FavoriteType = 'track') {
 			const state = get({ subscribe });
-			const isFavorite = state.favorites.includes(trackId);
+			const isFav = state.favorites.some((f) => f.id === id);
 
-			// If removing from favorites, also remove download
-			if (isFavorite) {
+			// If removing a track from favorites, also remove download
+			if (isFav && favoriteType === 'track') {
 				// Import offline store dynamically to avoid circular dependency
 				const { offline } = await import('./offline');
 				try {
-					await offline.deleteTrack(trackId);
+					await offline.deleteTrack(id);
 				} catch (e) {
 					// Ignore if not downloaded
 				}
@@ -77,9 +77,9 @@ function createLibraryStore() {
 			update((state) => {
 				const newState = {
 					...state,
-					favorites: isFavorite
-						? state.favorites.filter((id) => id !== trackId)
-						: [...state.favorites, trackId],
+					favorites: isFav
+						? state.favorites.filter((f) => f.id !== id)
+						: [...state.favorites, { id, type: favoriteType, addedAt: Date.now() }],
 					isDirty: true
 				};
 				triggerAutoSave(newState);
@@ -87,9 +87,14 @@ function createLibraryStore() {
 			});
 		},
 
-		isFavorite(trackId: string): boolean {
+		isFavorite(id: string): boolean {
 			const state = get({ subscribe });
-			return state.favorites.includes(trackId);
+			return state.favorites.some((f) => f.id === id);
+		},
+
+		getFavoritesByType(type: FavoriteType): FavoriteEntry[] {
+			const state = get({ subscribe });
+			return state.favorites.filter((f) => f.type === type);
 		},
 
 		// Playlists
@@ -233,7 +238,7 @@ function createLibraryStore() {
 		},
 
 		// Load from imported profile
-		loadFromProfile(data: { favorites: string[]; playlists: Record<string, Playlist> }) {
+		loadFromProfile(data: { favorites: FavoriteEntry[]; playlists: Record<string, Playlist> }) {
 			update((state) => ({
 				...state,
 				favorites: data.favorites,

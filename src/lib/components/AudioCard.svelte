@@ -113,7 +113,7 @@
 	}
 
 
-	$: isFavorite = $library.favorites.includes(item.identifier);
+	$: isFavorite = $library.favorites.some((f) => f.id === item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: isFW = isFunkwhaleTrack(item.identifier);
 	$: thumb = isFW
@@ -198,7 +198,7 @@
 	function handleToggleFavorite(e: Event) {
 		e.stopPropagation();
 		showActions = false;
-		library.toggleFavorite(item.identifier);
+		library.toggleFavorite(item.identifier, type === 'album' ? 'album' : 'track');
 	}
 
 	function handleAddToPlaylist(e: Event, playlistId: string) {
@@ -326,7 +326,7 @@
 			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
 	>
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
-			<h2 class="card-title {layout === 'list' ? 'line-clamp-2' : 'truncate'} {compact ? 'text-sm' : 'text-base'}">
+			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}" title={item.title}>
 				{item.title}
 				{#if isFW}
 					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />

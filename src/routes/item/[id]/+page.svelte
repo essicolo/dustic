@@ -2,13 +2,13 @@
 	import { page } from '$app/stores';
 	import { getAllTracks, getItemMetadata } from '$lib/services/internetArchive';
 	import { getTrack as fwGetTrack, getAlbumTracks as fwGetAlbumTracks, isFunkwhaleTrack } from '$lib/services/funkwhale';
-	import { player, currentTrack } from '$lib/stores/player';
+	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
 	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
 	import Icon from '@iconify/svelte';
-	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { goto } from '$app/navigation';
@@ -40,6 +40,7 @@
 	}
 
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
+	$: isFavorite = $library.favorites.some((f) => f.id === itemId);
 
 	$: itemId = $page.params.id || '';
 
@@ -114,16 +115,6 @@
 		}
 	}
 
-	async function playTrack(track: Track, index: number) {
-		queue.setQueue(tracks, index);
-		player.play(track);
-
-		// Update URL to include track index
-		const url = new URL(window.location.href);
-		url.searchParams.set('track', index.toString());
-		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
-	}
-
 	async function playAll() {
 		if (tracks.length > 0) {
 			queue.setQueue(tracks, 0);
@@ -181,21 +172,6 @@
 		setTimeout(() => {
 			showShareToast = false;
 		}, 3000);
-	}
-
-	function isCurrentTrack(identifier: string): boolean {
-		if (!$currentTrack) return false;
-		// Handle chapter identifiers (format: "itemId#index")
-		const currentId = $currentTrack.identifier.split('#')[0];
-		const trackId = identifier.split('#')[0];
-		return currentId === trackId;
-	}
-
-	function formatDuration(seconds?: number): string {
-		if (!seconds) return '--:--';
-		const mins = Math.floor(seconds / 60);
-		const secs = Math.floor(seconds % 60);
-		return `${mins}:${String(secs).padStart(2, '0')}`;
 	}
 
 	function getTotalDuration(): string {
@@ -333,6 +309,17 @@
 						<span>Add to Playlist</span>
 					</button>
 					<button
+						on:click={() => library.toggleFavorite(itemId, 'album')}
+						class="btn btn-ghost btn-circle"
+						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+					>
+						<Icon
+							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+							class={isFavorite ? 'text-error' : ''}
+							width="24"
+						/>
+					</button>
+					<button
 						on:click={() => handleShare(tracks[0])}
 						class="btn btn-ghost btn-circle"
 						title="Share"
@@ -398,71 +385,16 @@
 		</div>
 
 		<!-- Track List -->
-		<div class="card bg-base-200">
-			<div class="card-body p-4">
-				<h2 class="text-xl font-bold mb-4">Tracks</h2>
-				<div class="space-y-1">
-					{#each tracks as track, index}
-						<div
-							on:click={() => playTrack(track, index)}
-							on:keydown={(e) => e.key === 'Enter' && playTrack(track, index)}
-							role="button"
-							tabindex="0"
-							class="w-full text-left px-4 py-3 rounded-lg hover:bg-base-300 transition-colors flex items-center gap-4 group cursor-pointer {isCurrentTrack(track.identifier) ? 'bg-base-300 text-primary' : ''}"
-						>
-							<!-- Play Icon -->
-							<div class="w-8 text-center flex-shrink-0">
-								{#if isCurrentTrack(track.identifier)}
-									<Icon icon="solar:play-bold" width="20" className="text-primary" />
-								{:else}
-									<Icon icon="solar:play-linear" width="20" className="opacity-0 group-hover:opacity-100 transition-opacity" />
-								{/if}
-							</div>
-
-							<!-- Title -->
-							<div class="flex-1 min-w-0">
-								<p class="font-medium truncate">{track.title}</p>
-								{#if track.artist && track.artist !== itemMetadata.creator}
-									<button
-										class="text-sm text-base-content/60 truncate hover:text-primary transition-colors text-left"
-										on:click|stopPropagation={() => {
-											goto(`${base}/search?q=creator:"${encodeURIComponent(track.artist)}"`);
-										}}
-										title="Search for more by this artist"
-									>
-										{track.artist}
-									</button>
-								{/if}
-							</div>
-
-							<!-- Duration -->
-							<div class="text-sm text-base-content/60 flex-shrink-0">
-								{formatDuration(track.duration)}
-							</div>
-
-							<!-- Actions - Always visible on mobile, hover on desktop -->
-							<div class="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-								<div on:click|stopPropagation on:keydown|stopPropagation role="none">
-									<DownloadButton {track} size="sm" lazy={false} />
-								</div>
-								<button
-									on:click|stopPropagation={() => queue.addToEnd(track)}
-									class="btn btn-ghost btn-sm btn-circle"
-									title="Add to queue"
-								>
-									<Icon icon="solar:add-circle-linear" width="18" />
-								</button>
-								<button
-									on:click|stopPropagation={() => handleShare(track)}
-									class="btn btn-ghost btn-sm btn-circle"
-									title="Share"
-								>
-									<Icon icon="solar:share-linear" width="18" />
-								</button>
-							</div>
-						</div>
-					{/each}
-				</div>
+		<div>
+			<h2 class="text-xl font-bold mb-4">Tracks</h2>
+			<div class="space-y-2">
+				{#each tracks as track (track.identifier)}
+					<AudioCard
+						item={{ ...track, tracks: [track] }}
+						type="track"
+						layout="list"
+					/>
+				{/each}
 			</div>
 		</div>
 	{/if}

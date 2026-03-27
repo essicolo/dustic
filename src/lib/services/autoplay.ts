@@ -10,7 +10,10 @@ import {
 	searchByTag,
 	getRandomTracks
 } from './funkwhale';
+import { unifiedGetTrack as getTrack } from './sources';
 import { autoplayStore } from '$lib/stores/autoplay';
+import { library } from '$lib/stores/library';
+import { settings } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 
 /** Pick a random item from an array, excluding specified identifiers */
@@ -157,6 +160,35 @@ async function fwFindRandom(currentTrack: Track): Promise<Track | null> {
 	}
 }
 
+// ---- From Favorites strategy (source-agnostic) ----
+
+async function findFromFavorites(): Promise<Track | null> {
+	const settingsState = get(settings);
+	// Opt-out: if user disabled favorites-influenced autoplay, skip
+	if (settingsState.favoriteInfluencedAutoplay === false) return null;
+
+	const libraryState = get(library);
+	const favorites = libraryState.favorites;
+	if (favorites.length === 0) return null;
+
+	// Pick a random favorite that hasn't been tried
+	const untried = favorites.filter((f) => !autoplayTriedIds.has(f.id));
+	if (untried.length === 0) return null;
+
+	const picked = untried[Math.floor(Math.random() * untried.length)];
+
+	try {
+		const track = await getTrack(picked.id);
+		if (track && !autoplayTriedIds.has(track.identifier)) {
+			return track;
+		}
+	} catch {
+		// Ignore fetch errors
+	}
+
+	return null;
+}
+
 // ---- Strategy routing ----
 
 /** Get the right strategy function based on source and rule */
@@ -164,6 +196,11 @@ function getStrategy(
 	ruleId: string,
 	isFW: boolean
 ): ((track: Track) => Promise<Track | null>) | null {
+	// Source-agnostic strategies
+	if (ruleId === 'from-favorites') {
+		return () => findFromFavorites();
+	}
+
 	if (isFW) {
 		switch (ruleId) {
 			case 'same-album': return fwFindNextInAlbum;

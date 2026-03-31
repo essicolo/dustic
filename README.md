@@ -1,5 +1,7 @@
 # Dustic
 
+!["screenshot of dustic.app"](static/screenshot01.png)
+
 A vibe-coded, minimalist music player progressive web app that streams audio directly from the Internet Archive. Browse, search, and play dusty recordings from one of the world's largest digital libraries.
 
 ## Features

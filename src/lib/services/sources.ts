@@ -4,6 +4,7 @@ import type { Track, SearchParams, SearchResult } from '$lib/types';
 import { smartSearch as iaSearch, getTrack as iaGetTrack } from './internetArchive';
 import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './funkwhale';
 import { CONTENT_TYPES } from '$lib/utils/constants';
+import { withCache } from '$lib/utils/cache';
 
 /**
  * Apply content type filtering to search params.
@@ -129,10 +130,17 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 /**
  * Unified getTrack - routes to the correct source based on identifier prefix
  * FunkWhale identifiers start with "fw:", everything else goes to Internet Archive
+ * Results are cached for 30 minutes to avoid refetching on page revisits.
  */
 export async function unifiedGetTrack(identifier: string): Promise<Track | null> {
-	if (isFunkwhaleTrack(identifier)) {
-		return fwGetTrack(identifier);
-	}
-	return iaGetTrack(identifier);
+	return withCache(
+		`track:${identifier}`,
+		async () => {
+			if (isFunkwhaleTrack(identifier)) {
+				return fwGetTrack(identifier);
+			}
+			return iaGetTrack(identifier);
+		},
+		30 * 60 * 1000 // 30 minutes
+	);
 }

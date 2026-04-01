@@ -112,6 +112,9 @@ function looksLikeIdentifier(input: string): boolean {
 	if (input.includes(' ')) return false;
 	// Must match typical identifier pattern
 	if (!/^[a-zA-Z0-9._-]+$/.test(input)) return false;
+	// Hyphenated natural-language terms (e.g. "post-rock", "hip-hop") are NOT identifiers.
+	// Real identifiers typically contain digits or use dots/underscores (e.g. "gd1977-05-08.sbd")
+	if (/^[a-zA-Z]+(-[a-zA-Z]+)+$/.test(input)) return false;
 	// Require either a separator character (hyphen, dot, underscore) or length > 12
 	// to avoid treating simple words like "jazz" as identifiers
 	return /[._-]/.test(input) || input.length > 12;

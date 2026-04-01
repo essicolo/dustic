@@ -118,7 +118,7 @@ class Cache {
 }
 
 // Singleton instance with bounded size (Issue #8)
-export const cache = new Cache(100);
+export const cache = new Cache(500);
 
 // Cleanup expired entries every 5 minutes
 if (typeof window !== 'undefined') {

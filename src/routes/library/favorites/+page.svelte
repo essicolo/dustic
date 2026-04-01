@@ -10,7 +10,6 @@
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
-	import { batchExecute } from '$lib/utils/throttle';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -36,6 +35,23 @@
 		loadFavorites();
 	});
 
+	// Run async tasks with limited concurrency, calling onResult as each completes
+	async function loadConcurrent<T>(
+		tasks: (() => Promise<T>)[],
+		concurrency: number,
+		onResult: (item: T) => void
+	): Promise<void> {
+		let i = 0;
+		async function next(): Promise<void> {
+			while (i < tasks.length) {
+				const idx = i++;
+				const result = await tasks[idx]();
+				onResult(result);
+			}
+		}
+		await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => next()));
+	}
+
 	async function loadFavorites() {
 		isLoading = true;
 		const favorites = $library.favorites;
@@ -43,7 +59,6 @@
 		const trackFavorites = favorites.filter((f) => f.type === 'track');
 		const albumFavorites = favorites.filter((f) => f.type === 'album');
 
-		// Load track data in batches
 		const trackTasks = trackFavorites.map((f) => async () => {
 			try {
 				return await getTrack(f.id);
@@ -52,7 +67,6 @@
 			}
 		});
 
-		// Load album data in batches
 		const albumTasks = albumFavorites.map((f) => async () => {
 			try {
 				const meta = await getItemMetadata(f.id);
@@ -67,13 +81,15 @@
 			}
 		});
 
-		const [loadedTracks, loadedAlbums] = await Promise.all([
-			batchExecute(trackTasks, 3, 500),
-			batchExecute(albumTasks, 3, 500)
+		// Load with concurrency limit of 6, showing results as they arrive
+		await Promise.all([
+			loadConcurrent(trackTasks, 6, (track) => {
+				if (track) tracks = [...tracks, track];
+			}),
+			loadConcurrent(albumTasks, 6, (album) => {
+				if (album) albums = [...albums, album];
+			})
 		]);
-
-		tracks = loadedTracks;
-		albums = loadedAlbums;
 		isLoading = false;
 	}
 
@@ -173,8 +189,8 @@
 		</div>
 	{/if}
 
-	{#if isLoading}
-		<!-- Skeleton loaders matching current view mode -->
+	{#if isLoading && validTracks.length === 0 && validAlbums.length === 0}
+		<!-- Skeleton loaders only shown until first results arrive -->
 		{#if viewMode === 'grid'}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 				{#each Array(8) as _}
@@ -188,7 +204,7 @@
 				{/each}
 			</div>
 		{/if}
-	{:else if validTracks.length === 0 && validAlbums.length === 0}
+	{:else if !isLoading && validTracks.length === 0 && validAlbums.length === 0}
 		<div class="text-center py-20 text-base-content/50">
 			<p class="text-lg">No favorites yet</p>
 			<p class="text-sm mt-2">Add tracks or albums to your favorites to see them here</p>
@@ -237,6 +253,12 @@
 					{/each}
 				</div>
 			{/if}
+		{/if}
+
+		{#if isLoading}
+			<div class="flex justify-center py-4">
+				<span class="loading loading-spinner loading-sm text-primary"></span>
+			</div>
 		{/if}
 	{/if}
 </div>

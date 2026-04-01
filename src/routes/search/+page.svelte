@@ -9,6 +9,8 @@
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { offline } from '$lib/stores/offline';
 
+	import { goto } from '$app/navigation';
+
 	let downloadingIds = new Set<string>();
 
 	async function lazyDownload(identifier: string) {
@@ -146,6 +148,7 @@
 			}
 		} finally {
 			isSearching = false;
+			syncUrl();
 		}
 	}
 
@@ -153,6 +156,26 @@
 		currentPage = 1;
 		handleSearch();
 	}, 400);
+
+	/** Keep URL in sync with current search state so the $page watcher doesn't reset stale params */
+	function syncUrl() {
+		if (!browser) return;
+		const url = new URL(window.location.href);
+		// Clear old params
+		url.searchParams.delete('q');
+		url.searchParams.delete('artist');
+		url.searchParams.delete('type');
+		url.searchParams.delete('tag');
+		// Set current state
+		if (searchCreator) {
+			url.searchParams.set('artist', searchCreator);
+		} else if (searchQuery.trim()) {
+			url.searchParams.set('q', searchQuery.trim());
+		}
+		if (selectedContentType) url.searchParams.set('type', selectedContentType);
+		if (selectedTag) url.searchParams.set('tag', selectedTag);
+		goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+	}
 
 	function onSearchInput() {
 		isTyping = true;

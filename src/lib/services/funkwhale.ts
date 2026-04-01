@@ -283,7 +283,8 @@ function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 export async function searchInstance(
 	instanceUrl: string,
 	query: string,
-	pageSize: number = 20
+	pageSize: number = 20,
+	page: number = 1
 ): Promise<{ tracks: Track[]; total: number }> {
 	const baseUrl = normalizeUrl(instanceUrl);
 	const cleanedQuery = cleanQueryForFW(query);
@@ -296,6 +297,7 @@ export async function searchInstance(
 	const urlParams = new URLSearchParams({
 		[qParam]: cleanedQuery,
 		page_size: pageSize.toString(),
+		page: page.toString(),
 		ordering: '-creation_date',
 		playable: 'true'
 	});
@@ -336,10 +338,11 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	}
 
 	const pageSize = params.pageSize || 20;
+	const page = params.page || 1;
 
 	// Search all instances in parallel
 	const results = await Promise.allSettled(
-		instances.map((instance) => searchInstance(instance.url, params.query, pageSize))
+		instances.map((instance) => searchInstance(instance.url, params.query, pageSize, page))
 	);
 
 	// Merge results from all instances

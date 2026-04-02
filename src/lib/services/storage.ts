@@ -101,6 +101,27 @@ export function createDefaultProfile(): UserProfile {
 }
 
 /**
+ * Export profile as JSON string (for clipboard)
+ */
+export function profileToJson(profile: UserProfile): string {
+	return JSON.stringify(profile, null, 2);
+}
+
+/**
+ * Import profile from JSON string (from clipboard)
+ */
+export function importProfileFromText(text: string): UserProfile {
+	const raw = JSON.parse(text);
+
+	if (!validateProfile(raw)) {
+		throw new Error('Invalid profile format');
+	}
+
+	migrateFavorites(raw);
+	return raw as UserProfile;
+}
+
+/**
  * Merge imported profile with current data
  */
 export function mergeProfiles(current: UserProfile, imported: UserProfile): UserProfile {

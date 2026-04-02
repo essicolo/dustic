@@ -4,7 +4,7 @@
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { player } from '$lib/stores/player';
 	import { settings } from '$lib/stores/settings';
-	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
+	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles, profileToJson, importProfileFromText } from '$lib/services/storage';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -13,6 +13,7 @@
 	let fileInput: HTMLInputElement;
 	let isImporting = false;
 	let importError = '';
+	let copySuccess = false;
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -38,25 +39,9 @@
 	}
 
 	function handleExport() {
-		const profile: UserProfile = {
-			schemaVersion: 2,
-			exported: Date.now(),
-			favorites: $library.favorites,
-			playlists: $library.playlists,
-			history: $history.entries,
-			autoplayRules: $autoplayStore.rules,
-			settings: {
-				volume: $player.volume,
-				repeat: $player.repeat,
-				audioQuality: $settings.audioQuality || 'medium',
-				funkwhaleInstances: $settings.funkwhaleInstances,
-				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
-			}
-		};
-
+		const profile = buildCurrentProfile();
 		exportProfile(profile);
 
-		// Mark as clean after export
 		library.markClean();
 		history.markClean();
 	}
@@ -103,6 +88,73 @@
 		} finally {
 			isImporting = false;
 			input.value = ''; // Reset file input
+		}
+	}
+
+	function buildCurrentProfile(): UserProfile {
+		return {
+			schemaVersion: 2,
+			exported: Date.now(),
+			favorites: $library.favorites,
+			playlists: $library.playlists,
+			history: $history.entries,
+			autoplayRules: $autoplayStore.rules,
+			settings: {
+				volume: $player.volume,
+				repeat: $player.repeat,
+				audioQuality: $settings.audioQuality || 'medium',
+				funkwhaleInstances: $settings.funkwhaleInstances,
+				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
+			}
+		};
+	}
+
+	async function handleCopyToClipboard() {
+		const profile = buildCurrentProfile();
+		const json = profileToJson(profile);
+
+		try {
+			await navigator.clipboard.writeText(json);
+			copySuccess = true;
+			setTimeout(() => (copySuccess = false), 2000);
+
+			library.markClean();
+			history.markClean();
+		} catch {
+			importError = 'Failed to copy to clipboard';
+		}
+	}
+
+	async function handlePasteFromClipboard() {
+		isImporting = true;
+		importError = '';
+
+		try {
+			const text = await navigator.clipboard.readText();
+			const imported = importProfileFromText(text);
+
+			const shouldMerge = confirm(
+				'Merge imported data with current data? (Cancel to replace everything)'
+			);
+
+			if (shouldMerge) {
+				const current = buildCurrentProfile();
+				const merged = mergeProfiles(current, imported);
+				loadProfile(merged);
+			} else {
+				loadProfile(imported);
+			}
+
+			library.markClean();
+			history.markClean();
+		} catch (error) {
+			if (error instanceof Error && error.message === 'Invalid profile format') {
+				importError = 'Clipboard does not contain a valid profile';
+			} else {
+				importError = 'Failed to read from clipboard';
+			}
+		} finally {
+			isImporting = false;
 		}
 	}
 
@@ -176,6 +228,26 @@
 				{:else}
 					<Icon icon="solar:upload-bold" width="16" />
 				{/if}
+			</button>
+			<span class="w-px h-4 bg-base-content/10"></span>
+			<button
+				on:click={handleCopyToClipboard}
+				class="btn btn-ghost btn-xs btn-circle"
+				title="Copy profile to clipboard"
+			>
+				{#if copySuccess}
+					<Icon icon="solar:check-circle-bold" width="16" className="text-success" />
+				{:else}
+					<Icon icon="solar:copy-bold" width="16" />
+				{/if}
+			</button>
+			<button
+				on:click={handlePasteFromClipboard}
+				class="btn btn-ghost btn-xs btn-circle"
+				disabled={isImporting}
+				title="Paste profile from clipboard"
+			>
+				<Icon icon="solar:clipboard-bold" width="16" />
 			</button>
 		</div>
 	</div>

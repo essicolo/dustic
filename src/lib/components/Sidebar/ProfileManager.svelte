@@ -17,6 +17,9 @@
 	let isImporting = false;
 	let importError = '';
 	let copySuccess = false;
+	let showPasteArea = false;
+	let pasteText = '';
+	let pasteTextarea: HTMLTextAreaElement;
 
 	// Orphan cleanup state
 	let orphanedTracks: OfflineTrack[] = [];
@@ -132,13 +135,26 @@
 		}
 	}
 
-	async function handlePasteFromClipboard() {
-		isImporting = true;
+	function openPasteArea() {
+		showPasteArea = true;
+		pasteText = '';
+		importError = '';
+		// Focus the textarea after it renders
+		setTimeout(() => pasteTextarea?.focus(), 50);
+	}
+
+	function closePasteArea() {
+		showPasteArea = false;
+		pasteText = '';
+	}
+
+	function handlePasteImport() {
+		if (!pasteText.trim()) return;
+
 		importError = '';
 
 		try {
-			const text = await navigator.clipboard.readText();
-			const imported = importProfileFromText(text);
+			const imported = importProfileFromText(pasteText);
 
 			const shouldMerge = confirm(
 				'Merge imported data with current data? (Cancel to replace everything)'
@@ -154,14 +170,14 @@
 
 			library.markClean();
 			history.markClean();
+			showPasteArea = false;
+			pasteText = '';
 		} catch (error) {
 			if (error instanceof Error && error.message === 'Invalid profile format') {
 				importError = 'Clipboard does not contain a valid profile';
 			} else {
-				importError = 'Failed to read from clipboard';
+				importError = 'Failed to parse profile JSON';
 			}
-		} finally {
-			isImporting = false;
 		}
 	}
 
@@ -300,15 +316,39 @@
 				{/if}
 			</button>
 			<button
-				on:click={handlePasteFromClipboard}
+				on:click={openPasteArea}
 				class="btn btn-ghost btn-xs btn-circle"
-				disabled={isImporting}
 				title="Paste profile from clipboard"
 			>
 				<Icon icon="solar:clipboard-bold" width="16" />
 			</button>
 		</div>
 	</div>
+
+	<!-- Paste Area -->
+	{#if showPasteArea}
+		<div class="mt-2 border border-base-content/10 rounded-lg p-2">
+			<div class="flex items-center justify-between mb-1.5">
+				<span class="text-xs font-medium">Paste profile JSON</span>
+				<button on:click={closePasteArea} class="btn btn-ghost btn-xs btn-circle" title="Cancel">
+					<Icon icon="solar:close-circle-bold" width="14" />
+				</button>
+			</div>
+			<textarea
+				bind:this={pasteTextarea}
+				bind:value={pasteText}
+				placeholder="Paste your profile JSON here..."
+				class="textarea textarea-bordered w-full text-xs h-24 font-mono leading-tight"
+			></textarea>
+			<button
+				on:click={handlePasteImport}
+				class="btn btn-primary btn-xs w-full mt-1.5"
+				disabled={!pasteText.trim()}
+			>
+				Import
+			</button>
+		</div>
+	{/if}
 
 	<!-- Import Error -->
 	{#if importError}

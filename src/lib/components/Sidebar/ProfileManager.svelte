@@ -8,6 +8,7 @@
 	import { offline } from '$lib/stores/offline';
 	import { formatBytes, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
+	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -211,6 +212,9 @@
 				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
 			}
 		}
+
+		// Persist the imported profile to localStorage immediately
+		saveToStorage(profile);
 
 		// Detect orphaned cached tracks not referenced by the new profile
 		findOrphanedCache(profile);

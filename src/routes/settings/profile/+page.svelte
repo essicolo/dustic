@@ -8,6 +8,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import { formatBytes as formatBytesShared, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
+	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile } from '$lib/types';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
@@ -201,6 +202,9 @@
 				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
 			}
 		}
+
+		// Persist the imported profile to localStorage immediately
+		saveToStorage(profile);
 	}
 </script>
 

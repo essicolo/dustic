@@ -5,6 +5,9 @@
 	import { player } from '$lib/stores/player';
 	import { settings } from '$lib/stores/settings';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles, profileToJson, importProfileFromText } from '$lib/services/storage';
+	import { offline } from '$lib/stores/offline';
+	import { formatBytes, type OfflineTrack } from '$lib/services/offlineStorage';
+	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -14,6 +17,10 @@
 	let isImporting = false;
 	let importError = '';
 	let copySuccess = false;
+
+	// Orphan cleanup state
+	let orphanedTracks: OfflineTrack[] = [];
+	let selectedOrphans: Set<string> = new Set();
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -188,6 +195,57 @@
 				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
 			}
 		}
+
+		// Detect orphaned cached tracks not referenced by the new profile
+		findOrphanedCache(profile);
+	}
+
+	function findOrphanedCache(profile: UserProfile) {
+		const orphans = findOrphanedTracks(
+			$offline.offlineTracks,
+			profile.favorites,
+			profile.playlists
+		);
+
+		if (orphans.length === 0) return;
+
+		orphanedTracks = orphans;
+		selectedOrphans = new Set(orphans.map((ot) => ot.track.identifier));
+	}
+
+	$: allSelected = orphanedTracks.length > 0 && selectedOrphans.size === orphanedTracks.length;
+	$: selectedSize = orphanedTracks
+		.filter((ot) => selectedOrphans.has(ot.track.identifier))
+		.reduce((sum, ot) => sum + (ot.fileSize || 0), 0);
+
+	function toggleOrphan(id: string) {
+		selectedOrphans = new Set(selectedOrphans);
+		if (selectedOrphans.has(id)) {
+			selectedOrphans.delete(id);
+		} else {
+			selectedOrphans.add(id);
+		}
+	}
+
+	function toggleAllOrphans() {
+		if (allSelected) {
+			selectedOrphans = new Set();
+		} else {
+			selectedOrphans = new Set(orphanedTracks.map((ot) => ot.track.identifier));
+		}
+	}
+
+	async function removeSelectedOrphans() {
+		for (const id of selectedOrphans) {
+			await offline.deleteTrack(id);
+		}
+		orphanedTracks = orphanedTracks.filter((ot) => !selectedOrphans.has(ot.track.identifier));
+		selectedOrphans = new Set();
+	}
+
+	function dismissOrphans() {
+		orphanedTracks = [];
+		selectedOrphans = new Set();
 	}
 </script>
 
@@ -256,6 +314,57 @@
 	{#if importError}
 		<div class="alert alert-error mt-2 text-xs p-2">
 			<span>{importError}</span>
+		</div>
+	{/if}
+
+	<!-- Orphaned Cache Cleanup -->
+	{#if orphanedTracks.length > 0}
+		<div class="mt-2 border border-warning/30 rounded-lg p-2">
+			<div class="flex items-center justify-between mb-1.5">
+				<span class="text-xs font-medium text-warning">Unreferenced cached tracks</span>
+				<button on:click={dismissOrphans} class="btn btn-ghost btn-xs btn-circle" title="Dismiss">
+					<Icon icon="solar:close-circle-bold" width="14" />
+				</button>
+			</div>
+
+			<!-- Select all -->
+			<label class="flex items-center gap-1.5 text-xs cursor-pointer mb-1 opacity-70">
+				<input
+					type="checkbox"
+					class="checkbox checkbox-xs"
+					checked={allSelected}
+					on:change={toggleAllOrphans}
+				/>
+				Select all ({orphanedTracks.length})
+			</label>
+
+			<!-- Track list -->
+			<div class="max-h-32 overflow-y-auto space-y-0.5">
+				{#each orphanedTracks as ot (ot.track.identifier)}
+					<label class="flex items-center gap-1.5 text-xs cursor-pointer py-0.5">
+						<input
+							type="checkbox"
+							class="checkbox checkbox-xs"
+							checked={selectedOrphans.has(ot.track.identifier)}
+							on:change={() => toggleOrphan(ot.track.identifier)}
+						/>
+						<span class="truncate flex-1">{ot.track.title || ot.track.identifier}</span>
+						{#if ot.fileSize}
+							<span class="text-base-content/40 shrink-0">{formatBytes(ot.fileSize)}</span>
+						{/if}
+					</label>
+				{/each}
+			</div>
+
+			<!-- Actions -->
+			{#if selectedOrphans.size > 0}
+				<button
+					on:click={removeSelectedOrphans}
+					class="btn btn-warning btn-xs w-full mt-1.5"
+				>
+					Remove {selectedOrphans.size} track{selectedOrphans.size > 1 ? 's' : ''} ({formatBytes(selectedSize)})
+				</button>
+			{/if}
 		</div>
 	{/if}
 </div>

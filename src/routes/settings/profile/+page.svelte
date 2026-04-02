@@ -6,6 +6,8 @@
 	import { settings } from '$lib/stores/settings';
 	import { offline } from '$lib/stores/offline';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
+	import { formatBytes as formatBytesShared, type OfflineTrack } from '$lib/services/offlineStorage';
+	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import type { UserProfile } from '$lib/types';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
@@ -15,6 +17,11 @@
 	let isImporting = false;
 	let importError = '';
 	let importSuccess = false;
+
+	// Orphan detection state
+	let orphanedTracks: OfflineTrack[] = [];
+	let selectedOrphans: Set<string> = new Set();
+	let orphanScanDone = false;
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -121,6 +128,47 @@
 			isImporting = false;
 			input.value = ''; // Reset file input
 		}
+	}
+
+	function handleScanOrphans() {
+		const orphans = findOrphanedTracks(
+			$offline.offlineTracks,
+			$library.favorites,
+			$library.playlists
+		);
+		orphanedTracks = orphans;
+		selectedOrphans = new Set(orphans.map((ot) => ot.track.identifier));
+		orphanScanDone = true;
+	}
+
+	$: allOrphansSelected = orphanedTracks.length > 0 && selectedOrphans.size === orphanedTracks.length;
+	$: selectedOrphanSize = orphanedTracks
+		.filter((ot) => selectedOrphans.has(ot.track.identifier))
+		.reduce((sum, ot) => sum + (ot.fileSize || 0), 0);
+
+	function toggleOrphan(id: string) {
+		selectedOrphans = new Set(selectedOrphans);
+		if (selectedOrphans.has(id)) {
+			selectedOrphans.delete(id);
+		} else {
+			selectedOrphans.add(id);
+		}
+	}
+
+	function toggleAllOrphans() {
+		if (allOrphansSelected) {
+			selectedOrphans = new Set();
+		} else {
+			selectedOrphans = new Set(orphanedTracks.map((ot) => ot.track.identifier));
+		}
+	}
+
+	async function removeSelectedOrphans() {
+		for (const id of selectedOrphans) {
+			await offline.deleteTrack(id);
+		}
+		orphanedTracks = orphanedTracks.filter((ot) => !selectedOrphans.has(ot.track.identifier));
+		selectedOrphans = new Set();
 	}
 
 	function loadProfile(profile: UserProfile) {
@@ -328,6 +376,73 @@
 					<div class="stat-title text-xs">Storage Quota</div>
 					<div class="stat-value text-xl">{formatBytes(offlineStats.storageQuota)}</div>
 				</div>
+			</div>
+
+			<!-- Orphan Detection -->
+			<div class="mb-4">
+				<button
+					on:click={handleScanOrphans}
+					class="btn btn-outline btn-sm gap-2"
+				>
+					<Icon icon="solar:magnifer-bold" width="16" />
+					Find unreferenced cached tracks
+				</button>
+
+				{#if orphanScanDone && orphanedTracks.length === 0}
+					<div class="alert alert-success mt-3 text-sm">
+						<Icon icon="solar:check-circle-bold" width="18" />
+						<span>All cached tracks are referenced by your favorites or playlists.</span>
+					</div>
+				{/if}
+
+				{#if orphanedTracks.length > 0}
+					<div class="border border-warning/30 rounded-lg p-3 mt-3">
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-sm font-medium text-warning">
+								{orphanedTracks.length} unreferenced track{orphanedTracks.length > 1 ? 's' : ''} found
+							</span>
+						</div>
+
+						<!-- Select all -->
+						<label class="flex items-center gap-2 text-sm cursor-pointer mb-2 opacity-70">
+							<input
+								type="checkbox"
+								class="checkbox checkbox-sm"
+								checked={allOrphansSelected}
+								on:change={toggleAllOrphans}
+							/>
+							Select all
+						</label>
+
+						<!-- Track list -->
+						<div class="max-h-48 overflow-y-auto space-y-1">
+							{#each orphanedTracks as ot (ot.track.identifier)}
+								<label class="flex items-center gap-2 text-sm cursor-pointer py-1 px-1 rounded hover:bg-base-300">
+									<input
+										type="checkbox"
+										class="checkbox checkbox-sm"
+										checked={selectedOrphans.has(ot.track.identifier)}
+										on:change={() => toggleOrphan(ot.track.identifier)}
+									/>
+									<span class="truncate flex-1">{ot.track.title || ot.track.identifier}</span>
+									{#if ot.fileSize}
+										<span class="text-base-content/40 shrink-0 text-xs">{formatBytesShared(ot.fileSize)}</span>
+									{/if}
+								</label>
+							{/each}
+						</div>
+
+						<!-- Remove button -->
+						{#if selectedOrphans.size > 0}
+							<button
+								on:click={removeSelectedOrphans}
+								class="btn btn-warning btn-sm w-full mt-3"
+							>
+								Remove {selectedOrphans.size} track{selectedOrphans.size > 1 ? 's' : ''} ({formatBytesShared(selectedOrphanSize)})
+							</button>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			<div class="space-y-3 text-sm text-base-content/70">

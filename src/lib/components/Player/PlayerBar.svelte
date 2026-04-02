@@ -160,7 +160,6 @@
 	bind:this={audioElement}
 	preload="auto"
 	playsinline
-	webkit-playsinline
 ></audio>
 
 {#if $player.currentTrack}

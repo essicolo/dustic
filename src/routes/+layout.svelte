@@ -46,7 +46,7 @@
 		fwExpandedMap = fwExpandedMap;
 	}
 
-	onMount(async () => {
+	onMount(() => {
 		// Start source availability monitoring
 		sourceStatus.start();
 
@@ -60,9 +60,10 @@
 			const enableDebug = urlParams.get('debug') === '1';
 
 			if (enableDebug) {
-				const eruda = await import('eruda');
-				eruda.default.init();
-				console.log('[Eruda] Mobile debugging console initialized');
+				import('eruda').then((eruda) => {
+					eruda.default.init();
+					console.log('[Eruda] Mobile debugging console initialized');
+				});
 			}
 		}
 

@@ -55,13 +55,14 @@ function createPlayerStore() {
 
 			// Simply calling play() on iOS, even if it fails, unlocks the audio context
 			// This must be called synchronously within a user gesture event handler
-			const playPromise = audioElement.play();
+			const el = audioElement;
+			const playPromise = el.play();
 
 			if (playPromise !== undefined) {
 				playPromise
 					.then(() => {
 						// Play started successfully (shouldn't happen with no src)
-						audioElement.pause();
+						el.pause();
 						iosAudioUnlocked = true;
 						console.log('[iOS] Audio unlocked via play');
 					})

@@ -22,6 +22,9 @@
 	let pasteText = '';
 	let pasteTextarea: HTMLTextAreaElement;
 
+	// Pending import awaiting merge/replace choice
+	let pendingImport: UserProfile | null = null;
+
 	// Orphan cleanup state
 	let orphanedTracks: OfflineTrack[] = [];
 	let selectedOrphans: Set<string> = new Set();
@@ -67,38 +70,15 @@
 
 		if (!file) return;
 
-		isImporting = true;
 		importError = '';
 
 		try {
 			const imported = await importProfile(file);
-
-			// Ask user if they want to merge or replace
-			const shouldMerge = confirm(
-				'Merge imported data with current data? (Cancel to replace everything)'
-			);
-
-			if (shouldMerge) {
-				const current = createDefaultProfile();
-				current.favorites = $library.favorites;
-				current.playlists = $library.playlists;
-				current.history = $history.entries;
-				current.autoplayRules = $autoplayStore.rules;
-
-				const merged = mergeProfiles(current, imported);
-				loadProfile(merged);
-			} else {
-				loadProfile(imported);
-			}
-
-			// Mark as clean after successful import
-			library.markClean();
-			history.markClean();
+			pendingImport = imported;
 		} catch (error) {
 			importError = error instanceof Error ? error.message : 'Failed to import profile';
 		} finally {
-			isImporting = false;
-			input.value = ''; // Reset file input
+			input.value = '';
 		}
 	}
 
@@ -156,21 +136,7 @@
 
 		try {
 			const imported = importProfileFromText(pasteText);
-
-			const shouldMerge = confirm(
-				'Merge imported data with current data? (Cancel to replace everything)'
-			);
-
-			if (shouldMerge) {
-				const current = buildCurrentProfile();
-				const merged = mergeProfiles(current, imported);
-				loadProfile(merged);
-			} else {
-				loadProfile(imported);
-			}
-
-			library.markClean();
-			history.markClean();
+			pendingImport = imported;
 			showPasteArea = false;
 			pasteText = '';
 		} catch (error) {
@@ -180,6 +146,26 @@
 				importError = 'Failed to parse profile JSON';
 			}
 		}
+	}
+
+	function applyImport(mode: 'merge' | 'replace') {
+		if (!pendingImport) return;
+
+		if (mode === 'merge') {
+			const current = buildCurrentProfile();
+			const merged = mergeProfiles(current, pendingImport);
+			loadProfile(merged);
+		} else {
+			loadProfile(pendingImport);
+		}
+
+		library.markClean();
+		history.markClean();
+		pendingImport = null;
+	}
+
+	function cancelImport() {
+		pendingImport = null;
 	}
 
 	function loadProfile(profile: UserProfile) {
@@ -351,6 +337,24 @@
 			>
 				Import
 			</button>
+		</div>
+	{/if}
+
+	<!-- Merge or Replace choice -->
+	{#if pendingImport}
+		<div class="mt-2 border border-primary/30 rounded-lg p-2">
+			<p class="text-xs mb-2">Profile loaded. How do you want to import it?</p>
+			<div class="flex gap-1.5">
+				<button on:click={() => applyImport('merge')} class="btn btn-primary btn-xs flex-1">
+					Merge
+				</button>
+				<button on:click={() => applyImport('replace')} class="btn btn-outline btn-xs flex-1">
+					Replace
+				</button>
+				<button on:click={cancelImport} class="btn btn-ghost btn-xs btn-circle" title="Cancel">
+					<Icon icon="solar:close-circle-bold" width="14" />
+				</button>
+			</div>
 		</div>
 	{/if}
 

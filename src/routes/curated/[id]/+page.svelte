@@ -35,9 +35,9 @@
 	let viewMode: 'grid' | 'list' = 'list';
 	let showOfflineOnly = false;
 
-	$: playlistId = $page.params.id;
+	$: playlistId = $page.params.id as string;
 	$: filteredTracks = showOfflineOnly
-		? tracks.filter((t) => $offline.downloadedTracks[t.identifier])
+		? tracks.filter((t) => $offline.offlineTracks.some((ot) => ot.track.identifier === t.identifier))
 		: tracks;
 
 	// Load view preference from localStorage
@@ -264,7 +264,7 @@
 						role="button"
 						tabindex="0"
 					>
-						<AudioCard item={track} type="track" layout="grid" />
+						<AudioCard item={track} type="track" layout="tile" />
 						{#if playlist.tracks[index]?.note}
 							<div class="text-xs text-base-content/50 italic mt-1 px-2">
 								{playlist.tracks[index].note}

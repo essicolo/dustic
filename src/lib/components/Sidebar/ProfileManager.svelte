@@ -7,6 +7,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles, profileToJson, importProfileFromText } from '$lib/services/storage';
 	import { offline } from '$lib/stores/offline';
 	import { formatBytes, type OfflineTrack } from '$lib/services/offlineStorage';
+	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -200,28 +201,11 @@
 	}
 
 	function findOrphanedCache(profile: UserProfile) {
-		const cachedTracks = $offline.offlineTracks;
-		if (cachedTracks.length === 0) return;
-
-		// Build set of all track IDs referenced by the profile
-		const referencedIds = new Set<string>();
-		for (const fav of profile.favorites) {
-			referencedIds.add(fav.id);
-			referencedIds.add(fav.id.split('#')[0]);
-		}
-		for (const playlist of Object.values(profile.playlists)) {
-			for (const trackId of playlist.tracks) {
-				referencedIds.add(trackId);
-				referencedIds.add(trackId.split('#')[0]);
-			}
-		}
-
-		// Find orphans
-		const orphans = cachedTracks.filter((ot) => {
-			const id = ot.track.identifier;
-			const baseId = id.split('#')[0];
-			return !referencedIds.has(id) && !referencedIds.has(baseId);
-		});
+		const orphans = findOrphanedTracks(
+			$offline.offlineTracks,
+			profile.favorites,
+			profile.playlists
+		);
 
 		if (orphans.length === 0) return;
 

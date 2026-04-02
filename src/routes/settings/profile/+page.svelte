@@ -8,6 +8,7 @@
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import { formatBytes as formatBytesShared, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
+	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile } from '$lib/types';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
@@ -17,6 +18,7 @@
 	let isImporting = false;
 	let importError = '';
 	let importSuccess = false;
+	let pendingImport: UserProfile | null = null;
 
 	// Orphan detection state
 	let orphanedTracks: OfflineTrack[] = [];
@@ -88,46 +90,44 @@
 
 		if (!file) return;
 
-		isImporting = true;
 		importError = '';
 		importSuccess = false;
 
 		try {
 			const imported = await importProfile(file);
-
-			// Ask user if they want to merge or replace
-			const shouldMerge = confirm(
-				'Merge imported data with current data? (Cancel to replace everything)'
-			);
-
-			if (shouldMerge) {
-				const current = createDefaultProfile();
-				current.favorites = $library.favorites;
-				current.playlists = $library.playlists;
-				current.history = $history.entries;
-				current.autoplayRules = $autoplayStore.rules;
-
-				const merged = mergeProfiles(current, imported);
-				loadProfile(merged);
-			} else {
-				loadProfile(imported);
-			}
-
-			// Mark as clean after successful import
-			library.markClean();
-			history.markClean();
-			importSuccess = true;
-
-			// Clear success message after 3 seconds
-			setTimeout(() => {
-				importSuccess = false;
-			}, 3000);
+			pendingImport = imported;
 		} catch (error) {
 			importError = error instanceof Error ? error.message : 'Failed to import profile';
 		} finally {
-			isImporting = false;
-			input.value = ''; // Reset file input
+			input.value = '';
 		}
+	}
+
+	function applyImport(mode: 'merge' | 'replace') {
+		if (!pendingImport) return;
+
+		if (mode === 'merge') {
+			const current = createDefaultProfile();
+			current.favorites = $library.favorites;
+			current.playlists = $library.playlists;
+			current.history = $history.entries;
+			current.autoplayRules = $autoplayStore.rules;
+
+			const merged = mergeProfiles(current, pendingImport);
+			loadProfile(merged);
+		} else {
+			loadProfile(pendingImport);
+		}
+
+		library.markClean();
+		history.markClean();
+		pendingImport = null;
+		importSuccess = true;
+		setTimeout(() => { importSuccess = false; }, 3000);
+	}
+
+	function cancelImport() {
+		pendingImport = null;
 	}
 
 	function handleScanOrphans() {
@@ -201,6 +201,9 @@
 				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
 			}
 		}
+
+		// Persist the imported profile to localStorage immediately
+		saveToStorage(profile);
 	}
 </script>
 
@@ -272,6 +275,26 @@
 			{#if importError}
 				<div class="alert alert-error mb-4">
 					<span>{importError}</span>
+				</div>
+			{/if}
+
+			<!-- Merge or Replace choice -->
+			{#if pendingImport}
+				<div class="alert mb-4">
+					<div class="w-full">
+						<p class="mb-3">Profile loaded. How do you want to import it?</p>
+						<div class="flex gap-2">
+							<button on:click={() => applyImport('merge')} class="btn btn-primary btn-sm flex-1">
+								Merge
+							</button>
+							<button on:click={() => applyImport('replace')} class="btn btn-outline btn-sm flex-1">
+								Replace
+							</button>
+							<button on:click={cancelImport} class="btn btn-ghost btn-sm">
+								Cancel
+							</button>
+						</div>
+					</div>
 				</div>
 			{/if}
 

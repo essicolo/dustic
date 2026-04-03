@@ -92,7 +92,7 @@
 	}
 
 	function handleDragStart(event: DragEvent, index: number) {
-		draggedIndex = $queue.currentIndex + 1 + index;
+		draggedIndex = index;
 		if (event.dataTransfer) {
 			event.dataTransfer.effectAllowed = 'move';
 		}
@@ -103,14 +103,13 @@
 		if (event.dataTransfer) {
 			event.dataTransfer.dropEffect = 'move';
 		}
-		dragOverIndex = $queue.currentIndex + 1 + index;
+		dragOverIndex = index;
 	}
 
 	function handleDrop(event: DragEvent, index: number) {
 		event.preventDefault();
-		const toIndex = $queue.currentIndex + 1 + index;
-		if (draggedIndex !== null && draggedIndex !== toIndex) {
-			queue.reorder(draggedIndex, toIndex);
+		if (draggedIndex !== null && draggedIndex !== index) {
+			queue.reorder(draggedIndex, index);
 		}
 		draggedIndex = null;
 		dragOverIndex = null;
@@ -121,8 +120,8 @@
 		dragOverIndex = null;
 	}
 
-	$: upcomingTracks = $queue.tracks.slice($queue.currentIndex + 1);
-	$: queueCount = upcomingTracks.length;
+	$: queueTracks = $queue.tracks;
+	$: queueCount = queueTracks.length;
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 
 </script>
@@ -246,52 +245,20 @@
 				</div>
 			{/if}
 
-			<!-- Current Track -->
-			{#if $currentTrack}
-				<div class="p-4 bg-base-300/50 border-b border-base-content/10">
-					<div class="text-xs text-base-content/70 mb-1">Now Playing</div>
-					<div class="flex items-center gap-3">
-						{#if $currentTrack.thumbnailUrl}
-							<img
-								src={$currentTrack.thumbnailUrl}
-								alt={$currentTrack.title}
-								class="w-12 h-12 rounded bg-base-100"
-								crossorigin="anonymous"
-							/>
-						{:else}
-							<div class="w-12 h-12 rounded bg-base-100 flex items-center justify-center">
-								<Icon icon="solar:music-note-bold" width="24" className="text-base-content/30" />
-							</div>
-						{/if}
-						<div class="flex-1 min-w-0">
-							<div class="font-medium truncate">{$currentTrack.title}</div>
-							<div class="text-sm text-base-content/70 truncate">{$currentTrack.artist}</div>
-						</div>
-						<div class="text-primary">
-							<div class="flex gap-1">
-								<span class="w-1 h-4 bg-primary animate-pulse"></span>
-								<span class="w-1 h-4 bg-primary animate-pulse" style="animation-delay: 0.1s"></span>
-								<span class="w-1 h-4 bg-primary animate-pulse" style="animation-delay: 0.2s"></span>
-							</div>
-						</div>
-					</div>
-				</div>
-			{/if}
-
 			<!-- Queue List -->
 			<div class="flex-1 overflow-y-auto">
-				{#if upcomingTracks.length === 0}
+				{#if queueTracks.length === 0}
 					<div class="p-8 text-center text-base-content/50" style="padding-bottom: max(2rem, env(safe-area-inset-bottom));">
 						<p class="text-lg">Queue is empty</p>
 						<p class="text-sm mt-1">Add tracks to keep the music playing</p>
 					</div>
 				{:else}
 					<div class="divide-y divide-base-content/10">
-						{#each upcomingTracks as track, index}
+						{#each queueTracks as track, index (track.identifier + '-' + index)}
 						<div
-							class="p-1 cursor-move hover:bg-base-300/50 transition-colors"
-							class:bg-base-300={dragOverIndex === $queue.currentIndex + 1 + index && draggedIndex !== $queue.currentIndex + 1 + index}
-							class:opacity-50={draggedIndex === $queue.currentIndex + 1 + index}
+							class="p-1 cursor-move transition-colors {index === $queue.currentIndex ? 'bg-primary/10' : 'hover:bg-base-300/50'} {index < $queue.currentIndex ? 'opacity-50' : ''}"
+							class:bg-base-300={dragOverIndex === index && draggedIndex !== index}
+							class:opacity-30={draggedIndex === index}
 							draggable="true"
 							on:dragstart={(e) => handleDragStart(e, index)}
 							on:dragover={(e) => handleDragOver(e, index)}
@@ -301,9 +268,19 @@
 							tabindex="0"
 						>
 							<div class="flex items-center gap-2">
-								<div class="text-base-content/40 flex-shrink-0">
-									<Icon icon="solar:hamburger-menu-linear" width="16" />
-								</div>
+								{#if index === $queue.currentIndex}
+									<div class="text-primary flex-shrink-0">
+										<div class="flex gap-0.5 w-4 justify-center">
+											<span class="w-0.5 h-3 bg-primary animate-pulse"></span>
+											<span class="w-0.5 h-3 bg-primary animate-pulse" style="animation-delay: 0.1s"></span>
+											<span class="w-0.5 h-3 bg-primary animate-pulse" style="animation-delay: 0.2s"></span>
+										</div>
+									</div>
+								{:else}
+									<div class="text-base-content/40 flex-shrink-0">
+										<Icon icon="solar:hamburger-menu-linear" width="16" />
+									</div>
+								{/if}
 								<div class="flex-1 min-w-0">
 									<AudioCard
 										item={track}
@@ -313,8 +290,8 @@
 										actionsLayout="collapsed"
 										showRemoveFromQueue={true}
 										inQueue={true}
-										queueIndex={$queue.currentIndex + 1 + index}
-										on:removeFromQueue={() => removeTrack($queue.currentIndex + 1 + index)}
+										queueIndex={index}
+										on:removeFromQueue={() => removeTrack(index)}
 									/>
 								</div>
 							</div>

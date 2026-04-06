@@ -14,6 +14,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser, dev } from '$app/environment';
 	import { sourceStatus } from '$lib/stores/sourceStatus';
+	import { library } from '$lib/stores/library';
+	import { history } from '$lib/stores/history';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -46,7 +48,15 @@
 		fwExpandedMap = fwExpandedMap;
 	}
 
-	onMount(() => {
+	onMount(async () => {
+		// Initialize stores from storage (tries IndexedDB if localStorage is empty)
+		// This is critical for iOS PWAs where localStorage can be cleared
+		await Promise.all([
+			library.init(),
+			history.init(),
+			settings.init()
+		]);
+
 		// Start source availability monitoring
 		sourceStatus.start();
 

@@ -2,7 +2,7 @@
 
 import { writable, get } from 'svelte/store';
 import type { AudioQuality, FunkwhaleInstance } from '$lib/types';
-import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
+import { loadFromStorageSync, loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 import { createDefaultProfile } from '$lib/services/storage';
 import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 
@@ -15,8 +15,8 @@ export interface Settings {
 	favoriteInfluencedAutoplay?: boolean;
 }
 
-// Load from storage or use defaults
-const storedProfile = loadFromStorage();
+// Load from storage or use defaults (sync version for initial load)
+const storedProfile = loadFromStorageSync();
 const initialSettings: Settings = storedProfile?.settings || createDefaultProfile().settings;
 
 function createSettingsStore() {
@@ -24,6 +24,17 @@ function createSettingsStore() {
 
 	return {
 		subscribe,
+
+		/**
+		 * Initialize from storage (tries IndexedDB if localStorage is empty)
+		 * Important for iOS PWAs
+		 */
+		async init() {
+			const profile = await loadFromStorage();
+			if (profile?.settings) {
+				update(() => profile.settings);
+			}
+		},
 
 		/**
 		 * Set audio quality preference
@@ -162,7 +173,7 @@ function createSettingsStore() {
  * Save settings to localStorage via persistence layer
  */
 function saveSettings(settings: Settings) {
-	const profile = loadFromStorage() || createDefaultProfile();
+	const profile = loadFromStorageSync() || createDefaultProfile();
 	profile.settings = settings;
 	scheduleAutoSave(profile);
 }

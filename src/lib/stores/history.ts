@@ -3,15 +3,15 @@
 import { writable, get } from 'svelte/store';
 import type { HistoryEntry } from '$lib/types';
 import { CONFIG } from '$lib/utils/constants';
-import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
+import { loadFromStorageSync, loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 
 export interface HistoryState {
 	entries: HistoryEntry[];
 	isDirty: boolean;
 }
 
-// Try to load from localStorage first
-const storedProfile = loadFromStorage();
+// Try to load from localStorage first (sync version for initial load)
+const storedProfile = loadFromStorageSync();
 const initialState: HistoryState = {
 	entries: storedProfile?.history || [],
 	isDirty: false
@@ -23,8 +23,8 @@ function createHistoryStore() {
 	// Helper to trigger auto-save
 	function triggerAutoSave() {
 		const state = get({ subscribe });
-		const profile = loadFromStorage() || {
-			schemaVersion: 1,
+		const profile = loadFromStorageSync() || {
+			schemaVersion: 2,
 			exported: Date.now(),
 			favorites: [],
 			playlists: {},
@@ -41,6 +41,18 @@ function createHistoryStore() {
 
 	return {
 		subscribe,
+
+		// Initialize from storage (tries IndexedDB if localStorage is empty)
+		// Important for iOS PWAs
+		async init() {
+			const profile = await loadFromStorage();
+			if (profile?.history) {
+				update((state) => ({
+					...state,
+					entries: profile.history
+				}));
+			}
+		},
 
 		// Add track to history
 		addTrack(trackId: string, completionRate: number = 0) {

@@ -21,6 +21,7 @@
 	let showPasteArea = false;
 	let pasteText = '';
 	let pasteTextarea: HTMLTextAreaElement;
+	let importSuccess = false;
 
 	// Pending import awaiting merge/replace choice
 	let pendingImport: UserProfile | null = null;
@@ -151,17 +152,28 @@
 	async function applyImport(mode: 'merge' | 'replace') {
 		if (!pendingImport) return;
 
-		if (mode === 'merge') {
-			const current = buildCurrentProfile();
-			const merged = mergeProfiles(current, pendingImport);
-			await loadProfile(merged);
-		} else {
-			await loadProfile(pendingImport);
-		}
+		try {
+			importError = '';
 
-		library.markClean();
-		history.markClean();
-		pendingImport = null;
+			if (mode === 'merge') {
+				const current = buildCurrentProfile();
+				const merged = mergeProfiles(current, pendingImport);
+				await loadProfile(merged);
+			} else {
+				await loadProfile(pendingImport);
+			}
+
+			library.markClean();
+			history.markClean();
+			pendingImport = null;
+
+			// Show success message after save is complete
+			importSuccess = true;
+			setTimeout(() => (importSuccess = false), 3000);
+		} catch (error) {
+			console.error('[ProfileManager] Import failed:', error);
+			importError = 'Failed to save profile. Please try again.';
+		}
 	}
 
 	function cancelImport() {
@@ -200,8 +212,11 @@
 		}
 
 		// Persist the imported profile to both localStorage and IndexedDB immediately
-		// This is critical for iOS PWA persistence
+		// CRITICAL for iOS PWA: Wait for BOTH storages to complete before continuing
+		// This ensures the profile is fully persisted even if user closes app immediately
+		console.log('[ProfileManager] Persisting imported profile...');
 		await saveToStorage(profile);
+		console.log('[ProfileManager] Profile import complete and persisted');
 
 		// Detect orphaned cached tracks not referenced by the new profile
 		findOrphanedCache(profile);
@@ -356,6 +371,14 @@
 					<Icon icon="solar:close-circle-bold" width="14" />
 				</button>
 			</div>
+		</div>
+	{/if}
+
+	<!-- Import Success -->
+	{#if importSuccess}
+		<div class="alert alert-success mt-2 text-xs p-2 flex items-center gap-1">
+			<Icon icon="solar:check-circle-bold" width="16" />
+			<span>Profile imported successfully! Safe to close app.</span>
 		</div>
 	{/if}
 

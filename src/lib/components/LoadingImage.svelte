@@ -37,7 +37,7 @@
 	{#if src && !error}
 		<!-- Skeleton loader -->
 		{#if !loaded}
-			<div class="absolute inset-0 bg-base-300 animate-pulse rounded" />
+			<div class="absolute inset-0 bg-base-300 animate-pulse" />
 		{/if}
 
 		<!-- Actual image -->
@@ -47,11 +47,11 @@
 			{alt}
 			on:load={handleLoad}
 			on:error={handleError}
-			class="w-full h-full object-cover rounded {loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
+			class="w-full h-full object-cover {loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
 		/>
 	{:else}
 		<!-- Fallback placeholder -->
-		<div class="w-full h-full flex items-center justify-center bg-base-300 rounded">
+		<div class="w-full h-full flex items-center justify-center bg-base-300">
 			<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
 		</div>
 	{/if}

@@ -173,11 +173,28 @@ function createPlayerStore() {
 				}
 			});
 
+			element.addEventListener('loadedmetadata', () => {
+				// When audio metadata is loaded, restore saved position
+				const state = get({ subscribe });
+				if (state.currentTime > 0 && element.currentTime === 0) {
+					element.currentTime = state.currentTime;
+					console.log('[Player] Restored position:', state.currentTime);
+				}
+			});
+
 			element.addEventListener('waiting', () => {});
 			element.addEventListener('stalled', () => {});
 
 			// Set initial volume
 			element.volume = initialState.volume;
+
+			// If there's a current track from restored state, load it into audio element
+			const currentState = get({ subscribe });
+			if (currentState.currentTrack && currentState.currentTrack.streamUrl) {
+				console.log('[Player] Restoring track on audio element mount:', currentState.currentTrack.title);
+				element.src = currentState.currentTrack.streamUrl;
+				element.load();
+			}
 		},
 
 		// Play a track

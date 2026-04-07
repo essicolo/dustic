@@ -97,7 +97,9 @@
 				audioQuality: $settings.audioQuality || 'medium',
 				funkwhaleInstances: $settings.funkwhaleInstances,
 				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
-			}
+			},
+			lastPlayedTrack: $player.currentTrack || undefined,
+			lastPlayedPosition: $player.currentTime
 		};
 	}
 
@@ -181,6 +183,19 @@
 	}
 
 	async function loadProfile(profile: UserProfile) {
+		// CRITICAL: Persist FIRST before loading into stores
+		// This ensures data is saved even if subsequent operations fail
+		console.log('[ProfileManager] Persisting imported profile to storage...');
+		try {
+			await saveToStorage(profile);
+			console.log('[ProfileManager] ✓ Profile saved to localStorage');
+			console.log('[ProfileManager] ✓ Profile saved to IndexedDB');
+		} catch (error) {
+			console.error('[ProfileManager] ✗ Failed to save profile:', error);
+			throw new Error('Failed to save profile to storage');
+		}
+
+		// Now load into stores (these won't trigger auto-saves)
 		library.loadFromProfile({
 			favorites: profile.favorites,
 			playlists: profile.playlists
@@ -211,12 +226,12 @@
 			}
 		}
 
-		// Persist the imported profile to both localStorage and IndexedDB immediately
-		// CRITICAL for iOS PWA: Wait for BOTH storages to complete before continuing
-		// This ensures the profile is fully persisted even if user closes app immediately
-		console.log('[ProfileManager] Persisting imported profile...');
-		await saveToStorage(profile);
-		console.log('[ProfileManager] Profile import complete and persisted');
+		// Restore last played track and position
+		if (profile.lastPlayedTrack) {
+			player.restoreLastTrack(profile.lastPlayedTrack, profile.lastPlayedPosition || 0);
+		}
+
+		console.log('[ProfileManager] ✓ Profile loaded into all stores');
 
 		// Detect orphaned cached tracks not referenced by the new profile
 		findOrphanedCache(profile);

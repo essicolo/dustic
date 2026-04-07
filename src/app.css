@@ -148,11 +148,23 @@ input[type='range'].range {
 /* Sidebar safe area padding (only on mobile when fixed) */
 .safe-sidebar {
 	padding-top: calc(1rem + env(safe-area-inset-top));
+	/* Add bottom padding to prevent player bar from covering content */
+	/* Mobile: 4.5rem player bar + 1rem spacing + safe area */
+	padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+	.safe-sidebar {
+		/* Desktop: 5.5rem player bar + 1rem spacing + safe area */
+		padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+	}
 }
 
 @media (min-width: 1024px) {
 	.safe-sidebar {
-		/* On desktop, sidebar is static so no extra padding needed */
+		/* On desktop, sidebar is static so no extra top padding needed */
 		padding-top: 1rem;
+		/* Keep bottom padding for player bar */
+		padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
 	}
 }

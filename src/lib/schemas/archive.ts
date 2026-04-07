@@ -60,7 +60,9 @@ export const UserProfileSchema = z.object({
 	favorites: z.array(FavoriteEntrySchema),
 	playlists: z.record(z.any()),
 	history: z.array(z.any()),
-	autoplayRules: z.array(z.any())
+	autoplayRules: z.array(z.any()),
+	lastPlayedTrack: z.any().optional(), // Track object
+	lastPlayedPosition: z.number().optional()
 });
 
 export type IAFile = z.infer<typeof IAFileSchema>;

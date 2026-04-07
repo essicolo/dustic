@@ -162,9 +162,8 @@
 	playsinline
 ></audio>
 
-{#if $player.currentTrack}
-<!-- Player Bar -->
-<div class="flex flex-col gap-1 px-2 md:px-6 py-2">
+<!-- Player Bar - Always visible -->
+<div class="flex flex-col gap-1 px-2 md:px-6 py-2" class:opacity-40={!$player.currentTrack}>
 	<!-- Mobile: Progress bar at top with times -->
 	<div class="md:hidden w-full flex items-center gap-2">
 		<span class="text-xs text-base-content/70 w-10 text-right flex-shrink-0">
@@ -237,6 +236,17 @@
 								{$player.currentTrack.artist}
 							</div>
 						</a>
+					</div>
+				</div>
+			{:else}
+				<!-- No track loaded - show placeholder -->
+				<div class="flex items-center gap-3 min-w-0 overflow-hidden opacity-50">
+					<div class="w-10 md:w-12 h-10 md:h-12 rounded bg-base-200 flex items-center justify-center flex-shrink-0">
+						<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="text-xs md:text-sm font-medium truncate">No track loaded</div>
+						<div class="text-xs text-base-content/70 truncate">Select a track to play</div>
 					</div>
 				</div>
 			{/if}
@@ -417,7 +427,6 @@
 		</span>
 	</div>
 </div>
-{/if}
 
 <!-- Share Toast -->
 {#if showShareToast}

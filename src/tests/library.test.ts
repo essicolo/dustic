@@ -9,6 +9,14 @@ vi.mock('$lib/services/persistence', () => ({
 		const stored = mockStorage['dustic-profile'];
 		return stored ? JSON.parse(stored) : null;
 	}),
+	loadFromStorageSync: vi.fn(() => {
+		const stored = mockStorage['dustic-profile'];
+		return stored ? JSON.parse(stored) : null;
+	}),
+	getCachedProfile: vi.fn(() => {
+		const stored = mockStorage['dustic-profile'];
+		return stored ? JSON.parse(stored) : null;
+	}),
 	scheduleAutoSave: vi.fn((profile) => {
 		// Simulate immediate save for testing
 		mockStorage['dustic-profile'] = JSON.stringify(profile);

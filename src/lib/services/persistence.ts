@@ -68,6 +68,8 @@ function migrateAndValidateProfile(rawProfile: any): UserProfile {
 	if (!rawProfile.autoplayRules) {
 		rawProfile.autoplayRules = [];
 	}
+	// Optional fields - no defaults needed
+	// lastPlayedTrack and lastPlayedPosition are optional
 
 	// Validate with Zod before returning
 	return UserProfileSchema.parse(rawProfile);
@@ -204,8 +206,20 @@ export function getCachedProfile(): UserProfile | null {
  */
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-export function scheduleAutoSave(profile: UserProfile): void {
+export function scheduleAutoSave(profile: UserProfile, immediate: boolean = false): void {
 	if (!browser) return;
+
+	// Immediate save for critical operations (profile import, app close)
+	if (immediate) {
+		if (saveTimeout) {
+			clearTimeout(saveTimeout);
+			saveTimeout = null;
+		}
+		saveToStorage(profile).catch((error) => {
+			console.error('[Persistence] Immediate save failed:', error);
+		});
+		return;
+	}
 
 	if (saveTimeout) {
 		clearTimeout(saveTimeout);

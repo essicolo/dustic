@@ -81,6 +81,9 @@ export interface UserProfile {
 		funkwhaleInstances?: FunkwhaleInstance[];
 		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
 	};
+	// Player state persistence
+	lastPlayedTrack?: Track; // Last track that was playing when app closed
+	lastPlayedPosition?: number; // Position in seconds when app closed
 }
 
 export interface SearchParams {

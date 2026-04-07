@@ -7,6 +7,7 @@ import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 import { offlineStorage } from '$lib/services/offlineStorage';
+import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -19,13 +20,15 @@ export interface PlayerState {
 	isLoading: boolean;
 }
 
+// Load last played track from storage
+const storedProfile = loadFromStorageSync();
 const initialState: PlayerState = {
-	currentTrack: null,
+	currentTrack: storedProfile?.lastPlayedTrack || null,
 	isPlaying: false,
-	volume: 0.7,
-	currentTime: 0,
+	volume: storedProfile?.settings?.volume || 0.7,
+	currentTime: storedProfile?.lastPlayedPosition || 0,
 	duration: 0,
-	repeat: 'off',
+	repeat: storedProfile?.settings?.repeat || 'off',
 	shuffle: false,
 	isLoading: false
 };
@@ -43,6 +46,22 @@ function createPlayerStore() {
 	// Track the last track that actually played successfully, so autoplay
 	// can use it as basis instead of a failed track
 	let lastSuccessfulTrack: Track | null = null;
+
+	// Helper to save player state (last track and position)
+	function savePlayerState(state: PlayerState) {
+		const profile = getCachedProfile() || loadFromStorageSync();
+		if (!profile) return;
+
+		// Only save if track has changed or position has advanced significantly
+		const positionChanged = Math.abs((profile.lastPlayedPosition || 0) - state.currentTime) > 5;
+		const trackChanged = profile.lastPlayedTrack?.identifier !== state.currentTrack?.identifier;
+
+		if (trackChanged || positionChanged) {
+			profile.lastPlayedTrack = state.currentTrack || undefined;
+			profile.lastPlayedPosition = state.currentTime;
+			scheduleAutoSave(profile);
+		}
+	}
 
 	return {
 		subscribe,
@@ -99,11 +118,16 @@ function createPlayerStore() {
 			});
 
 			element.addEventListener('timeupdate', () => {
-				update((state) => ({
-					...state,
-					currentTime: element.currentTime,
-					duration: element.duration || 0
-				}));
+				update((state) => {
+					const newState = {
+						...state,
+						currentTime: element.currentTime,
+						duration: element.duration || 0
+					};
+					// Save player state periodically (debounced in savePlayerState)
+					savePlayerState(newState);
+					return newState;
+				});
 			});
 
 			element.addEventListener('ended', async () => {
@@ -176,11 +200,16 @@ function createPlayerStore() {
 
 			console.log('[Player] Playing:', track.title, track.source || 'ia');
 
-			update((state) => ({
-				...state,
-				currentTrack: track,
-				isLoading: true
-			}));
+			update((state) => {
+				const newState = {
+					...state,
+					currentTrack: track,
+					isLoading: true
+				};
+				// Save the new track to profile
+				savePlayerState(newState);
+				return newState;
+			});
 
 			// Add to history when starting to play
 			history.addTrack(track.identifier, 0);
@@ -363,6 +392,23 @@ function createPlayerStore() {
 				}
 			}
 			this.play(track);
+		},
+
+		// Restore last played track and position (for app startup)
+		restoreLastTrack(track: Track, position: number = 0) {
+			update((state) => ({
+				...state,
+				currentTrack: track,
+				currentTime: position,
+				isPlaying: false
+			}));
+
+			// If audio element is available, set the source and seek
+			if (audioElement) {
+				audioElement.src = track.streamUrl;
+				audioElement.load();
+				audioElement.currentTime = position;
+			}
 		}
 	};
 }

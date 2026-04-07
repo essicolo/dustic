@@ -14,6 +14,11 @@ const STORAGE_KEY = 'dustic-profile';
 // This is SEPARATE from app version and should rarely change
 const STORAGE_SCHEMA_VERSION = 2;
 
+// In-memory cache of the last known good profile.
+// This prevents data loss when iOS Safari clears localStorage in PWA mode:
+// without it, stores re-read empty localStorage and overwrite IndexedDB with blank data.
+let cachedProfile: UserProfile | null = null;
+
 /**
  * Migrate and validate profile data
  */
@@ -104,6 +109,7 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 		if (!rawProfile) return null;
 
 		const profile = migrateAndValidateProfile(rawProfile);
+		cachedProfile = profile;
 
 		// If we loaded from IndexedDB, restore to localStorage
 		if (fromIndexedDB) {
@@ -127,13 +133,15 @@ export function loadFromStorageSync(): UserProfile | null {
 
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) return null;
+		if (!stored) return cachedProfile;
 
 		const rawProfile = JSON.parse(stored) as any;
-		return migrateAndValidateProfile(rawProfile);
+		const profile = migrateAndValidateProfile(rawProfile);
+		cachedProfile = profile;
+		return profile;
 	} catch (error) {
 		console.error('Failed to load profile from localStorage:', error);
-		return null;
+		return cachedProfile;
 	}
 }
 
@@ -150,6 +158,9 @@ export async function saveToStorage(profile: UserProfile): Promise<void> {
 			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now()
 		};
+
+		// Update in-memory cache
+		cachedProfile = toSave;
 
 		// Save to localStorage (fast, synchronous)
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -173,6 +184,15 @@ export async function clearStorage(): Promise<void> {
 	// Also clear IndexedDB
 	const { clearIndexedDB } = await import('./indexedDbPersistence');
 	await clearIndexedDB();
+}
+
+/**
+ * Get the in-memory cached profile (never reads disk).
+ * Use this instead of loadFromStorageSync() in auto-save paths
+ * to avoid reading potentially cleared localStorage.
+ */
+export function getCachedProfile(): UserProfile | null {
+	return cachedProfile;
 }
 
 /**

@@ -67,6 +67,7 @@ export async function saveToIndexedDB(profile: UserProfile): Promise<void> {
 		});
 	} catch (error) {
 		console.error('Failed to save to IndexedDB:', error);
+		throw error;
 	}
 }
 

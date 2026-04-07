@@ -2,7 +2,7 @@
 
 import { writable, get } from 'svelte/store';
 import type { Playlist, FavoriteEntry, FavoriteType } from '$lib/types';
-import { loadFromStorageSync, loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
+import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
 // Simple UUID generator
 function generateId(): string {
@@ -28,7 +28,7 @@ function createLibraryStore() {
 
 	// Helper to trigger auto-save
 	function triggerAutoSave(state: LibraryState) {
-		const profile = loadFromStorageSync() || {
+		const profile = getCachedProfile() || loadFromStorageSync() || {
 			schemaVersion: 2,
 			exported: Date.now(),
 			favorites: [],

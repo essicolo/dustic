@@ -2,7 +2,7 @@
 
 import { writable, get } from 'svelte/store';
 import type { AudioQuality, FunkwhaleInstance } from '$lib/types';
-import { loadFromStorageSync, loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
+import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 import { createDefaultProfile } from '$lib/services/storage';
 import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 
@@ -173,7 +173,7 @@ function createSettingsStore() {
  * Save settings to localStorage via persistence layer
  */
 function saveSettings(settings: Settings) {
-	const profile = loadFromStorageSync() || createDefaultProfile();
+	const profile = getCachedProfile() || loadFromStorageSync() || createDefaultProfile();
 	profile.settings = settings;
 	scheduleAutoSave(profile);
 }

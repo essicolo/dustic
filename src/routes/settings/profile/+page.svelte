@@ -103,7 +103,7 @@
 		}
 	}
 
-	function applyImport(mode: 'merge' | 'replace') {
+	async function applyImport(mode: 'merge' | 'replace') {
 		if (!pendingImport) return;
 
 		if (mode === 'merge') {
@@ -114,9 +114,9 @@
 			current.autoplayRules = $autoplayStore.rules;
 
 			const merged = mergeProfiles(current, pendingImport);
-			loadProfile(merged);
+			await loadProfile(merged);
 		} else {
-			loadProfile(pendingImport);
+			await loadProfile(pendingImport);
 		}
 
 		library.markClean();
@@ -171,7 +171,7 @@
 		selectedOrphans = new Set();
 	}
 
-	function loadProfile(profile: UserProfile) {
+	async function loadProfile(profile: UserProfile) {
 		library.loadFromProfile({
 			favorites: profile.favorites,
 			playlists: profile.playlists
@@ -202,8 +202,9 @@
 			}
 		}
 
-		// Persist the imported profile to localStorage immediately
-		saveToStorage(profile);
+		// Persist the imported profile to both localStorage and IndexedDB immediately
+		// This is critical for iOS PWA persistence
+		await saveToStorage(profile);
 	}
 </script>
 

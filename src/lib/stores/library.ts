@@ -2,7 +2,7 @@
 
 import { writable, get } from 'svelte/store';
 import type { Playlist, FavoriteEntry, FavoriteType } from '$lib/types';
-import { loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
+import { loadFromStorageSync, loadFromStorage, scheduleAutoSave } from '$lib/services/persistence';
 
 // Simple UUID generator
 function generateId(): string {
@@ -15,8 +15,8 @@ export interface LibraryState {
 	isDirty: boolean; // Has unsaved changes
 }
 
-// Try to load from localStorage first
-const storedProfile = loadFromStorage();
+// Try to load from localStorage first (sync)
+const storedProfile = loadFromStorageSync();
 const initialState: LibraryState = {
 	favorites: storedProfile?.favorites || [],
 	playlists: storedProfile?.playlists || {},
@@ -28,8 +28,8 @@ function createLibraryStore() {
 
 	// Helper to trigger auto-save
 	function triggerAutoSave(state: LibraryState) {
-		const profile = loadFromStorage() || {
-			schemaVersion: 1,
+		const profile = loadFromStorageSync() || {
+			schemaVersion: 2,
 			exported: Date.now(),
 			favorites: [],
 			playlists: {},
@@ -47,6 +47,19 @@ function createLibraryStore() {
 
 	return {
 		subscribe,
+
+		// Initialize from storage (tries IndexedDB if localStorage is empty)
+		// This is important for iOS PWAs where localStorage can be cleared
+		async init() {
+			const profile = await loadFromStorage();
+			if (profile) {
+				update((state) => ({
+					...state,
+					favorites: profile.favorites,
+					playlists: profile.playlists
+				}));
+			}
+		},
 
 		// Mark as dirty (has unsaved changes)
 		markDirty() {

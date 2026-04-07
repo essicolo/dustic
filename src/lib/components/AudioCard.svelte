@@ -280,7 +280,7 @@
 <svelte:window bind:innerWidth={windowWidth} />
 
 <div
-	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group"
+	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group outline-none"
 	class:card-side={layout === 'list'}
 	class:h-full={layout === 'tile'}
 	on:click={handleNavigate}
@@ -290,7 +290,7 @@
 	aria-label="Play {item.title}"
 >
 	<figure
-		class="relative bg-neutral"
+		class="relative bg-neutral overflow-hidden"
 		class:aspect-square={layout === 'tile'}
 		class:w-20={layout === 'list'}
 		class:h-20={layout === 'list'}

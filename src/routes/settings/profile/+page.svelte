@@ -106,24 +106,31 @@
 	async function applyImport(mode: 'merge' | 'replace') {
 		if (!pendingImport) return;
 
-		if (mode === 'merge') {
-			const current = createDefaultProfile();
-			current.favorites = $library.favorites;
-			current.playlists = $library.playlists;
-			current.history = $history.entries;
-			current.autoplayRules = $autoplayStore.rules;
+		try {
+			importError = '';
 
-			const merged = mergeProfiles(current, pendingImport);
-			await loadProfile(merged);
-		} else {
-			await loadProfile(pendingImport);
+			if (mode === 'merge') {
+				const current = createDefaultProfile();
+				current.favorites = $library.favorites;
+				current.playlists = $library.playlists;
+				current.history = $history.entries;
+				current.autoplayRules = $autoplayStore.rules;
+
+				const merged = mergeProfiles(current, pendingImport);
+				await loadProfile(merged);
+			} else {
+				await loadProfile(pendingImport);
+			}
+
+			library.markClean();
+			history.markClean();
+			pendingImport = null;
+			importSuccess = true;
+			setTimeout(() => { importSuccess = false; }, 3000);
+		} catch (error) {
+			console.error('[Settings] Import failed:', error);
+			importError = 'Failed to save profile. Please try again.';
 		}
-
-		library.markClean();
-		history.markClean();
-		pendingImport = null;
-		importSuccess = true;
-		setTimeout(() => { importSuccess = false; }, 3000);
 	}
 
 	function cancelImport() {
@@ -203,8 +210,11 @@
 		}
 
 		// Persist the imported profile to both localStorage and IndexedDB immediately
-		// This is critical for iOS PWA persistence
+		// CRITICAL for iOS PWA: Wait for BOTH storages to complete before continuing
+		// This ensures the profile is fully persisted even if user closes app immediately
+		console.log('[Settings] Persisting imported profile...');
 		await saveToStorage(profile);
+		console.log('[Settings] Profile import complete and persisted');
 	}
 </script>
 
@@ -268,7 +278,7 @@
 			{#if importSuccess}
 				<div class="alert alert-success mb-4 flex items-center gap-2">
 					<Icon icon="solar:check-circle-bold" width="20" />
-					<span>Profile imported successfully!</span>
+					<span>Profile imported and saved successfully! Safe to close app.</span>
 				</div>
 			{/if}
 

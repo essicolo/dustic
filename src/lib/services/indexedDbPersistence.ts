@@ -53,15 +53,25 @@ export async function saveToIndexedDB(profile: UserProfile): Promise<void> {
 			timestamp: Date.now()
 		};
 
-		store.put(data, PROFILE_KEY);
+		const request = store.put(data, PROFILE_KEY);
 
 		return new Promise((resolve, reject) => {
-			transaction.oncomplete = () => {
+			request.onsuccess = () => {
+				// Wait for transaction to complete, not just request
+				transaction.oncomplete = () => {
+					db.close();
+					console.log('[IndexedDB] Profile saved successfully at', new Date().toISOString());
+					resolve();
+				};
+			};
+			request.onerror = () => {
 				db.close();
-				resolve();
+				console.error('[IndexedDB] Request failed:', request.error);
+				reject(request.error);
 			};
 			transaction.onerror = () => {
 				db.close();
+				console.error('[IndexedDB] Transaction failed:', transaction.error);
 				reject(transaction.error);
 			};
 		});

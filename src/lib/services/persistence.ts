@@ -159,17 +159,21 @@ export async function saveToStorage(profile: UserProfile): Promise<void> {
 			exported: Date.now()
 		};
 
-		// Update in-memory cache
+		// Update in-memory cache first (prevents data loss if storage fails)
 		cachedProfile = toSave;
 
 		// Save to localStorage (fast, synchronous)
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+		console.log('[Persistence] Saved to localStorage');
 
 		// Also save to IndexedDB for iOS PWA reliability
-		// This runs asynchronously and won't block the UI
+		// CRITICAL: Wait for IndexedDB write to complete before resolving
 		await saveToIndexedDB(toSave);
+		console.log('[Persistence] Profile fully persisted to all storages');
 	} catch (error) {
-		console.error('Failed to save profile to storage:', error);
+		console.error('[Persistence] Failed to save profile to storage:', error);
+		// Re-throw to let caller know save failed
+		throw error;
 	}
 }
 

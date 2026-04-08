@@ -221,6 +221,7 @@ function createPlayerStore() {
 				const newState = {
 					...state,
 					currentTrack: track,
+					currentTime: 0, // Reset position when switching tracks
 					isLoading: true
 				};
 				// Save the new track to profile
@@ -272,6 +273,7 @@ function createPlayerStore() {
 			// All FW tracks now use /api/fw-listen proxy (local URL, no CORS).
 			// IA tracks, blob: URLs, and proxy URLs all just set src directly.
 			audioElement.src = track.streamUrl;
+			audioElement.currentTime = 0; // Ensure playback starts from beginning
 
 			audioElement.load();
 			const playPromise = audioElement.play();

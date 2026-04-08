@@ -11,6 +11,7 @@
 	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile, WebDAVConfig } from '$lib/types';
 	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
+	import { encryptValue, decryptValue } from '$lib/services/crypto';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
@@ -67,8 +68,12 @@
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		offline.loadOfflineTracks();
+		// Decrypt the stored password for display in the settings form
+		if (webdavConfig.password) {
+			webdavConfig.password = await decryptValue(webdavConfig.password);
+		}
 	});
 
 	function handleExport() {
@@ -257,8 +262,13 @@
 		}, 5000); // Longer timeout for error messages
 	}
 
-	function saveWebdavConfig() {
-		settings.setWebDAVConfig(webdavConfig);
+	async function saveWebdavConfig() {
+		// Encrypt password before persisting
+		const configToSave = {
+			...webdavConfig,
+			password: webdavConfig.password ? await encryptValue(webdavConfig.password) : ''
+		};
+		settings.setWebDAVConfig(configToSave);
 		webdavTestMessage = 'Configuration saved!';
 		setTimeout(() => { webdavTestMessage = ''; }, 2000);
 	}

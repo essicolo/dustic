@@ -63,6 +63,11 @@
 
 	function handleExport() {
 		const profile = buildCurrentProfile();
+		// Strip WebDAV credentials from exported file
+		if (profile.settings.webdav) {
+			const { url, enabled, autoSyncMinutes, lastSync } = profile.settings.webdav;
+			profile.settings.webdav = { url, username: '', password: '', enabled, autoSyncMinutes, lastSync };
+		}
 		exportProfile(profile);
 
 		library.markClean();
@@ -114,6 +119,11 @@
 
 	async function handleCopyToClipboard() {
 		const profile = buildCurrentProfile();
+		// Strip WebDAV credentials from clipboard export
+		if (profile.settings.webdav) {
+			const { url, enabled, autoSyncMinutes, lastSync } = profile.settings.webdav;
+			profile.settings.webdav = { url, username: '', password: '', enabled, autoSyncMinutes, lastSync };
+		}
 		const json = profileToJson(profile);
 
 		try {

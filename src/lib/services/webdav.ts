@@ -147,9 +147,11 @@ function buildWebDAVUrl(baseUrl: string, filename: string, corsProxy?: string): 
 	const fullPath = filename ? `${normalizedBase}/${filename}` : normalizedBase;
 
 	if (corsProxy) {
-		// Use CORS proxy
-		const proxyUrl = corsProxy.replace(/\/+$/, '');
-		return `${proxyUrl}/${encodeURIComponent(fullPath)}`;
+		// CORS proxies expect the target URL appended directly, not encoded as a path
+		// Examples:
+		// - https://corsproxy.io/?https://target.com
+		// - https://api.allorigins.win/raw?url=https://target.com
+		return `${corsProxy}${fullPath}`;
 	}
 
 	return fullPath;

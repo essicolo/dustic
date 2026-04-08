@@ -67,31 +67,22 @@ function createPlayerStore() {
 		subscribe,
 
 		// iOS audio unlock - must be called synchronously in a user gesture.
-		// On iOS, calling .play() within a user gesture unlocks the audio context.
-		// We set the flag synchronously so that the subsequent togglePlay/resume
-		// in the same click handler does not race with the promise resolution.
+		// Used by AudioCard where an `await` separates the gesture from the
+		// actual playTrack call. PlayerBar doesn't need this because
+		// togglePlay → resume → play() is already synchronous in the gesture.
 		unlockIOSAudio(): void {
 			if (iosAudioUnlocked || !audioElement) {
 				return;
 			}
 
-			// Mark as unlocked immediately — the synchronous .play() call within
-			// a user gesture is what unlocks the audio context on iOS, not the
-			// promise resolution.
 			iosAudioUnlocked = true;
 
 			const el = audioElement;
-			const playPromise = el.play();
-
-			if (playPromise !== undefined) {
-				playPromise
-					.then(() => {
-						el.pause();
-					})
-					.catch(() => {
-						// Expected to fail when no src is loaded — context is still unlocked
-					});
-			}
+			// Calling play() in a user gesture registers the gesture with the browser,
+			// unlocking future play() calls even outside gesture context.
+			// Pause immediately to prevent any audible playback of a restored track.
+			el.play().catch(() => {});
+			el.pause();
 		},
 
 		// Set the audio element reference

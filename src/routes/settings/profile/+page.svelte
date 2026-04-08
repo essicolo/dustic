@@ -32,15 +32,13 @@
 		username: '',
 		password: '',
 		enabled: false,
-		autoSync: false,
-		corsProxy: ''
+		autoSync: false
 	};
 	let webdavTestStatus: 'idle' | 'testing' | 'success' | 'error' = 'idle';
 	let webdavTestMessage = '';
 	let webdavSyncStatus: 'idle' | 'uploading' | 'downloading' | 'success' | 'error' = 'idle';
 	let webdavSyncMessage = '';
 	let showWebdavPassword = false;
-	let showAdvancedWebdav = false;
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -614,52 +612,6 @@
 						<span class="label-text-alt">Use an app-specific password if your server requires it</span>
 					</label>
 				</div>
-
-				<!-- Advanced options toggle -->
-				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						class="btn btn-ghost btn-sm"
-						on:click={() => showAdvancedWebdav = !showAdvancedWebdav}
-						disabled={!webdavConfig.enabled}
-					>
-						<Icon icon={showAdvancedWebdav ? 'solar:alt-arrow-down-bold' : 'solar:alt-arrow-right-bold'} width="16" />
-						Advanced Options
-					</button>
-				</div>
-
-				<!-- Advanced options (CORS proxy) -->
-				{#if showAdvancedWebdav && webdavConfig.enabled}
-					<div class="border border-base-300 rounded-lg p-4 space-y-3">
-						<div class="alert alert-warning text-xs">
-							<Icon icon="solar:danger-triangle-bold" width="18" />
-							<div>
-								<p class="font-semibold">CORS Proxy May Be Required</p>
-								<p class="mt-1">Some WebDAV servers block direct browser access due to CORS policies. Use a CORS proxy if needed.</p>
-							</div>
-						</div>
-
-						<div class="form-control">
-							<label class="label">
-								<span class="label-text">CORS Proxy URL</span>
-							</label>
-							<input
-								type="url"
-								bind:value={webdavConfig.corsProxy}
-								placeholder="https://corsproxy.io/?"
-								class="input input-bordered input-sm"
-							/>
-							<label class="label">
-								<span class="label-text-alt">Popular proxies: https://corsproxy.io/? or https://api.allorigins.win/raw?url=</span>
-							</label>
-						</div>
-
-						<div class="text-xs text-base-content/60 space-y-1">
-							<p><strong>How it works:</strong> Your browser sends requests through the proxy, which adds necessary CORS headers.</p>
-							<p><strong>Security:</strong> Your credentials pass through the proxy. Use public proxies at your own risk or host your own.</p>
-						</div>
-					</div>
-				{/if}
 
 				<!-- Auto-sync toggle -->
 				<div class="flex items-center gap-3">

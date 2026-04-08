@@ -73,7 +73,6 @@ export interface WebDAVConfig {
 	enabled: boolean;
 	autoSync: boolean;
 	lastSync?: number; // timestamp
-	corsProxy?: string; // Optional CORS proxy URL
 }
 
 export interface UserProfile {

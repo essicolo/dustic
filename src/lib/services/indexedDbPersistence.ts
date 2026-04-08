@@ -10,10 +10,17 @@ const DB_VERSION = 1;
 const STORE_NAME = 'profile';
 const PROFILE_KEY = 'user-profile';
 
+// Cached connection — avoids reopening the database on every save
+let cachedDB: IDBDatabase | null = null;
+
 /**
- * Open IndexedDB connection
+ * Open IndexedDB connection (reuses cached connection when available)
  */
 function openDB(): Promise<IDBDatabase> {
+	if (cachedDB) {
+		return Promise.resolve(cachedDB);
+	}
+
 	return new Promise((resolve, reject) => {
 		if (!browser) {
 			reject(new Error('Not in browser environment'));
@@ -23,7 +30,13 @@ function openDB(): Promise<IDBDatabase> {
 		const request = indexedDB.open(DB_NAME, DB_VERSION);
 
 		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onsuccess = () => {
+			const db = request.result;
+			db.onclose = () => { cachedDB = null; };
+			db.onversionchange = () => { db.close(); cachedDB = null; };
+			cachedDB = db;
+			resolve(db);
+		};
 
 		request.onupgradeneeded = (event) => {
 			const db = (event.target as IDBOpenDBRequest).result;
@@ -58,19 +71,13 @@ export async function saveToIndexedDB(profile: UserProfile): Promise<void> {
 		return new Promise((resolve, reject) => {
 			request.onsuccess = () => {
 				// Wait for transaction to complete, not just request
-				transaction.oncomplete = () => {
-					db.close();
-					console.log('[IndexedDB] Profile saved successfully at', new Date().toISOString());
-					resolve();
-				};
+				transaction.oncomplete = () => resolve();
 			};
 			request.onerror = () => {
-				db.close();
 				console.error('[IndexedDB] Request failed:', request.error);
 				reject(request.error);
 			};
 			transaction.onerror = () => {
-				db.close();
 				console.error('[IndexedDB] Transaction failed:', transaction.error);
 				reject(transaction.error);
 			};
@@ -95,7 +102,6 @@ export async function loadFromIndexedDB(): Promise<UserProfile | null> {
 
 		return new Promise((resolve, reject) => {
 			request.onsuccess = () => {
-				db.close();
 				const data = request.result;
 				if (data && data.profile) {
 					resolve(data.profile);
@@ -103,10 +109,7 @@ export async function loadFromIndexedDB(): Promise<UserProfile | null> {
 					resolve(null);
 				}
 			};
-			request.onerror = () => {
-				db.close();
-				reject(request.error);
-			};
+			request.onerror = () => reject(request.error);
 		});
 	} catch (error) {
 		console.error('Failed to load from IndexedDB:', error);
@@ -127,14 +130,8 @@ export async function clearIndexedDB(): Promise<void> {
 		store.delete(PROFILE_KEY);
 
 		return new Promise((resolve, reject) => {
-			transaction.oncomplete = () => {
-				db.close();
-				resolve();
-			};
-			transaction.onerror = () => {
-				db.close();
-				reject(transaction.error);
-			};
+			transaction.oncomplete = () => resolve();
+			transaction.onerror = () => reject(transaction.error);
 		});
 	} catch (error) {
 		console.error('Failed to clear IndexedDB:', error);

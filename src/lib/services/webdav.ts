@@ -14,8 +14,7 @@ export async function testWebDAVConnection(config: WebDAVConfig): Promise<{ succ
 		const url = buildWebDAVUrl(config.url, '', config.corsProxy);
 		const response = await fetch(url, {
 			method: 'OPTIONS',
-			headers: getAuthHeaders(config),
-			mode: config.corsProxy ? 'cors' : 'cors'
+			headers: getAuthHeaders(config)
 		});
 
 		if (!response.ok) {
@@ -29,12 +28,11 @@ export async function testWebDAVConnection(config: WebDAVConfig): Promise<{ succ
 	} catch (error) {
 		console.error('[WebDAV] Connection test failed:', error);
 
-		// Detect CORS errors
-		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-			return {
-				success: false,
-				error: 'CORS blocked: WebDAV server does not allow browser access. Try enabling CORS proxy or use a compatible server.'
-			};
+		if (isCorsOrNetworkError(error)) {
+			const proxyHint = config.corsProxy
+				? 'CORS proxy may be down or blocking requests. Try a different proxy or host your own.'
+				: 'CORS blocked: WebDAV server does not allow browser access. Try enabling a CORS proxy in advanced settings.';
+			return { success: false, error: proxyHint };
 		}
 
 		return {
@@ -63,8 +61,7 @@ export async function uploadProfileToWebDAV(
 				'Content-Type': 'application/json',
 				...getAuthHeaders(config)
 			},
-			body: profileJson,
-			mode: config.corsProxy ? 'cors' : 'cors'
+			body: profileJson
 		});
 
 		if (!response.ok) {
@@ -75,8 +72,10 @@ export async function uploadProfileToWebDAV(
 	} catch (error) {
 		console.error('[WebDAV] Upload failed:', error);
 
-		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-			throw new Error('CORS blocked: Cannot upload to WebDAV server from browser. Enable CORS proxy in settings.');
+		if (isCorsOrNetworkError(error)) {
+			throw new Error(config.corsProxy
+				? 'CORS proxy may be down or blocking requests. Try a different proxy or host your own.'
+				: 'CORS blocked: Cannot upload to WebDAV server from browser. Enable CORS proxy in settings.');
 		}
 
 		throw error;
@@ -94,8 +93,7 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 
 		const response = await fetch(url, {
 			method: 'GET',
-			headers: getAuthHeaders(config),
-			mode: config.corsProxy ? 'cors' : 'cors'
+			headers: getAuthHeaders(config)
 		});
 
 		if (!response.ok) {
@@ -109,8 +107,10 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 	} catch (error) {
 		console.error('[WebDAV] Download failed:', error);
 
-		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-			throw new Error('CORS blocked: Cannot download from WebDAV server from browser. Enable CORS proxy in settings.');
+		if (isCorsOrNetworkError(error)) {
+			throw new Error(config.corsProxy
+				? 'CORS proxy may be down or blocking requests. Try a different proxy or host your own.'
+				: 'CORS blocked: Cannot download from WebDAV server from browser. Enable CORS proxy in settings.');
 		}
 
 		throw error;
@@ -128,8 +128,7 @@ export async function checkProfileExists(config: WebDAVConfig): Promise<boolean>
 
 		const response = await fetch(url, {
 			method: 'HEAD',
-			headers: getAuthHeaders(config),
-			mode: config.corsProxy ? 'cors' : 'cors'
+			headers: getAuthHeaders(config)
 		});
 
 		return response.ok;
@@ -140,18 +139,34 @@ export async function checkProfileExists(config: WebDAVConfig): Promise<boolean>
 }
 
 /**
- * Build WebDAV URL with optional CORS proxy
+ * Detect CORS or network errors across browsers.
+ * Firefox: "NetworkError when attempting to fetch resource."
+ * Chrome/Safari: "Failed to fetch"
+ */
+function isCorsOrNetworkError(error: unknown): boolean {
+	if (!(error instanceof TypeError)) return false;
+	const msg = error.message.toLowerCase();
+	return msg.includes('failed to fetch') || msg.includes('networkerror');
+}
+
+/**
+ * Build WebDAV URL with optional CORS proxy.
+ * Handles common proxy URL formats:
+ * - https://corsproxy.io/?https://target.com
+ * - https://api.allorigins.win/raw?url=https://target.com
  */
 function buildWebDAVUrl(baseUrl: string, filename: string, corsProxy?: string): string {
 	const normalizedBase = baseUrl.replace(/\/+$/, '');
 	const fullPath = filename ? `${normalizedBase}/${filename}` : normalizedBase;
 
 	if (corsProxy) {
-		// CORS proxies expect the target URL appended directly, not encoded as a path
-		// Examples:
-		// - https://corsproxy.io/?https://target.com
-		// - https://api.allorigins.win/raw?url=https://target.com
-		return `${corsProxy}${fullPath}`;
+		const trimmedProxy = corsProxy.trimEnd();
+		// If the proxy URL already ends with ? or = (e.g., "https://corsproxy.io/?" or "?url="),
+		// append the target URL directly. Otherwise, add a ? separator.
+		if (trimmedProxy.endsWith('?') || trimmedProxy.endsWith('=')) {
+			return `${trimmedProxy}${fullPath}`;
+		}
+		return `${trimmedProxy}?${fullPath}`;
 	}
 
 	return fullPath;

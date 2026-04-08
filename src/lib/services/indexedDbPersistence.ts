@@ -60,7 +60,6 @@ export async function saveToIndexedDB(profile: UserProfile): Promise<void> {
 				// Wait for transaction to complete, not just request
 				transaction.oncomplete = () => {
 					db.close();
-					console.log('[IndexedDB] Profile saved successfully at', new Date().toISOString());
 					resolve();
 				};
 			};

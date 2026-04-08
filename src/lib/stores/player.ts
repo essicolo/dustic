@@ -66,33 +66,31 @@ function createPlayerStore() {
 	return {
 		subscribe,
 
-		// iOS audio unlock - must be called synchronously in a user gesture
+		// iOS audio unlock - must be called synchronously in a user gesture.
+		// On iOS, calling .play() within a user gesture unlocks the audio context.
+		// We set the flag synchronously so that the subsequent togglePlay/resume
+		// in the same click handler does not race with the promise resolution.
 		unlockIOSAudio(): void {
 			if (iosAudioUnlocked || !audioElement) {
 				return;
 			}
 
-			// Simply calling play() on iOS, even if it fails, unlocks the audio context
-			// This must be called synchronously within a user gesture event handler
+			// Mark as unlocked immediately — the synchronous .play() call within
+			// a user gesture is what unlocks the audio context on iOS, not the
+			// promise resolution.
+			iosAudioUnlocked = true;
+
 			const el = audioElement;
 			const playPromise = el.play();
 
 			if (playPromise !== undefined) {
 				playPromise
 					.then(() => {
-						// Play started successfully (shouldn't happen with no src)
 						el.pause();
-						iosAudioUnlocked = true;
-						console.log('[iOS] Audio unlocked via play');
 					})
 					.catch(() => {
-						// Expected to fail - but this unlocks iOS audio context
-						iosAudioUnlocked = true;
-						console.log('[iOS] Audio context unlocked (expected failure)');
+						// Expected to fail when no src is loaded — context is still unlocked
 					});
-			} else {
-				// Older browsers without promise-based play()
-				iosAudioUnlocked = true;
 			}
 		},
 

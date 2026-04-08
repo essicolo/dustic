@@ -104,7 +104,8 @@
 				repeat: $player.repeat,
 				audioQuality: $settings.audioQuality || 'medium',
 				funkwhaleInstances: $settings.funkwhaleInstances,
-				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
+				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay,
+				webdav: $settings.webdav
 			},
 			lastPlayedTrack: $player.currentTrack || undefined,
 			lastPlayedPosition: $player.currentTime

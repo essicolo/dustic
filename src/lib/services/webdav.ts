@@ -7,22 +7,40 @@ const PROFILE_FILENAME = 'dustic-profile.json';
 /**
  * Test WebDAV connection
  */
-export async function testWebDAVConnection(config: WebDAVConfig): Promise<boolean> {
-	if (!browser) return false;
+export async function testWebDAVConnection(config: WebDAVConfig): Promise<{ success: boolean; error?: string }> {
+	if (!browser) return { success: false, error: 'Not in browser environment' };
 
 	try {
-		const url = normalizeWebDAVUrl(config.url);
+		const url = buildWebDAVUrl(config.url, '', config.corsProxy);
 		const response = await fetch(url, {
 			method: 'OPTIONS',
-			headers: {
-				Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
-			}
+			headers: getAuthHeaders(config),
+			mode: config.corsProxy ? 'cors' : 'cors'
 		});
 
-		return response.ok;
+		if (!response.ok) {
+			return {
+				success: false,
+				error: `Server returned ${response.status}: ${response.statusText}`
+			};
+		}
+
+		return { success: true };
 	} catch (error) {
 		console.error('[WebDAV] Connection test failed:', error);
-		return false;
+
+		// Detect CORS errors
+		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+			return {
+				success: false,
+				error: 'CORS blocked: WebDAV server does not allow browser access. Try enabling CORS proxy or use a compatible server.'
+			};
+		}
+
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : 'Unknown error'
+		};
 	}
 }
 
@@ -36,16 +54,17 @@ export async function uploadProfileToWebDAV(
 	if (!browser) throw new Error('WebDAV upload only available in browser');
 
 	try {
-		const url = normalizeWebDAVUrl(config.url) + '/' + PROFILE_FILENAME;
+		const url = buildWebDAVUrl(config.url, PROFILE_FILENAME, config.corsProxy);
 		const profileJson = JSON.stringify(profile, null, 2);
 
 		const response = await fetch(url, {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
-				Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
+				...getAuthHeaders(config)
 			},
-			body: profileJson
+			body: profileJson,
+			mode: config.corsProxy ? 'cors' : 'cors'
 		});
 
 		if (!response.ok) {
@@ -55,6 +74,11 @@ export async function uploadProfileToWebDAV(
 		console.log('[WebDAV] Profile uploaded successfully');
 	} catch (error) {
 		console.error('[WebDAV] Upload failed:', error);
+
+		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+			throw new Error('CORS blocked: Cannot upload to WebDAV server from browser. Enable CORS proxy in settings.');
+		}
+
 		throw error;
 	}
 }
@@ -66,13 +90,12 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 	if (!browser) throw new Error('WebDAV download only available in browser');
 
 	try {
-		const url = normalizeWebDAVUrl(config.url) + '/' + PROFILE_FILENAME;
+		const url = buildWebDAVUrl(config.url, PROFILE_FILENAME, config.corsProxy);
 
 		const response = await fetch(url, {
 			method: 'GET',
-			headers: {
-				Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
-			}
+			headers: getAuthHeaders(config),
+			mode: config.corsProxy ? 'cors' : 'cors'
 		});
 
 		if (!response.ok) {
@@ -85,6 +108,11 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 		return profileData as UserProfile;
 	} catch (error) {
 		console.error('[WebDAV] Download failed:', error);
+
+		if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+			throw new Error('CORS blocked: Cannot download from WebDAV server from browser. Enable CORS proxy in settings.');
+		}
+
 		throw error;
 	}
 }
@@ -96,13 +124,12 @@ export async function checkProfileExists(config: WebDAVConfig): Promise<boolean>
 	if (!browser) return false;
 
 	try {
-		const url = normalizeWebDAVUrl(config.url) + '/' + PROFILE_FILENAME;
+		const url = buildWebDAVUrl(config.url, PROFILE_FILENAME, config.corsProxy);
 
 		const response = await fetch(url, {
 			method: 'HEAD',
-			headers: {
-				Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
-			}
+			headers: getAuthHeaders(config),
+			mode: config.corsProxy ? 'cors' : 'cors'
 		});
 
 		return response.ok;
@@ -113,8 +140,26 @@ export async function checkProfileExists(config: WebDAVConfig): Promise<boolean>
 }
 
 /**
- * Normalize WebDAV URL (remove trailing slash)
+ * Build WebDAV URL with optional CORS proxy
  */
-function normalizeWebDAVUrl(url: string): string {
-	return url.replace(/\/+$/, '');
+function buildWebDAVUrl(baseUrl: string, filename: string, corsProxy?: string): string {
+	const normalizedBase = baseUrl.replace(/\/+$/, '');
+	const fullPath = filename ? `${normalizedBase}/${filename}` : normalizedBase;
+
+	if (corsProxy) {
+		// Use CORS proxy
+		const proxyUrl = corsProxy.replace(/\/+$/, '');
+		return `${proxyUrl}/${encodeURIComponent(fullPath)}`;
+	}
+
+	return fullPath;
+}
+
+/**
+ * Get authentication headers for WebDAV requests
+ */
+function getAuthHeaders(config: WebDAVConfig): Record<string, string> {
+	return {
+		Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
+	};
 }

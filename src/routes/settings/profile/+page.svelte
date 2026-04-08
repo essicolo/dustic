@@ -32,13 +32,15 @@
 		username: '',
 		password: '',
 		enabled: false,
-		autoSync: false
+		autoSync: false,
+		corsProxy: ''
 	};
 	let webdavTestStatus: 'idle' | 'testing' | 'success' | 'error' = 'idle';
 	let webdavTestMessage = '';
 	let webdavSyncStatus: 'idle' | 'uploading' | 'downloading' | 'success' | 'error' = 'idle';
 	let webdavSyncMessage = '';
 	let showWebdavPassword = false;
+	let showAdvancedWebdav = false;
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -238,13 +240,13 @@
 		webdavTestMessage = '';
 
 		try {
-			const success = await testWebDAVConnection(webdavConfig);
-			if (success) {
+			const result = await testWebDAVConnection(webdavConfig);
+			if (result.success) {
 				webdavTestStatus = 'success';
 				webdavTestMessage = 'Connection successful!';
 			} else {
 				webdavTestStatus = 'error';
-				webdavTestMessage = 'Connection failed. Check your credentials.';
+				webdavTestMessage = result.error || 'Connection failed. Check your credentials.';
 			}
 		} catch (error) {
 			webdavTestStatus = 'error';
@@ -254,7 +256,7 @@
 		setTimeout(() => {
 			webdavTestStatus = 'idle';
 			webdavTestMessage = '';
-		}, 3000);
+		}, 5000); // Longer timeout for error messages
 	}
 
 	function saveWebdavConfig() {
@@ -555,6 +557,22 @@
 					<span class="text-sm font-medium">Enable WebDAV Sync</span>
 				</div>
 
+				<!-- pCloud Quick Setup -->
+				{#if webdavConfig.enabled}
+					<div class="alert alert-info text-sm">
+						<Icon icon="solar:info-circle-bold" width="20" />
+						<div>
+							<p class="font-semibold mb-1">For pCloud users:</p>
+							<ul class="list-disc list-inside ml-2 space-y-1">
+								<li>URL: <code class="bg-base-300 px-1 rounded">https://webdav.pcloud.com</code> (US) or <code class="bg-base-300 px-1 rounded">https://ewebdav.pcloud.com</code> (EU)</li>
+								<li>Username: Your pCloud email address</li>
+								<li>Password: Your pCloud password</li>
+								<li><strong>Important:</strong> Enable CORS Proxy below (pCloud blocks browser access)</li>
+							</ul>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Server URL -->
 				<div class="form-control">
 					<label class="label">
@@ -563,12 +581,12 @@
 					<input
 						type="url"
 						bind:value={webdavConfig.url}
-						placeholder="https://cloud.example.com/remote.php/dav/files/username/"
+						placeholder="https://webdav.pcloud.com"
 						class="input input-bordered"
 						disabled={!webdavConfig.enabled}
 					/>
 					<label class="label">
-						<span class="label-text-alt">Full path to your WebDAV folder (including username)</span>
+						<span class="label-text-alt">Base WebDAV URL (without filename)</span>
 					</label>
 				</div>
 
@@ -612,6 +630,52 @@
 						<span class="label-text-alt">For Nextcloud, use an app password</span>
 					</label>
 				</div>
+
+				<!-- Advanced options toggle -->
+				<div class="flex items-center gap-2">
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm"
+						on:click={() => showAdvancedWebdav = !showAdvancedWebdav}
+						disabled={!webdavConfig.enabled}
+					>
+						<Icon icon={showAdvancedWebdav ? 'solar:alt-arrow-down-bold' : 'solar:alt-arrow-right-bold'} width="16" />
+						Advanced Options
+					</button>
+				</div>
+
+				<!-- Advanced options (CORS proxy) -->
+				{#if showAdvancedWebdav && webdavConfig.enabled}
+					<div class="border border-base-300 rounded-lg p-4 space-y-3">
+						<div class="alert alert-warning text-xs">
+							<Icon icon="solar:danger-triangle-bold" width="18" />
+							<div>
+								<p class="font-semibold">CORS Proxy Required for pCloud and Some Servers</p>
+								<p class="mt-1">Many WebDAV servers (including pCloud) block direct browser access due to CORS policies. Use a CORS proxy to enable sync.</p>
+							</div>
+						</div>
+
+						<div class="form-control">
+							<label class="label">
+								<span class="label-text">CORS Proxy URL</span>
+							</label>
+							<input
+								type="url"
+								bind:value={webdavConfig.corsProxy}
+								placeholder="https://corsproxy.io/?"
+								class="input input-bordered input-sm"
+							/>
+							<label class="label">
+								<span class="label-text-alt">Popular proxies: https://corsproxy.io/? or https://api.allorigins.win/raw?url=</span>
+							</label>
+						</div>
+
+						<div class="text-xs text-base-content/60 space-y-1">
+							<p><strong>How it works:</strong> Your browser sends requests through the proxy, which adds necessary CORS headers.</p>
+							<p><strong>Security:</strong> Your credentials pass through the proxy. Use public proxies at your own risk or host your own.</p>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Auto-sync toggle -->
 				<div class="flex items-center gap-3">
@@ -685,13 +749,23 @@
 
 			<div class="alert alert-info mt-4">
 				<Icon icon="solar:info-circle-bold" width="20" />
-				<div class="text-sm space-y-1">
-					<p><strong>WebDAV Setup:</strong></p>
-					<ul class="list-disc list-inside ml-2">
-						<li>For Nextcloud: Use the full WebDAV path from Settings → Security</li>
-						<li>Create an app-specific password for better security</li>
-						<li>Make sure your WebDAV folder has write permissions</li>
-					</ul>
+				<div class="text-sm space-y-2">
+					<div>
+						<p class="font-semibold mb-1">Setup Guide:</p>
+						<ul class="list-disc list-inside ml-2 space-y-1">
+							<li><strong>Nextcloud:</strong> Use full WebDAV path (Settings → Security), create app password</li>
+							<li><strong>pCloud:</strong> Use base URL only, enable CORS proxy in Advanced Options</li>
+							<li><strong>ownCloud:</strong> Similar to Nextcloud, use full path with username</li>
+						</ul>
+					</div>
+					<div>
+						<p class="font-semibold mb-1">Troubleshooting:</p>
+						<ul class="list-disc list-inside ml-2 space-y-1">
+							<li><strong>CORS blocked:</strong> Enable CORS proxy in Advanced Options</li>
+							<li><strong>401 Unauthorized:</strong> Check username and password</li>
+							<li><strong>404 Not Found:</strong> Verify the URL path is correct</li>
+						</ul>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -66,6 +66,15 @@ export interface AutoplayRule {
 
 export type AudioQuality = 'lowest' | 'medium' | 'best';
 
+export interface WebDAVConfig {
+	url: string;
+	username: string;
+	password: string;
+	enabled: boolean;
+	autoSync: boolean;
+	lastSync?: number; // timestamp
+}
+
 export interface UserProfile {
 	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
@@ -80,6 +89,7 @@ export interface UserProfile {
 		defaultCollection?: string;
 		funkwhaleInstances?: FunkwhaleInstance[];
 		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
+		webdav?: WebDAVConfig;
 	};
 	// Player state persistence
 	lastPlayedTrack?: Track; // Last track that was playing when app closed

@@ -1,7 +1,7 @@
 // Settings store for app preferences
 
 import { writable, get } from 'svelte/store';
-import type { AudioQuality, FunkwhaleInstance } from '$lib/types';
+import type { AudioQuality, FunkwhaleInstance, WebDAVConfig } from '$lib/types';
 import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 import { createDefaultProfile } from '$lib/services/storage';
 import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
@@ -13,6 +13,7 @@ export interface Settings {
 	defaultCollection?: string;
 	funkwhaleInstances?: FunkwhaleInstance[];
 	favoriteInfluencedAutoplay?: boolean;
+	webdav?: WebDAVConfig;
 }
 
 // Load from storage or use defaults (sync version for initial load)
@@ -155,6 +156,32 @@ function createSettingsStore() {
 		setFavoriteInfluencedAutoplay(enabled: boolean) {
 			update((state) => {
 				const newState = { ...state, favoriteInfluencedAutoplay: enabled };
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		/**
+		 * Set WebDAV configuration
+		 */
+		setWebDAVConfig(config: WebDAVConfig) {
+			update((state) => {
+				const newState = { ...state, webdav: config };
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		/**
+		 * Update WebDAV last sync timestamp
+		 */
+		updateWebDAVLastSync(timestamp: number) {
+			update((state) => {
+				if (!state.webdav) return state;
+				const newState = {
+					...state,
+					webdav: { ...state.webdav, lastSync: timestamp }
+				};
 				saveSettings(newState);
 				return newState;
 			});

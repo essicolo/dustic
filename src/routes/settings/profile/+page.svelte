@@ -9,7 +9,8 @@
 	import { formatBytes as formatBytesShared, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import { saveToStorage } from '$lib/services/persistence';
-	import type { UserProfile } from '$lib/types';
+	import type { UserProfile, WebDAVConfig } from '$lib/types';
+	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
@@ -24,6 +25,20 @@
 	let orphanedTracks: OfflineTrack[] = [];
 	let selectedOrphans: Set<string> = new Set();
 	let orphanScanDone = false;
+
+	// WebDAV sync state
+	let webdavConfig: WebDAVConfig = $settings.webdav || {
+		url: '',
+		username: '',
+		password: '',
+		enabled: false,
+		autoSync: false
+	};
+	let webdavTestStatus: 'idle' | 'testing' | 'success' | 'error' = 'idle';
+	let webdavTestMessage = '';
+	let webdavSyncStatus: 'idle' | 'uploading' | 'downloading' | 'success' | 'error' = 'idle';
+	let webdavSyncMessage = '';
+	let showWebdavPassword = false;
 
 	// Combined dirty state
 	$: isDirty = $library.isDirty || $history.isDirty;
@@ -216,6 +231,116 @@
 		await saveToStorage(profile);
 		console.log('[Settings] Profile import complete and persisted');
 	}
+
+	// WebDAV functions
+	async function testWebdavConnection() {
+		webdavTestStatus = 'testing';
+		webdavTestMessage = '';
+
+		try {
+			const success = await testWebDAVConnection(webdavConfig);
+			if (success) {
+				webdavTestStatus = 'success';
+				webdavTestMessage = 'Connection successful!';
+			} else {
+				webdavTestStatus = 'error';
+				webdavTestMessage = 'Connection failed. Check your credentials.';
+			}
+		} catch (error) {
+			webdavTestStatus = 'error';
+			webdavTestMessage = error instanceof Error ? error.message : 'Connection failed';
+		}
+
+		setTimeout(() => {
+			webdavTestStatus = 'idle';
+			webdavTestMessage = '';
+		}, 3000);
+	}
+
+	function saveWebdavConfig() {
+		settings.setWebDAVConfig(webdavConfig);
+		webdavTestMessage = 'Configuration saved!';
+		setTimeout(() => { webdavTestMessage = ''; }, 2000);
+	}
+
+	async function uploadToWebdav() {
+		if (!webdavConfig.enabled || !webdavConfig.url) {
+			webdavSyncMessage = 'Please configure and enable WebDAV first';
+			webdavSyncStatus = 'error';
+			setTimeout(() => { webdavSyncStatus = 'idle'; webdavSyncMessage = ''; }, 3000);
+			return;
+		}
+
+		webdavSyncStatus = 'uploading';
+		webdavSyncMessage = '';
+
+		try {
+			const profile: UserProfile = {
+				schemaVersion: 2,
+				exported: Date.now(),
+				favorites: $library.favorites,
+				playlists: $library.playlists,
+				history: $history.entries,
+				autoplayRules: $autoplayStore.rules,
+				settings: {
+					volume: $player.volume,
+					repeat: $player.repeat,
+					audioQuality: $settings.audioQuality || 'medium',
+					funkwhaleInstances: $settings.funkwhaleInstances,
+					favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay,
+					webdav: webdavConfig
+				}
+			};
+
+			await uploadProfileToWebDAV(profile, webdavConfig);
+			settings.updateWebDAVLastSync(Date.now());
+			webdavConfig.lastSync = Date.now();
+
+			webdavSyncStatus = 'success';
+			webdavSyncMessage = 'Profile uploaded successfully!';
+
+			library.markClean();
+			history.markClean();
+		} catch (error) {
+			webdavSyncStatus = 'error';
+			webdavSyncMessage = error instanceof Error ? error.message : 'Upload failed';
+		}
+
+		setTimeout(() => {
+			webdavSyncStatus = 'idle';
+			webdavSyncMessage = '';
+		}, 3000);
+	}
+
+	async function downloadFromWebdav() {
+		if (!webdavConfig.enabled || !webdavConfig.url) {
+			webdavSyncMessage = 'Please configure and enable WebDAV first';
+			webdavSyncStatus = 'error';
+			setTimeout(() => { webdavSyncStatus = 'idle'; webdavSyncMessage = ''; }, 3000);
+			return;
+		}
+
+		webdavSyncStatus = 'downloading';
+		webdavSyncMessage = '';
+
+		try {
+			const profile = await downloadProfileFromWebDAV(webdavConfig);
+			await loadProfile(profile);
+			settings.updateWebDAVLastSync(Date.now());
+			webdavConfig.lastSync = Date.now();
+
+			webdavSyncStatus = 'success';
+			webdavSyncMessage = 'Profile downloaded and applied successfully!';
+		} catch (error) {
+			webdavSyncStatus = 'error';
+			webdavSyncMessage = error instanceof Error ? error.message : 'Download failed';
+		}
+
+		setTimeout(() => {
+			webdavSyncStatus = 'idle';
+			webdavSyncMessage = '';
+		}, 3000);
+	}
 </script>
 
 <!-- Hidden file input -->
@@ -385,6 +510,190 @@
 					</div>
 				</li>
 			</ul>
+		</div>
+	</div>
+
+	<!-- WebDAV Sync -->
+	<div class="card bg-base-200 mb-6">
+		<div class="card-body">
+			<h3 class="text-xl font-semibold mb-4">
+				<Icon icon="solar:cloud-bold" width="24" className="inline mr-2" />
+				WebDAV Sync
+			</h3>
+			<p class="text-sm text-base-content/70 mb-4">
+				Automatically sync your profile to a WebDAV server (like Nextcloud, ownCloud, or any WebDAV-compatible service).
+			</p>
+
+			<!-- Status messages -->
+			{#if webdavTestMessage}
+				<div class="alert mb-4"
+					class:alert-success={webdavTestStatus === 'success'}
+					class:alert-error={webdavTestStatus === 'error'}
+				>
+					<span>{webdavTestMessage}</span>
+				</div>
+			{/if}
+
+			{#if webdavSyncMessage}
+				<div class="alert mb-4"
+					class:alert-success={webdavSyncStatus === 'success'}
+					class:alert-error={webdavSyncStatus === 'error'}
+				>
+					<span>{webdavSyncMessage}</span>
+				</div>
+			{/if}
+
+			<!-- Configuration form -->
+			<div class="space-y-4">
+				<!-- Enable toggle -->
+				<div class="flex items-center gap-3">
+					<input
+						type="checkbox"
+						class="toggle toggle-primary"
+						bind:checked={webdavConfig.enabled}
+					/>
+					<span class="text-sm font-medium">Enable WebDAV Sync</span>
+				</div>
+
+				<!-- Server URL -->
+				<div class="form-control">
+					<label class="label">
+						<span class="label-text">WebDAV Server URL</span>
+					</label>
+					<input
+						type="url"
+						bind:value={webdavConfig.url}
+						placeholder="https://cloud.example.com/remote.php/dav/files/username/"
+						class="input input-bordered"
+						disabled={!webdavConfig.enabled}
+					/>
+					<label class="label">
+						<span class="label-text-alt">Full path to your WebDAV folder (including username)</span>
+					</label>
+				</div>
+
+				<!-- Username -->
+				<div class="form-control">
+					<label class="label">
+						<span class="label-text">Username</span>
+					</label>
+					<input
+						type="text"
+						bind:value={webdavConfig.username}
+						placeholder="username"
+						class="input input-bordered"
+						disabled={!webdavConfig.enabled}
+					/>
+				</div>
+
+				<!-- Password -->
+				<div class="form-control">
+					<label class="label">
+						<span class="label-text">Password</span>
+					</label>
+					<div class="relative">
+						<input
+							type={showWebdavPassword ? 'text' : 'password'}
+							bind:value={webdavConfig.password}
+							placeholder="password or app token"
+							class="input input-bordered w-full pr-10"
+							disabled={!webdavConfig.enabled}
+						/>
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm btn-square absolute right-1 top-1"
+							on:click={() => showWebdavPassword = !showWebdavPassword}
+							disabled={!webdavConfig.enabled}
+						>
+							<Icon icon={showWebdavPassword ? 'solar:eye-bold' : 'solar:eye-closed-bold'} width="20" />
+						</button>
+					</div>
+					<label class="label">
+						<span class="label-text-alt">For Nextcloud, use an app password</span>
+					</label>
+				</div>
+
+				<!-- Auto-sync toggle -->
+				<div class="flex items-center gap-3">
+					<input
+						type="checkbox"
+						class="toggle toggle-primary toggle-sm"
+						bind:checked={webdavConfig.autoSync}
+						disabled={!webdavConfig.enabled}
+					/>
+					<span class="text-sm">Auto-sync on changes</span>
+				</div>
+
+				<!-- Last sync timestamp -->
+				{#if webdavConfig.lastSync}
+					<div class="text-sm text-base-content/60">
+						Last synced: {new Date(webdavConfig.lastSync).toLocaleString()}
+					</div>
+				{/if}
+
+				<!-- Action buttons -->
+				<div class="flex flex-wrap gap-2 pt-2">
+					<button
+						class="btn btn-sm btn-outline"
+						on:click={testWebdavConnection}
+						disabled={!webdavConfig.enabled || !webdavConfig.url || webdavTestStatus === 'testing'}
+					>
+						{#if webdavTestStatus === 'testing'}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							<Icon icon="solar:wifi-router-bold" width="16" />
+						{/if}
+						Test Connection
+					</button>
+
+					<button
+						class="btn btn-sm btn-primary"
+						on:click={saveWebdavConfig}
+						disabled={!webdavConfig.enabled}
+					>
+						<Icon icon="solar:diskette-bold" width="16" />
+						Save Configuration
+					</button>
+
+					<button
+						class="btn btn-sm btn-success"
+						on:click={uploadToWebdav}
+						disabled={!webdavConfig.enabled || !webdavConfig.url || webdavSyncStatus === 'uploading'}
+					>
+						{#if webdavSyncStatus === 'uploading'}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							<Icon icon="solar:upload-bold" width="16" />
+						{/if}
+						Upload to Server
+					</button>
+
+					<button
+						class="btn btn-sm btn-info"
+						on:click={downloadFromWebdav}
+						disabled={!webdavConfig.enabled || !webdavConfig.url || webdavSyncStatus === 'downloading'}
+					>
+						{#if webdavSyncStatus === 'downloading'}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							<Icon icon="solar:download-bold" width="16" />
+						{/if}
+						Download from Server
+					</button>
+				</div>
+			</div>
+
+			<div class="alert alert-info mt-4">
+				<Icon icon="solar:info-circle-bold" width="20" />
+				<div class="text-sm space-y-1">
+					<p><strong>WebDAV Setup:</strong></p>
+					<ul class="list-disc list-inside ml-2">
+						<li>For Nextcloud: Use the full WebDAV path from Settings → Security</li>
+						<li>Create an app-specific password for better security</li>
+						<li>Make sure your WebDAV folder has write permissions</li>
+					</ul>
+				</div>
+			</div>
 		</div>
 	</div>
 

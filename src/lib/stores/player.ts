@@ -53,7 +53,7 @@ function createPlayerStore() {
 		if (!profile) return;
 
 		// Only save if track has changed or position has advanced significantly
-		const positionChanged = Math.abs((profile.lastPlayedPosition || 0) - state.currentTime) > 5;
+		const positionChanged = Math.abs((profile.lastPlayedPosition || 0) - state.currentTime) > 30;
 		const trackChanged = profile.lastPlayedTrack?.identifier !== state.currentTrack?.identifier;
 
 		if (trackChanged || positionChanged) {

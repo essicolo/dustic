@@ -223,9 +223,9 @@ export function scheduleAutoSave(profile: UserProfile, immediate: boolean = fals
 		clearTimeout(saveTimeout);
 	}
 
-	// Debounce by 1 second
+	// Debounce by 5 seconds — avoids frequent JSON.stringify + localStorage + IndexedDB writes
 	saveTimeout = setTimeout(async () => {
 		await saveToStorage(profile);
 		saveTimeout = null;
-	}, 1000);
+	}, 5000);
 }

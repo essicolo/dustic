@@ -523,7 +523,7 @@
 				WebDAV Sync
 			</h3>
 			<p class="text-sm text-base-content/70 mb-4">
-				Automatically sync your profile to a WebDAV server (like Nextcloud, ownCloud, or any WebDAV-compatible service).
+				Automatically sync your profile to a WebDAV server.
 			</p>
 
 			<!-- Status messages -->
@@ -557,22 +557,6 @@
 					<span class="text-sm font-medium">Enable WebDAV Sync</span>
 				</div>
 
-				<!-- pCloud Quick Setup -->
-				{#if webdavConfig.enabled}
-					<div class="alert alert-info text-sm">
-						<Icon icon="solar:info-circle-bold" width="20" />
-						<div>
-							<p class="font-semibold mb-1">For pCloud users:</p>
-							<ul class="list-disc list-inside ml-2 space-y-1">
-								<li>URL: <code class="bg-base-300 px-1 rounded">https://webdav.pcloud.com</code> (US) or <code class="bg-base-300 px-1 rounded">https://ewebdav.pcloud.com</code> (EU)</li>
-								<li>Username: Your pCloud email address</li>
-								<li>Password: Your pCloud password</li>
-								<li><strong>Important:</strong> Enable CORS Proxy below (pCloud blocks browser access)</li>
-							</ul>
-						</div>
-					</div>
-				{/if}
-
 				<!-- Server URL -->
 				<div class="form-control">
 					<label class="label">
@@ -581,7 +565,7 @@
 					<input
 						type="url"
 						bind:value={webdavConfig.url}
-						placeholder="https://webdav.pcloud.com"
+						placeholder="https://example.com/remote.php/dav/files/username/"
 						class="input input-bordered"
 						disabled={!webdavConfig.enabled}
 					/>
@@ -627,7 +611,7 @@
 						</button>
 					</div>
 					<label class="label">
-						<span class="label-text-alt">For Nextcloud, use an app password</span>
+						<span class="label-text-alt">Use an app-specific password if your server requires it</span>
 					</label>
 				</div>
 
@@ -650,8 +634,8 @@
 						<div class="alert alert-warning text-xs">
 							<Icon icon="solar:danger-triangle-bold" width="18" />
 							<div>
-								<p class="font-semibold">CORS Proxy Required for pCloud and Some Servers</p>
-								<p class="mt-1">Many WebDAV servers (including pCloud) block direct browser access due to CORS policies. Use a CORS proxy to enable sync.</p>
+								<p class="font-semibold">CORS Proxy May Be Required</p>
+								<p class="mt-1">Some WebDAV servers block direct browser access due to CORS policies. Use a CORS proxy if needed.</p>
 							</div>
 						</div>
 
@@ -744,28 +728,6 @@
 						{/if}
 						Download from Server
 					</button>
-				</div>
-			</div>
-
-			<div class="alert alert-info mt-4">
-				<Icon icon="solar:info-circle-bold" width="20" />
-				<div class="text-sm space-y-2">
-					<div>
-						<p class="font-semibold mb-1">Setup Guide:</p>
-						<ul class="list-disc list-inside ml-2 space-y-1">
-							<li><strong>Nextcloud:</strong> Use full WebDAV path (Settings → Security), create app password</li>
-							<li><strong>pCloud:</strong> Use base URL only, enable CORS proxy in Advanced Options</li>
-							<li><strong>ownCloud:</strong> Similar to Nextcloud, use full path with username</li>
-						</ul>
-					</div>
-					<div>
-						<p class="font-semibold mb-1">Troubleshooting:</p>
-						<ul class="list-disc list-inside ml-2 space-y-1">
-							<li><strong>CORS blocked:</strong> Enable CORS proxy in Advanced Options</li>
-							<li><strong>401 Unauthorized:</strong> Check username and password</li>
-							<li><strong>404 Not Found:</strong> Verify the URL path is correct</li>
-						</ul>
-					</div>
 				</div>
 			</div>
 		</div>

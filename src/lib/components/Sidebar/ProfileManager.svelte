@@ -9,6 +9,7 @@
 	import { formatBytes, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import { saveToStorage } from '$lib/services/persistence';
+	import { uploadProfileToWebDAV } from '$lib/services/webdav';
 	import type { UserProfile } from '$lib/types';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -22,6 +23,10 @@
 	let pasteText = '';
 	let pasteTextarea: HTMLTextAreaElement;
 	let importSuccess = false;
+	let isSyncing = false;
+	let syncSuccess = false;
+	let syncError = '';
+	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 	// Pending import awaiting merge/replace choice
 	let pendingImport: UserProfile | null = null;
@@ -43,6 +48,9 @@
 	onDestroy(() => {
 		if (browser) {
 			window.removeEventListener('beforeunload', handleBeforeUnload);
+		}
+		if (autoSyncInterval) {
+			clearInterval(autoSyncInterval);
 		}
 	});
 
@@ -284,6 +292,54 @@
 		orphanedTracks = [];
 		selectedOrphans = new Set();
 	}
+
+	// WebDAV sync
+	$: webdavEnabled = $settings.webdav?.enabled ?? false;
+
+	async function handleWebDAVSync() {
+		const config = $settings.webdav;
+		if (!config?.enabled || isSyncing) return;
+
+		if (!navigator.onLine) {
+			syncError = 'Offline — sync skipped';
+			setTimeout(() => (syncError = ''), 3000);
+			return;
+		}
+
+		isSyncing = true;
+		syncError = '';
+		syncSuccess = false;
+
+		try {
+			const profile = buildCurrentProfile();
+			await uploadProfileToWebDAV(profile, config);
+			settings.updateWebDAVLastSync(Date.now());
+			syncSuccess = true;
+			setTimeout(() => (syncSuccess = false), 3000);
+		} catch (error) {
+			syncError = error instanceof Error ? error.message : 'Sync failed';
+			setTimeout(() => (syncError = ''), 5000);
+		} finally {
+			isSyncing = false;
+		}
+	}
+
+	// Auto-sync timer — reacts to config changes
+	$: {
+		if (autoSyncInterval) {
+			clearInterval(autoSyncInterval);
+			autoSyncInterval = null;
+		}
+		const minutes = $settings.webdav?.autoSyncMinutes ?? 0;
+		if (browser && $settings.webdav?.enabled && minutes > 0) {
+			autoSyncInterval = setInterval(() => {
+				if (navigator.onLine) {
+					handleWebDAVSync();
+				}
+			}, minutes * 60 * 1000);
+		}
+	}
+
 </script>
 
 <div class="px-4 pb-4 border-t border-base-content/10 pt-3">
@@ -343,6 +399,24 @@
 			>
 				<Icon icon="solar:clipboard-bold" width="16" />
 			</button>
+			{#if webdavEnabled}
+				<span class="w-px h-4 bg-base-content/10"></span>
+				<button
+					on:click={handleWebDAVSync}
+					class="btn btn-ghost btn-xs btn-circle"
+					class:text-success={syncSuccess}
+					disabled={isSyncing}
+					title="Sync profile to WebDAV"
+				>
+					{#if isSyncing}
+						<span class="loading loading-spinner loading-xs"></span>
+					{:else if syncSuccess}
+						<Icon icon="solar:check-circle-bold" width="16" />
+					{:else}
+						<Icon icon="solar:refresh-bold" width="16" />
+					{/if}
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -401,6 +475,13 @@
 	{#if importError}
 		<div class="alert alert-error mt-2 text-xs p-2">
 			<span>{importError}</span>
+		</div>
+	{/if}
+
+	<!-- Sync Error -->
+	{#if syncError}
+		<div class="alert alert-error mt-2 text-xs p-2">
+			<span>{syncError}</span>
 		</div>
 	{/if}
 

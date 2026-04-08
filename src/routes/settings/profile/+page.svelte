@@ -32,7 +32,7 @@
 		username: '',
 		password: '',
 		enabled: false,
-		autoSync: false
+		autoSyncMinutes: 0
 	};
 	let webdavTestStatus: 'idle' | 'testing' | 'success' | 'error' = 'idle';
 	let webdavTestMessage = '';
@@ -613,15 +613,23 @@
 					</label>
 				</div>
 
-				<!-- Auto-sync toggle -->
-				<div class="flex items-center gap-3">
+				<!-- Auto-sync interval -->
+				<div class="form-control">
+					<label class="label">
+						<span class="label-text text-sm">Auto-sync interval (minutes)</span>
+					</label>
 					<input
-						type="checkbox"
-						class="toggle toggle-primary toggle-sm"
-						bind:checked={webdavConfig.autoSync}
+						type="number"
+						min="0"
+						step="1"
+						bind:value={webdavConfig.autoSyncMinutes}
 						disabled={!webdavConfig.enabled}
+						placeholder="0"
+						class="input input-bordered input-sm w-24"
 					/>
-					<span class="text-sm">Auto-sync on changes</span>
+					<label class="label">
+						<span class="label-text-alt">0 = off. Uses a small amount of bandwidth per sync.</span>
+					</label>
 				</div>
 
 				<!-- Last sync timestamp -->

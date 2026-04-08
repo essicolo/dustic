@@ -71,7 +71,7 @@ export interface WebDAVConfig {
 	username: string;
 	password: string;
 	enabled: boolean;
-	autoSync: boolean;
+	autoSyncMinutes: number; // 0 = disabled
 	lastSync?: number; // timestamp
 }
 

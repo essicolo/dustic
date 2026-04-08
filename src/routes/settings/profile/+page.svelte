@@ -565,6 +565,15 @@
 					<span class="text-sm font-medium">Enable WebDAV Sync</span>
 				</div>
 
+				{#if webdavConfig.enabled}
+					<div class="alert alert-warning text-xs">
+						<Icon icon="solar:lock-keyhole-bold" width="18" />
+						<div>
+							<p>Your password is encrypted on this device, but client-side encryption has limits. If your provider supports app-specific passwords or tokens, prefer those over your main password.</p>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Server URL -->
 				<div class="form-control">
 					<label class="label">

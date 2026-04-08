@@ -631,33 +631,31 @@
 				<!-- Advanced options (CORS proxy) -->
 				{#if showAdvancedWebdav && webdavConfig.enabled}
 					<div class="border border-base-300 rounded-lg p-4 space-y-3">
-						<div class="alert alert-warning text-xs">
-							<Icon icon="solar:danger-triangle-bold" width="18" />
-							<div>
-								<p class="font-semibold">CORS Proxy May Be Required</p>
-								<p class="mt-1">Some WebDAV servers block direct browser access due to CORS policies. Use a CORS proxy if needed.</p>
-							</div>
+						<div class="text-xs text-base-content/60 space-y-1">
+							<p>Requests are routed through the app's built-in proxy to avoid CORS issues. No extra setup needed.</p>
+							<p>Only set a custom proxy if the built-in one doesn't work for your setup.</p>
 						</div>
 
 						<div class="form-control">
 							<label class="label">
-								<span class="label-text">CORS Proxy URL</span>
+								<span class="label-text">Custom CORS Proxy URL (optional)</span>
 							</label>
 							<input
 								type="url"
 								bind:value={webdavConfig.corsProxy}
-								placeholder="https://corsproxy.io/?"
+								placeholder="Leave empty to use built-in proxy"
 								class="input input-bordered input-sm"
 							/>
-							<label class="label">
-								<span class="label-text-alt">Popular proxies: https://corsproxy.io/? or https://api.allorigins.win/raw?url=</span>
-							</label>
 						</div>
 
-						<div class="text-xs text-base-content/60 space-y-1">
-							<p><strong>How it works:</strong> Your browser sends requests through the proxy, which adds necessary CORS headers.</p>
-							<p><strong>Security:</strong> Your credentials pass through the proxy. Use public proxies at your own risk or host your own.</p>
-						</div>
+						{#if webdavConfig.corsProxy}
+							<div class="alert alert-warning text-xs">
+								<Icon icon="solar:danger-triangle-bold" width="18" />
+								<div>
+									<p><strong>Security:</strong> Your credentials pass through the custom proxy. Use at your own risk or host your own.</p>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{/if}
 

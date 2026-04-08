@@ -132,8 +132,6 @@
 	}
 
 	function handlePlayButtonClick() {
-		// Unlock iOS audio on first click
-		player.unlockIOSAudio();
 		player.togglePlay();
 	}
 

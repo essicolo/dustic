@@ -3,6 +3,8 @@
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+	import QueueContent from '$lib/components/Queue/QueueContent.svelte';
+	import { queuePanelOpen } from '$lib/stores/queuePanel';
 	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES, CONTENT_TYPES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
@@ -320,6 +322,14 @@
 				</div>
 			{/key}
 		</main>
+
+		<!-- Queue right panel — desktop xl+ only -->
+		{#if $queuePanelOpen}
+			<aside class="hidden xl:flex w-96 bg-base-200 border-l border-base-300 flex-col sticky top-0 h-screen overflow-hidden shrink-0"
+				style="padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));">
+				<QueueContent on:close={() => queuePanelOpen.close()} />
+			</aside>
+		{/if}
 	</div>
 
 	<!-- Player bar - Fixed at bottom with iOS safe area support -->

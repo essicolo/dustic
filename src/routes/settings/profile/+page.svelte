@@ -74,6 +74,8 @@
 		if (webdavConfig.password) {
 			webdavConfig.password = await decryptValue(webdavConfig.password);
 		}
+		// Enable auto-save after initial values are set (avoids saving on first load)
+		webdavInitialized = true;
 	});
 
 	function handleExport() {
@@ -262,15 +264,20 @@
 		}, 5000); // Longer timeout for error messages
 	}
 
+	// Auto-save WebDAV config when any field changes (debounced)
+	let webdavSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+	let webdavInitialized = false;
+	$: if (webdavInitialized && webdavConfig) {
+		if (webdavSaveTimeout) clearTimeout(webdavSaveTimeout);
+		webdavSaveTimeout = setTimeout(() => saveWebdavConfig(), 1000);
+	}
+
 	async function saveWebdavConfig() {
-		// Encrypt password before persisting
 		const configToSave = {
 			...webdavConfig,
 			password: webdavConfig.password ? await encryptValue(webdavConfig.password) : ''
 		};
 		settings.setWebDAVConfig(configToSave);
-		webdavTestMessage = 'Configuration saved!';
-		setTimeout(() => { webdavTestMessage = ''; }, 2000);
 	}
 
 	async function uploadToWebdav() {
@@ -671,15 +678,6 @@
 							<Icon icon="solar:wifi-router-bold" width="16" />
 						{/if}
 						Test Connection
-					</button>
-
-					<button
-						class="btn btn-sm btn-primary"
-						on:click={saveWebdavConfig}
-						disabled={!webdavConfig.enabled}
-					>
-						<Icon icon="solar:diskette-bold" width="16" />
-						Save Configuration
 					</button>
 
 					<button

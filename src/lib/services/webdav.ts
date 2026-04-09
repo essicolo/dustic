@@ -2,6 +2,7 @@
 // Uses a same-origin Cloudflare Pages Function (/api/webdav-proxy) to avoid CORS issues.
 import type { UserProfile, WebDAVConfig } from '$lib/types';
 import { browser } from '$app/environment';
+import { decryptValue } from './crypto';
 
 const PROFILE_FILENAME = 'dustic-profile.json';
 
@@ -15,7 +16,7 @@ async function proxiedFetch(
 	extraHeaders?: Record<string, string>,
 	body?: string
 ): Promise<Response> {
-	const headers = { ...getAuthHeaders(config), ...extraHeaders };
+	const headers = { ...(await getAuthHeaders(config)), ...extraHeaders };
 
 	return fetch('/api/webdav-proxy', {
 		method: 'POST',
@@ -122,8 +123,9 @@ function buildTargetUrl(baseUrl: string, filename: string): string {
 	return filename ? `${normalizedBase}/${filename}` : normalizedBase;
 }
 
-function getAuthHeaders(config: WebDAVConfig): Record<string, string> {
+async function getAuthHeaders(config: WebDAVConfig): Promise<Record<string, string>> {
+	const password = await decryptValue(config.password);
 	return {
-		Authorization: 'Basic ' + btoa(`${config.username}:${config.password}`)
+		Authorization: 'Basic ' + btoa(`${config.username}:${password}`)
 	};
 }

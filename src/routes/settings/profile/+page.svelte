@@ -11,6 +11,7 @@
 	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile, WebDAVConfig } from '$lib/types';
 	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
+	import { encryptValue, decryptValue } from '$lib/services/crypto';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
@@ -67,8 +68,12 @@
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		offline.loadOfflineTracks();
+		// Decrypt the stored password for display in the settings form
+		if (webdavConfig.password) {
+			webdavConfig.password = await decryptValue(webdavConfig.password);
+		}
 	});
 
 	function handleExport() {
@@ -257,8 +262,13 @@
 		}, 5000); // Longer timeout for error messages
 	}
 
-	function saveWebdavConfig() {
-		settings.setWebDAVConfig(webdavConfig);
+	async function saveWebdavConfig() {
+		// Encrypt password before persisting
+		const configToSave = {
+			...webdavConfig,
+			password: webdavConfig.password ? await encryptValue(webdavConfig.password) : ''
+		};
+		settings.setWebDAVConfig(configToSave);
 		webdavTestMessage = 'Configuration saved!';
 		setTimeout(() => { webdavTestMessage = ''; }, 2000);
 	}
@@ -554,6 +564,15 @@
 					/>
 					<span class="text-sm font-medium">Enable WebDAV Sync</span>
 				</div>
+
+				{#if webdavConfig.enabled}
+					<div class="alert alert-warning text-xs">
+						<Icon icon="solar:lock-keyhole-bold" width="18" />
+						<div>
+							<p>Your password is encrypted on this device, but client-side encryption has limits. If your provider supports app-specific passwords or tokens, prefer those over your main password.</p>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Server URL -->
 				<div class="form-control">

@@ -55,8 +55,16 @@ export const UserProfileSchema = z.object({
 			name: z.string(),
 			enabled: z.boolean()
 		})).optional(),
-		favoriteInfluencedAutoplay: z.boolean().optional()
-	}),
+		favoriteInfluencedAutoplay: z.boolean().optional(),
+		webdav: z.object({
+			url: z.string(),
+			username: z.string(),
+			password: z.string(),
+			enabled: z.boolean(),
+			autoSyncMinutes: z.number(),
+			lastSync: z.number().optional()
+		}).optional()
+	}).passthrough(),
 	favorites: z.array(FavoriteEntrySchema),
 	playlists: z.record(z.any()),
 	history: z.array(z.any()),

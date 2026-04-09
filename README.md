@@ -1,169 +1,102 @@
 !["screenshot of dustic.app"](static/screenshot01.png)
 
-**Dustic** is a (mostly) vibe-coded, minimalist music player progressive web app that streams audio directly from the Internet Archive. Browse, search, and play dusty recordings from one of the world's largest digital libraries.
+# Dustic
 
-## Features
+*Audio discovery of the weird, the wonderful, and the forgotten.*
 
-- **Stream from Internet Archive**: Access millions of audio recordings directly
-- **Smart Search**: Search across multiple audio collections with filters
-- **Rule-based Autoplay**: Configurable intelligent playlist continuation
-- **Library Management**: Favorites, playlists, and listening history
-- **Offline Support**: Download tracks for offline playback
-- **User-controlled Data**: Manual JSON export/import for profile management
-- **Progressive Web App**: Installable on mobile and desktop
-- **Minimalist Design**: Clean black and white interface
-- **No Backend Required**: Fully client-side application
-- **Automated Testing**: Unit tests for critical functionality
+Dustic is a free, open-source music player that streams audio from the [Internet Archive](https://archive.org/) and the [FunkWhale](https://funkwhale.audio/) network, keeping your audio profile yours, without online account, ads, or tracking.
 
-## Tech Stack
+**[Try it now on dustic.app](https://dustic.app)**
 
-- SvelteKit with TypeScript
-- TailwindCSS + DaisyUI
-- Internet Archive API
-- Static site generation (adapter-static)
+Dustic allows browsing millions of recordings: open music, rare vinyl rips, live bootlegs, field recordings, forgotten albums, audiobooks, podcasts. Everything plays in your browser or as a pinned app on your phone.
 
-## Local Development
+## Listen
 
-### Prerequisites
+Here are a few curated entry points to get a feel for what Dustic sounds like.
 
-- Node.js 18+ and npm
+- [Post-rock intro](https://dustic.app/curated/post-rock-intro) — Mogwai, GY!BE, Mono and friends
+- [Dustic Magazine](https://dustic.bearblog.dev/) — a monthly zine exploring the archive's hidden corners
 
-### Setup
+## Why Dustic?
 
-1. Clone the repository:
+- **No account required.** Open the app. Search. Press play.
+- **Offline playback.** Download tracks to keep listening without a connection.
+- **Your data stays yours.** No cloud profile; export/import your library as a JSON file, or sync across devices with WebDAV.
+- **Installable.** Works as a progressive web app on mobile and desktop.
+- **Rule-based autoplay.** Set up smart queue rules to keep the music flowing.
+
+## For developers
+
+Dustic is built with SvelteKit, TypeScript, TailwindCSS + DaisyUI, and deploys as a static site (no backend).
+
+### Local setup
+
 ```bash
 git clone https://github.com/essicolo/dustic.git
 cd dustic
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Start the development server:
-```bash
 npm run dev
+# → http://localhost:5173
 ```
 
-4. Open your browser to `http://localhost:5173`
+### Commands
 
-### Development Commands
+| Command | Description |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run check` | TypeScript and Svelte checks |
+| `npm test` | Run unit tests |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run test:ui` | Tests with browser UI |
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run check` - Run TypeScript and Svelte checks
-- `npm test` - Run unit tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:ui` - Run tests with browser UI
+See `src/tests/README.md` for testing documentation.
 
-### Running Tests
+### Deployment
 
-Dustic includes a comprehensive test suite for critical functionality:
+Dustic is designed for GitHub Pages. A GitHub Actions workflow handles automatic deployment on push to `main`.
 
-```bash
-# Run all tests once
-npm test
+<details>
+<summary>Manual deployment & custom domain setup</summary>
 
-# Watch mode (auto-runs on file changes)
-npm run test:watch
-
-# Browser UI for debugging
-npm run test:ui
-```
-
-See `src/tests/README.md` for detailed testing documentation.
-
-## Deploying to GitHub Pages
-
-**Dustic is specifically designed for GitHub Pages deployment.** The app uses SPA routing with a 404.html fallback to enable direct navigation and page refreshes.
-
-### Automatic Deployment (Recommended)
-
-This repository includes a GitHub Actions workflow for automatic deployment.
-
-1. **Enable GitHub Pages**:
-   - Go to repository Settings > Pages
-   - Under "Source", select "GitHub Actions"
-
-2. **Deploy**:
-   - Merge your changes to the `main` branch
-   - The workflow runs automatically and deploys to GitHub Pages
-   - Check the "Actions" tab to monitor deployment progress
-   - Site will be available at `https://essicolo.github.io/dustic`
-
-The workflow is pre-configured with the correct base path for project pages.
-
-**How SPA Routing Works:**
-- The build process creates both `index.html` and `404.html` (identical copies)
-- GitHub Pages serves `404.html` for any missing route
-- This allows direct navigation to `/library`, `/search`, etc.
-- Client-side routing takes over once the app loads
-
-### Manual Deployment
-
-If you prefer manual deployment:
+#### Manual deployment
 
 ```bash
-# Build with base path
 BASE_PATH='/dustic' npm run build
-
-# Deploy using gh-pages
 npm install -D gh-pages
 npx gh-pages -d build
 ```
 
-**Note:** Other hosting platforms (Netlify, Vercel, etc.) require different routing configurations. This app is optimized for GitHub Pages.
+#### Custom domain
 
-## Custom Domain (Optional)
-
-To use a custom domain like `dustic.ca`:
-
-1. Add a `CNAME` file to the `static` directory:
+1. Add `CNAME` to `static/`:
 ```bash
-echo "dustic.ca" > static/CNAME
+echo "dustic.app" > static/CNAME
 ```
 
-2. Configure DNS:
-   - Add an `A` record pointing to GitHub Pages IPs:
-     - `185.199.108.153`
-     - `185.199.109.153`
-     - `185.199.110.153`
-     - `185.199.111.153`
-   - Or add a `CNAME` record pointing to `yourusername.github.io`
+2. Point DNS A records to GitHub Pages IPs (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`) or add a CNAME to `yourusername.github.io`.
 
-3. Update GitHub repository settings:
-   - Go to Settings > Pages
-   - Enter your custom domain
-   - Enable "Enforce HTTPS"
+3. Enable HTTPS in Settings → Pages.
 
-## User Data Management
+#### SPA routing
 
-Dustic does not use localStorage or cookies. All user data (favorites, playlists, history, settings) is managed through manual JSON export/import:
+The build produces identical `index.html` and `404.html` files. GitHub Pages serves `404.html` for unknown routes, and client-side routing takes over from there.
 
-1. **Export Profile**: Download your profile as a JSON file
-2. **Import Profile**: Upload a previously saved JSON file
-3. **Warning on Exit**: Browser warns if you have unsaved changes
+</details>
 
-This gives you full control over your data and allows easy backup or transfer between devices.
+### User data
 
-## Internet Archive API
+Dustic stores nothing server-side. Favorites, playlists, history and settings live in-browser and can be exported/imported as JSON. WebDAV sync is available for cross-device use.
 
-This application uses the Internet Archive's public API. Rate limits apply per IP address:
+### Internet Archive API
 
-- Search requests come from the user's browser
-- No server-side proxying
-- Each user has their own rate limit quota
+Search requests go directly from the user's browser to the Internet Archive's public API. No server-side proxying — each user has their own rate limit quota.
 
 ## Contributing
 
-Contributions welcome. Please open an issue first to discuss proposed changes.
-
-## Feedback
-
-Report bugs or request features at: https://github.com/essicolo/dustic/issues
+Contributions welcome. Please [open an issue](https://github.com/essicolo/dustic/issues) first to discuss proposed changes.
 
 ## License
 
-GPL-3
+GPL-3.0

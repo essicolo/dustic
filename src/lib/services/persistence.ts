@@ -68,8 +68,11 @@ function migrateAndValidateProfile(rawProfile: any): UserProfile {
 	if (!rawProfile.autoplayRules) {
 		rawProfile.autoplayRules = [];
 	}
-	// Optional fields - no defaults needed
-	// lastPlayedTrack and lastPlayedPosition are optional
+	// Migrate webdav: old autoSync boolean → autoSyncMinutes number
+	if (rawProfile.settings?.webdav && !('autoSyncMinutes' in rawProfile.settings.webdav)) {
+		rawProfile.settings.webdav.autoSyncMinutes = 0;
+		delete rawProfile.settings.webdav.autoSync;
+	}
 
 	// Validate with Zod before returning
 	return UserProfileSchema.parse(rawProfile);

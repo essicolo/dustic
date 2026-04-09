@@ -1,12 +1,9 @@
 // Client-side encryption for sensitive fields (WebDAV password).
-// Uses AES-GCM with a device-bound key stored in a separate IndexedDB database.
-// This prevents casual exposure from inspecting localStorage or profile exports.
+// Uses AES-GCM with a device-bound key stored in localStorage.
+// This prevents casual exposure from inspecting the profile data or exports.
 import { browser } from '$app/environment';
 
-const KEY_DB_NAME = 'dustic-keystore';
-const KEY_DB_VERSION = 1;
-const KEY_STORE_NAME = 'keys';
-const ENCRYPTION_KEY_ID = 'webdav-key';
+const KEY_STORAGE_KEY = 'dustic-encryption-key';
 
 // Prefix to distinguish encrypted values from plain text (migration)
 const ENCRYPTED_PREFIX = 'enc:';
@@ -78,7 +75,7 @@ export async function decryptValue(stored: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Key management — stored in a separate IndexedDB database
+// Key management — stored in localStorage under a separate key
 // ---------------------------------------------------------------------------
 
 let cachedKey: CryptoKey | null = null;
@@ -86,34 +83,10 @@ let cachedKey: CryptoKey | null = null;
 async function getOrCreateKey(): Promise<CryptoKey> {
 	if (cachedKey) return cachedKey;
 
-	const db = await openKeyDB();
-
-	try {
-		// Try to load existing key
-		const stored = await dbGet(db, ENCRYPTION_KEY_ID);
-		if (stored) {
-			cachedKey = await crypto.subtle.importKey(
-				'raw',
-				stored,
-				{ name: 'AES-GCM' },
-				false,
-				['encrypt', 'decrypt']
-			);
-			return cachedKey;
-		}
-
-		// Generate new key
-		const key = await crypto.subtle.generateKey(
-			{ name: 'AES-GCM', length: 256 },
-			true, // extractable so we can store the raw bytes
-			['encrypt', 'decrypt']
-		);
-
-		// Export and store the raw key bytes
-		const rawKey = await crypto.subtle.exportKey('raw', key);
-		await dbPut(db, ENCRYPTION_KEY_ID, new Uint8Array(rawKey));
-
-		// Re-import as non-extractable for runtime use
+	// Try to load existing key from localStorage
+	const stored = localStorage.getItem(KEY_STORAGE_KEY);
+	if (stored) {
+		const rawKey = Uint8Array.from(atob(stored), (c) => c.charCodeAt(0));
 		cachedKey = await crypto.subtle.importKey(
 			'raw',
 			rawKey,
@@ -122,39 +95,26 @@ async function getOrCreateKey(): Promise<CryptoKey> {
 			['encrypt', 'decrypt']
 		);
 		return cachedKey;
-	} finally {
-		db.close();
 	}
-}
 
-function openKeyDB(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(KEY_DB_NAME, KEY_DB_VERSION);
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
-		request.onupgradeneeded = (event) => {
-			const db = (event.target as IDBOpenDBRequest).result;
-			if (!db.objectStoreNames.contains(KEY_STORE_NAME)) {
-				db.createObjectStore(KEY_STORE_NAME);
-			}
-		};
-	});
-}
+	// Generate new key
+	const key = await crypto.subtle.generateKey(
+		{ name: 'AES-GCM', length: 256 },
+		true,
+		['encrypt', 'decrypt']
+	);
 
-function dbGet(db: IDBDatabase, key: string): Promise<Uint8Array | null> {
-	return new Promise((resolve, reject) => {
-		const tx = db.transaction(KEY_STORE_NAME, 'readonly');
-		const request = tx.objectStore(KEY_STORE_NAME).get(key);
-		request.onsuccess = () => resolve(request.result ?? null);
-		request.onerror = () => reject(request.error);
-	});
-}
+	// Export and persist
+	const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+	localStorage.setItem(KEY_STORAGE_KEY, btoa(String.fromCharCode(...rawKey)));
 
-function dbPut(db: IDBDatabase, key: string, value: Uint8Array): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const tx = db.transaction(KEY_STORE_NAME, 'readwrite');
-		tx.objectStore(KEY_STORE_NAME).put(value, key);
-		tx.oncomplete = () => resolve();
-		tx.onerror = () => reject(tx.error);
-	});
+	// Re-import as non-extractable for runtime use
+	cachedKey = await crypto.subtle.importKey(
+		'raw',
+		rawKey,
+		{ name: 'AES-GCM' },
+		false,
+		['encrypt', 'decrypt']
+	);
+	return cachedKey;
 }

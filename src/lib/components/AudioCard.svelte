@@ -427,13 +427,13 @@
 								</li>
 								<li on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}>
 									<a role="button" tabindex="0" class="flex items-center">
-										<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
+										<Icon icon="mdi:playlist-plus" width="20" />
 										Add to Playlist
 									</a>
 								</li>
 								<li>
 									<a role="button" tabindex="0" on:click={handleAddToQueue} on:keydown={handleAddToQueue} class="flex items-center">
-										<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
+										<Icon icon="mdi:playlist-music" width="20" />
 										Add to Queue
 									</a>
 								</li>

@@ -340,7 +340,7 @@
 						title="Add to Playlist"
 						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
 					>
-						<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
+						<Icon icon="mdi:playlist-plus" width="18" />
 					</button>
 					{#if showPlaylistSelector}
 						<div

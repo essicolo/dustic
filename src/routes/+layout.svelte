@@ -208,8 +208,8 @@
 					href="{base}/library"
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
-					class:text-primary-content={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
+					class:bg-primary={(currentPath.startsWith(`${base}/library`) && !currentPath.startsWith(`${base}/library/webdav`)) || currentPath === `${base}/history`}
+					class:text-primary-content={(currentPath.startsWith(`${base}/library`) && !currentPath.startsWith(`${base}/library/webdav`)) || currentPath === `${base}/history`}
 				>
 					Library
 				</a>

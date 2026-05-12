@@ -111,7 +111,16 @@ export async function listFolder(
 	}
 
 	const xml = await response.text();
-	return parsePropfind(xml, absolutePath);
+	return parsePropfind(xml, absolutePath, libraryUrlPathname(library));
+}
+
+/** Pathname portion of the library URL (e.g. `/dav/Koofr`), without trailing slash. */
+function libraryUrlPathname(library: WebDAVLibrary): string {
+	try {
+		return new URL(library.url).pathname.replace(/\/+$/, '');
+	} catch {
+		return '';
+	}
 }
 
 /**
@@ -255,16 +264,34 @@ function b64urlDecode(s: string): string {
 /**
  * Parse a WebDAV PROPFIND XML response into entries. The first response
  * (the target itself) is skipped; only children are returned.
+ *
+ * `urlPathPrefix` is the pathname portion of the library's base URL
+ * (e.g. `/dav/Koofr`). Servers like Koofr return server-absolute hrefs
+ * (`/dav/Koofr/Musique/foo`), which we strip down to library-relative
+ * paths (`/Musique/foo`) so we can navigate them without double-counting
+ * the prefix on subsequent requests.
  */
-export function parsePropfind(xml: string, parentPath: string): WebDAVEntry[] {
-	// Use DOMParser when available (browser), regex fallback otherwise (tests in node)
+export function parsePropfind(
+	xml: string,
+	parentPath: string,
+	urlPathPrefix: string = ''
+): WebDAVEntry[] {
 	const responses = extractResponses(xml);
 	const entries: WebDAVEntry[] = [];
 	const parentNormalized = normalizePath(parentPath);
+	const prefix = urlPathPrefix.replace(/\/+$/, '');
 
 	for (const r of responses) {
-		const hrefDecoded = decodeURIComponent(r.href);
-		const path = stripHost(hrefDecoded);
+		// 1. XML decode (Koofr writes `&` as `&amp;` in hrefs).
+		// 2. URL decode (`%20` → space, etc.).
+		// Order matters — XML wraps URL-encoded content, so XML-decode outermost.
+		const hrefXmlDecoded = decodeXmlEntities(r.href);
+		const hrefUrlDecoded = decodeURIComponent(hrefXmlDecoded);
+		let path = stripHost(hrefUrlDecoded);
+		// Strip the library URL's pathname so paths are relative to the library.
+		if (prefix && path.startsWith(prefix)) {
+			path = path.slice(prefix.length) || '/';
+		}
 		const normalized = normalizePath(path);
 
 		// Skip the parent folder itself
@@ -338,6 +365,16 @@ function extractResponses(xml: string): RawResponse[] {
 		});
 	}
 	return out;
+}
+
+function decodeXmlEntities(s: string): string {
+	return s
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&apos;/g, "'")
+		.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
 }
 
 function stripHost(href: string): string {

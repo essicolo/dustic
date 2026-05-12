@@ -133,4 +133,40 @@ describe('parsePropfind', () => {
 		const entries = parsePropfind(plain, '/Music');
 		expect(entries.length).toBeGreaterThan(0);
 	});
+
+	// Koofr returns server-absolute hrefs (e.g. /dav/Koofr/Musique/foo). Without
+	// stripping the library URL pathname, we end up double-concatenating it onto
+	// the next PROPFIND target. Koofr also XML-escapes "&" as "&amp;" in hrefs,
+	// which used to round-trip as "%26amp%3B" in the URL.
+	it('strips library URL pathname prefix and XML-decodes hrefs (Koofr quirk)', () => {
+		const koofrXml = `<?xml version="1.0" encoding="UTF-8"?>
+<D:multistatus xmlns:D="DAV:">
+  <D:response>
+    <D:href>/dav/Koofr/Musique/</D:href>
+    <D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop></D:propstat>
+  </D:response>
+  <D:response>
+    <D:href>/dav/Koofr/Musique/Fripp%20&amp;%20Eno/</D:href>
+    <D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop></D:propstat>
+  </D:response>
+  <D:response>
+    <D:href>/dav/Koofr/Musique/track%2001.mp3</D:href>
+    <D:propstat><D:prop>
+      <D:resourcetype/>
+      <D:getcontentlength>5242880</D:getcontentlength>
+    </D:prop></D:propstat>
+  </D:response>
+</D:multistatus>`;
+
+		const entries = parsePropfind(koofrXml, '/Musique', '/dav/Koofr');
+		expect(entries).toHaveLength(2);
+
+		const folder = entries.find((e) => e.type === 'folder');
+		expect(folder?.name).toBe('Fripp & Eno');
+		expect(folder?.path).toBe('/Musique/Fripp & Eno');
+
+		const file = entries.find((e) => e.type === 'file');
+		expect(file?.name).toBe('track 01.mp3');
+		expect(file?.path).toBe('/Musique/track 01.mp3');
+	});
 });

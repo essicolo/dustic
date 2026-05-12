@@ -27,6 +27,7 @@
 	let syncSuccess = false;
 	let syncError = '';
 	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
+	let panelOpen = false;
 
 	// Pending import awaiting merge/replace choice
 	let pendingImport: UserProfile | null = null;
@@ -363,73 +364,117 @@
 		class="hidden"
 	/>
 
-	<!-- Compact Profile Manager - Single Line -->
-	<div class="flex items-center justify-between gap-2">
-		<span class="text-sm font-medium flex items-center gap-1.5">
-			{#if isDirty}
-				<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning" />
-			{/if}
-			Profile
-		</span>
-		<div class="flex items-center gap-1">
-			<button
-				on:click={handleExport}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Download profile"
-			>
-				<Icon icon="solar:download-bold" width="16" />
-			</button>
-			<button
-				on:click={handleImportClick}
-				class="btn btn-ghost btn-xs btn-circle"
-				disabled={isImporting}
-				title="Upload profile"
-			>
-				{#if isImporting}
-					<span class="loading loading-spinner loading-xs"></span>
-				{:else}
-					<Icon icon="solar:upload-bold" width="16" />
-				{/if}
-			</button>
-			<span class="w-px h-4 bg-base-content/10"></span>
-			<button
-				on:click={handleCopyToClipboard}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Copy profile to clipboard"
-			>
-				{#if copySuccess}
-					<Icon icon="solar:check-circle-bold" width="16" className="text-success" />
-				{:else}
-					<Icon icon="solar:copy-bold" width="16" />
-				{/if}
-			</button>
-			<button
-				on:click={openPasteArea}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Paste profile from clipboard"
-			>
-				<Icon icon="solar:clipboard-bold" width="16" />
-			</button>
-			{#if webdavEnabled}
-				<span class="w-px h-4 bg-base-content/10"></span>
-				<button
-					on:click={handleWebDAVSync}
-					class="btn btn-ghost btn-xs btn-circle"
-					class:text-success={syncSuccess}
-					disabled={isSyncing}
-					title="Sync profile to WebDAV"
-				>
-					{#if isSyncing}
-						<span class="loading loading-spinner loading-xs"></span>
-					{:else if syncSuccess}
-						<Icon icon="solar:check-circle-bold" width="16" />
-					{:else}
-						<Icon icon="solar:refresh-bold" width="16" />
+	<!-- Single "Profile" entry point (Change 4) -->
+	<button
+		class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
+		on:click={() => (panelOpen = true)}
+		aria-label="Open profile panel"
+	>
+		<Icon icon="solar:user-circle-bold-duotone" width="20" />
+		<span>Profile</span>
+		{#if isDirty}
+			<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning ml-auto" />
+		{/if}
+	</button>
+
+	{#if panelOpen}
+		<!-- Modal backdrop -->
+		<div
+			class="modal modal-open"
+			on:click|self={() => (panelOpen = false)}
+			on:keydown={(e) => e.key === 'Escape' && (panelOpen = false)}
+			role="dialog"
+			tabindex="-1"
+		>
+			<div class="modal-box max-w-md">
+				<div class="flex items-center justify-between mb-4">
+					<h3 class="text-lg font-semibold">Profile</h3>
+					<button
+						class="btn btn-ghost btn-sm btn-circle"
+						on:click={() => (panelOpen = false)}
+						aria-label="Close"
+					>
+						<Icon icon="solar:close-circle-bold" width="18" />
+					</button>
+				</div>
+
+				<p class="text-sm opacity-70 mb-4">
+					Your favorites, playlists, history, settings, and theme are stored locally.
+					Use these actions to back up or move them between devices.
+				</p>
+
+				<div class="grid grid-cols-1 gap-2">
+					<button
+						class="btn btn-outline justify-start gap-3 normal-case"
+						on:click={handleExport}
+					>
+						<Icon icon="solar:download-bold" width="20" />
+						<div class="text-left flex-1">
+							<div class="font-medium">Export profile</div>
+							<div class="text-xs opacity-60 font-normal">Save as JSON file</div>
+						</div>
+					</button>
+
+					<button
+						class="btn btn-outline justify-start gap-3 normal-case"
+						on:click={handleImportClick}
+						disabled={isImporting}
+					>
+						{#if isImporting}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							<Icon icon="solar:upload-bold" width="20" />
+						{/if}
+						<div class="text-left flex-1">
+							<div class="font-medium">Import profile</div>
+							<div class="text-xs opacity-60 font-normal">Load from JSON file</div>
+						</div>
+					</button>
+
+					<button
+						class="btn btn-outline justify-start gap-3 normal-case"
+						on:click={handleCopyToClipboard}
+					>
+						{#if copySuccess}
+							<Icon icon="solar:check-circle-bold" width="20" className="text-success" />
+						{:else}
+							<Icon icon="solar:copy-bold" width="20" />
+						{/if}
+						<div class="text-left flex-1">
+							<div class="font-medium">{copySuccess ? 'Copied!' : 'Copy profile link'}</div>
+							<div class="text-xs opacity-60 font-normal">JSON to clipboard for paste-sharing</div>
+						</div>
+					</button>
+
+					{#if webdavEnabled}
+						<button
+							class="btn btn-outline justify-start gap-3 normal-case"
+							on:click={handleWebDAVSync}
+							disabled={isSyncing}
+							class:text-success={syncSuccess}
+						>
+							{#if isSyncing}
+								<span class="loading loading-spinner loading-sm"></span>
+							{:else if syncSuccess}
+								<Icon icon="solar:check-circle-bold" width="20" />
+							{:else}
+								<Icon icon="solar:refresh-bold" width="20" />
+							{/if}
+							<div class="text-left flex-1">
+								<div class="font-medium">{syncSuccess ? 'Synced!' : 'Sync now'}</div>
+								<div class="text-xs opacity-60 font-normal">Push profile to WebDAV</div>
+							</div>
+						</button>
 					{/if}
-				</button>
-			{/if}
-		</div>
-	</div>
+
+					<button
+						class="btn btn-ghost btn-sm justify-start gap-3 normal-case mt-1"
+						on:click={openPasteArea}
+					>
+						<Icon icon="solar:clipboard-bold" width="18" />
+						<span class="text-sm opacity-70">Paste profile JSON from clipboard…</span>
+					</button>
+				</div>
 
 	<!-- Paste Area -->
 	{#if showPasteArea}
@@ -493,6 +538,9 @@
 	{#if syncError}
 		<div class="alert alert-error mt-2 text-xs p-2">
 			<span>{syncError}</span>
+		</div>
+	{/if}
+			</div>
 		</div>
 	{/if}
 

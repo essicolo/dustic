@@ -35,7 +35,7 @@ function getQualityPreference(): AudioQuality {
 	}
 
 	try {
-		const stored = localStorage.getItem('inde-profile') ?? localStorage.getItem('dustic-profile');
+		const stored = localStorage.getItem('dustic-profile');
 		if (!stored) {
 			cachedQualityPreference = 'medium';
 			return 'medium';

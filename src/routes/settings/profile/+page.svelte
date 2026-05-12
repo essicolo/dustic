@@ -809,8 +809,8 @@
 							<strong>Storage Location:</strong> Offline files are stored in your browser's storage:
 						</p>
 						<ul class="list-disc list-inside ml-4 space-y-1">
-							<li><strong>Audio files:</strong> Cache API (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">inde-audio-cache-v1</code>)</li>
-							<li><strong>Metadata:</strong> IndexedDB (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-offline</code>, kept under legacy name)</li>
+							<li><strong>Audio files:</strong> Cache API (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-audio-cache</code>)</li>
+							<li><strong>Metadata:</strong> IndexedDB (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-offline</code>)</li>
 						</ul>
 					</div>
 				</div>

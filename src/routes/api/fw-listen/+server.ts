@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 			return new Response('Invalid instance URL', { status: 400 });
 		}
 		const baseUrl = instanceUrl.replace(/\/+$/, '');
-		const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; Inde/1.0; +https://inde.cc)' };
+		const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; Dustic/1.0)' };
 		listenUrl = await resolveListenUrl(baseUrl, trackId, headers);
 	} else {
 		return new Response('Missing url or instance+track parameters', { status: 400 });
@@ -46,7 +46,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 
 	// Fetch the audio server-side, with retries for 503 rate-limiting
 	const fetchHeaders: Record<string, string> = {
-		'User-Agent': 'Mozilla/5.0 (compatible; Inde/1.0; +https://inde.cc)'
+		'User-Agent': 'Mozilla/5.0 (compatible; Dustic/1.0)'
 	};
 	if (request.headers.has('Range')) {
 		fetchHeaders['Range'] = request.headers.get('Range') || '';

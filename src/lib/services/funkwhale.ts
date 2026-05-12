@@ -144,7 +144,7 @@ function getInstances(): FunkwhaleInstance[] {
 	if (!browser) return DEFAULT_FUNKWHALE_INSTANCES;
 
 	try {
-		const stored = localStorage.getItem('inde-profile') ?? localStorage.getItem('dustic-profile');
+		const stored = localStorage.getItem('dustic-profile');
 		if (!stored) return DEFAULT_FUNKWHALE_INSTANCES;
 
 		const profile = JSON.parse(stored);
@@ -194,7 +194,7 @@ function cleanQueryForFW(query: string): string {
 	return cleaned;
 }
 
-/** Convert a FunkWhale track (v1 or v2) to an Inde Track */
+/** Convert a FunkWhale track (v1 or v2) to a dustic Track */
 function toTrack(fwTrack: FWTrack, instanceUrl: string): Track {
 	const baseUrl = normalizeUrl(instanceUrl);
 

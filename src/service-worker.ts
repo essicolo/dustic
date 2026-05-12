@@ -3,12 +3,11 @@
 
 import { build, files, version } from '$service-worker';
 
-// Create unique cache names for this deployment (Issue #10 - aggressive caching).
-// Cache names are versioned to force a refresh on the Dustic→Inde rebrand.
+// Create unique cache names for this deployment (Issue #10 - aggressive caching)
 const CACHE = `cache-${version}`;
-const AUDIO_CACHE = 'inde-audio-cache-v1';
-const IMAGE_CACHE = 'inde-image-cache-v1';
-const METADATA_CACHE = 'inde-metadata-cache-v1';
+const AUDIO_CACHE = 'dustic-audio-cache';
+const IMAGE_CACHE = 'dustic-image-cache';
+const METADATA_CACHE = 'dustic-metadata-cache';
 
 const ASSETS = [
 	'/',

@@ -63,7 +63,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		if (request.headers.has('Range')) {
 			headers.set('Range', request.headers.get('Range') || '');
 		}
-		headers.set('User-Agent', 'Mozilla/5.0 (compatible; Inde/1.0; +https://inde.cc)');
+		headers.set('User-Agent', 'Mozilla/5.0 (compatible; Dustic/1.0)');
 
 		const response = await fetch(targetUrl, { headers });
 

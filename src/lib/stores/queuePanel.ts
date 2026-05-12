@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-const STORAGE_KEY = 'inde-queue-panel-open';
+const STORAGE_KEY = 'dustic-queue-panel-open';
 
 function createQueuePanelStore() {
 	const initial = browser ? localStorage.getItem(STORAGE_KEY) === 'true' : false;

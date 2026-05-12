@@ -10,7 +10,7 @@ export default {
 	daisyui: {
 		themes: [
 			{
-				inde: {
+				dustic: {
 					primary: '#000000',
 					'primary-content': '#ffffff',
 					secondary: '#404040',

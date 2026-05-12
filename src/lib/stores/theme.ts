@@ -6,8 +6,8 @@ import { browser } from '$app/environment';
 import { applyTheme, DEFAULT_THEME, THEMES, type ThemeId } from '$lib/themes';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
-const STORAGE_KEY = 'inde-theme';
-const PICKER_SEEN_KEY = 'inde-theme-picker-seen';
+const STORAGE_KEY = 'dustic-theme';
+const PICKER_SEEN_KEY = 'dustic-theme-picker-seen';
 
 function isValidThemeId(value: string | null | undefined): value is ThemeId {
 	return !!value && value in THEMES;

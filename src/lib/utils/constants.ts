@@ -1,4 +1,4 @@
-// Constants for Inde
+// Constants for Dustic
 
 export const IA_BASE_URL = 'https://archive.org';
 export const IA_SEARCH_URL = `${IA_BASE_URL}/advancedsearch.php`;

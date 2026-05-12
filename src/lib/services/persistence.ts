@@ -9,7 +9,7 @@ import { createDefaultProfile } from './storage';
 import { UserProfileSchema } from '$lib/schemas/archive';
 import { saveToIndexedDB, loadFromIndexedDB } from './indexedDbPersistence';
 
-const STORAGE_KEY = 'inde-profile';
+const STORAGE_KEY = 'dustic-profile';
 // Storage schema version - only increment when data structure changes (breaking changes)
 // This is SEPARATE from app version and should rarely change
 const STORAGE_SCHEMA_VERSION = 2;

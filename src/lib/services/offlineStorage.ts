@@ -6,7 +6,7 @@ import { browser } from '$app/environment';
 const DB_NAME = 'dustic-offline';
 const DB_VERSION = 1;
 const STORE_NAME = 'tracks';
-const CACHE_NAME = 'inde-audio-cache-v1';
+const CACHE_NAME = 'dustic-audio-cache';
 
 // Blob URL lifecycle manager (Issue #4 - prevents memory leaks)
 class BlobURLManager {

@@ -1,4 +1,4 @@
-// Theme presets for Inde (Change 5).
+// Theme presets for Dustic (Change 5).
 //
 // Each preset is a set of CSS custom properties applied on `:root`.
 // Adding a new theme = adding an entry to `THEMES`; the picker and Settings
@@ -16,7 +16,7 @@ export interface Theme {
 	daisy: 'inde' | 'corporate' | 'dark' | 'cupcake' | 'forest' | 'dracula';
 }
 
-// Pure monochrome — the original Inde aesthetic. Zero color, zero radius.
+// Pure monochrome — the original Dustic aesthetic. Zero color, zero radius.
 const MINIMAL: Theme = {
 	id: 'minimal',
 	name: 'Minimal',

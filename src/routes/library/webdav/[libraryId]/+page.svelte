@@ -133,7 +133,7 @@
 </script>
 
 <svelte:head>
-	<title>{library?.name || 'Bibliothèque'} — Inde</title>
+	<title>{library?.name || 'Bibliothèque'} — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-4xl p-4">

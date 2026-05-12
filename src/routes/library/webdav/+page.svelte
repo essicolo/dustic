@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-	<title>Bibliothèques WebDAV — Inde</title>
+	<title>Bibliothèques WebDAV — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl p-4">

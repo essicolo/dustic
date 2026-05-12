@@ -43,10 +43,9 @@
 {#if mode === 'first-launch'}
 	<div class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
 		<div class="bg-base-100 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
-			<h2 class="text-2xl font-bold mb-2">Welcome to Inde</h2>
+			<h2 class="text-2xl font-bold mb-2">Welcome to Dustic</h2>
 			<p class="text-base-content/70 mb-6">
-				Your music, your library, your rules. Pick a style to get started — you can change
-				this anytime in Settings.
+				Pick a style to get started — you can change this anytime in Settings.
 			</p>
 
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">

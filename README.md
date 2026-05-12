@@ -1,37 +1,33 @@
-!["screenshot of inde.cc"](static/screenshot01.png)
+!["screenshot of dustic.app"](static/screenshot01.png)
 
-# Inde
+# Dustic
 
-*Your music, your library, your rules.*
+*Audio discovery of the weird, the wonderful, and the forgotten.*
 
-Inde (formerly Dustic) is a free, open-source indie music player for the post-streaming era. It streams audio from the [Internet Archive](https://archive.org/) and the [FunkWhale](https://funkwhale.audio/) network, and plays music you own on WebDAV-compatible clouds like Koofr or Nextcloud — keeping your audio profile yours, without online account, ads, or tracking.
+Dustic is a free, open-source music player that streams audio from the [Internet Archive](https://archive.org/) and the [FunkWhale](https://funkwhale.audio/) network, keeping your audio profile yours, without online account, ads, or tracking.
 
-**[Try it now on inde.cc](https://inde.cc)**
+**[Try it now on dustic.app](https://dustic.app)**
 
-> Inde was previously hosted at `dustic.app`. The old domain redirects to `inde.cc` at the hosting level.
-
-Inde lets you browse millions of recordings: open music, rare vinyl rips, live bootlegs, field recordings, forgotten albums, audiobooks, podcasts — alongside your own collection from your WebDAV cloud. Everything plays in your browser or as a pinned app on your phone.
+Dustic allows browsing millions of recordings: open music, rare vinyl rips, live bootlegs, field recordings, forgotten albums, audiobooks, podcasts. Everything plays in your browser or as a pinned app on your phone.
 
 ## Listen
 
-Here are a few curated entry points to get a feel for what Inde sounds like.
+Here are a few curated entry points to get a feel for what Dustic sounds like.
 
-- [Post-rock intro](https://inde.cc/curated/post-rock-intro) — Mogwai, GY!BE, Mono and friends
-- [Magazine](https://dustic.bearblog.dev/) — a monthly zine exploring the archive's hidden corners
+- [Post-rock intro](https://dustic.app/curated/post-rock-intro) — Mogwai, GY!BE, Mono and friends
+- [Dustic Magazine](https://dustic.bearblog.dev/) — a monthly zine exploring the archive's hidden corners
 
-## Why Inde?
+## Why Dustic?
 
 - **No account required.** Open the app. Search. Press play.
-- **Bring your own library.** Connect a WebDAV-compatible cloud (Koofr, Nextcloud, pCloud) and stream your own mp3/flac/ogg/m4a files.
-- **Offline playback.** Download tracks — including from your WebDAV library — to keep listening without a connection.
+- **Offline playback.** Download tracks to keep listening without a connection.
 - **Your data stays yours.** No cloud profile; export/import your library as a JSON file, or sync across devices with WebDAV.
 - **Installable.** Works as a progressive web app on mobile and desktop.
 - **Rule-based autoplay.** Set up smart queue rules to keep the music flowing.
-- **Theme presets.** Pick from minimalist monochrome, warm sunset, deep forest, neon bubblegum, or midnight violet.
 
 ## For developers
 
-Inde is built with SvelteKit, TypeScript, TailwindCSS + DaisyUI, and deploys as a static site to Cloudflare Pages (the same-origin proxy used by WebDAV libraries requires a serverless function host — pure GitHub Pages will not work for that feature).
+Dustic is built with SvelteKit, TypeScript, TailwindCSS + DaisyUI, and deploys as a static site (no backend).
 
 ### Local setup
 
@@ -42,8 +38,6 @@ npm install
 npm run dev
 # → http://localhost:5173
 ```
-
-> The GitHub repository is still `essicolo/dustic`. The project was rebranded to "Inde" but the repo URL is preserved for issue history continuity.
 
 ### Commands
 
@@ -61,21 +55,39 @@ See `src/tests/README.md` for testing documentation.
 
 ### Deployment
 
-Inde uses `@sveltejs/adapter-cloudflare` and is designed for Cloudflare Pages. The WebDAV proxy (`src/routes/api/webdav-proxy/+server.ts`) requires a serverless function host; pure GitHub Pages would lose this feature.
+Dustic is designed for GitHub Pages. A GitHub Actions workflow handles automatic deployment on push to `main`.
 
-#### Custom domain redirect
+<details>
+<summary>Manual deployment & custom domain setup</summary>
 
-To migrate from the legacy `dustic.app` to `inde.cc`, set a 301 redirect at the hosting level (Cloudflare Page Rules):
+#### Manual deployment
 
+```bash
+BASE_PATH='/dustic' npm run build
+npm install -D gh-pages
+npx gh-pages -d build
 ```
-https://dustic.app/* → https://inde.cc/$1 (301)
+
+#### Custom domain
+
+1. Add `CNAME` to `static/`:
+```bash
+echo "dustic.app" > static/CNAME
 ```
+
+2. Point DNS A records to GitHub Pages IPs (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`) or add a CNAME to `yourusername.github.io`.
+
+3. Enable HTTPS in Settings → Pages.
+
+#### SPA routing
+
+The build produces identical `index.html` and `404.html` files. GitHub Pages serves `404.html` for unknown routes, and client-side routing takes over from there.
+
+</details>
 
 ### User data
 
-Inde stores nothing server-side. Favorites, playlists, history, theme, and settings live in-browser and can be exported/imported as JSON. WebDAV sync is available for cross-device use.
-
-Legacy `dustic-*` storage keys (localStorage + Cache API) are migrated to `inde-*` automatically on first launch after the rebrand — no user action required.
+Dustic stores nothing server-side. Favorites, playlists, history and settings live in-browser and can be exported/imported as JSON. WebDAV sync is available for cross-device use.
 
 ### Internet Archive API
 

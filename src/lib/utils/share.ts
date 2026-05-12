@@ -6,13 +6,13 @@ export async function shareTrack(track: Track): Promise<{ success: boolean; mess
 	let url: string;
 	if (track.identifier.startsWith('fw:')) {
 		// FunkWhale track - link to the item page with fw: identifier
-		url = `https://dustic.app/item/${encodeURIComponent(track.identifier)}`;
+		url = `https://inde.cc/item/${encodeURIComponent(track.identifier)}`;
 	} else {
 		// IA track - extract base identifier and track index
 		const [baseIdentifier, trackIndex] = track.identifier.split('#');
 		url = trackIndex
-			? `https://dustic.app/item/${baseIdentifier}?track=${trackIndex}`
-			: `https://dustic.app/item/${baseIdentifier}`;
+			? `https://inde.cc/item/${baseIdentifier}?track=${trackIndex}`
+			: `https://inde.cc/item/${baseIdentifier}`;
 	}
 	const title = `${track.title} - ${track.artist}`;
 
@@ -21,7 +21,7 @@ export async function shareTrack(track: Track): Promise<{ success: boolean; mess
 		try {
 			await navigator.share({
 				title,
-				text: `Listen to ${title} on Dustic`,
+				text: `Listen to ${title} on Inde`,
 				url
 			});
 			return { success: true, message: 'Shared successfully' };

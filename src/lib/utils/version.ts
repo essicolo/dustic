@@ -38,9 +38,10 @@ export function setCurrentVersion(version: string) {
  *
  * This safely updates the app by:
  * - Clearing app code caches (HTML, JS, CSS)
- * - Preserving downloaded music (dustic-audio-cache)
- * - Preserving user profile data (localStorage: dustic-profile)
- * - Preserving offline track metadata (IndexedDB: dustic-offline)
+ * - Preserving downloaded music (inde-audio-cache-v1)
+ * - Preserving user profile data (localStorage: inde-profile)
+ * - Preserving offline track metadata (IndexedDB: dustic-offline, kept under
+ *   its legacy name to avoid risky IDB-rename migrations)
  * - Preserving version tracking (localStorage: app_version)
  */
 export async function reloadApp() {
@@ -48,7 +49,7 @@ export async function reloadApp() {
 		// Clear app caches but preserve user data caches
 		if ('caches' in window) {
 			const cacheNames = await caches.keys();
-			const userDataCaches = ['dustic-audio-cache']; // Preserve downloaded music
+			const userDataCaches = ['inde-audio-cache-v1', 'dustic-audio-cache']; // Preserve downloaded music (incl. pre-rebrand)
 
 			// Only delete non-user-data caches (app code, etc.)
 			const cachesToDelete = cacheNames.filter(name => !userDataCaches.includes(name));

@@ -18,6 +18,7 @@
 	import { sourceStatus } from '$lib/stores/sourceStatus';
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
+	import { runRebrandMigration } from '$lib/services/rebrandMigration';
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -51,6 +52,9 @@
 	}
 
 	onMount(async () => {
+		// Migrate legacy Dustic storage keys to Inde before any store reads.
+		await runRebrandMigration();
+
 		// Initialize stores from storage (tries IndexedDB if localStorage is empty)
 		// This is critical for iOS PWAs where localStorage can be cleared
 		await Promise.all([
@@ -148,8 +152,8 @@
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
 			<div class="flex items-center gap-2 flex-1 justify-center">
-				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
-				<h1 class="text-lg font-semibold">Dustic</h1>
+				<img src="{base}/logo-inde.svg" alt="Inde" class="w-6 h-6" />
+				<h1 class="text-lg font-semibold">Inde</h1>
 			</div>
 			<div class="w-12 flex-shrink-0"></div>
 		</div>
@@ -175,8 +179,8 @@
 		>
 			<!-- Logo - Desktop only -->
 			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
-				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
-				<span class="text-xl font-bold">Dustic</span>
+				<img src="{base}/logo-inde.svg" alt="Inde" class="w-8 h-8" />
+				<span class="text-xl font-bold">Inde</span>
 			</a>
 
 			<!-- Close button for mobile only -->

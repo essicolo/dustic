@@ -118,7 +118,7 @@ class DownloadManager {
 	}
 
 	private async saveToCache(url: string, blob: Blob): Promise<void> {
-		const cache = await caches.open('dustic-audio-cache');
+		const cache = await caches.open('inde-audio-cache-v1');
 		await cache.put(url, new Response(blob));
 	}
 }

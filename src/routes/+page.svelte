@@ -156,7 +156,7 @@
 						<span>Curated Playlists</span>
 						<Icon icon="solar:star-bold" width="20" class="text-primary" />
 					</h2>
-					<p class="text-sm text-base-content/60 mt-1">Hand-picked by the Dustic team</p>
+					<p class="text-sm text-base-content/60 mt-1">Hand-picked by the Inde team</p>
 				</div>
 				<a href="{base}/curated" class="btn btn-ghost btn-sm">
 					View All
@@ -295,7 +295,7 @@
 			<div class="mb-6">
 				<Icon icon="solar:music-library-2-bold" width="64" class="text-base-content/20 mx-auto" />
 			</div>
-			<h3 class="text-2xl font-bold mb-2">Welcome to Dustic</h3>
+			<h3 class="text-2xl font-bold mb-2">Welcome to Inde</h3>
 			<p class="text-base-content/60 mb-6">Start exploring music from the Internet Archive and FunkWhale</p>
 			<div class="flex gap-3 justify-center flex-wrap">
 				<a href="{base}/search" class="btn btn-primary">

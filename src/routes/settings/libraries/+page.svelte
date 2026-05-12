@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-	<title>Bibliothèques WebDAV — Dustic</title>
+	<title>Bibliothèques WebDAV — Inde</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl p-4">
@@ -123,7 +123,7 @@
 	<p class="mb-4 text-sm opacity-70">
 		Ajoutez vos propres dossiers de musique stockés sur Koofr, Nextcloud, pCloud (plan
 		payant), ou tout serveur compatible WebDAV. Les fichiers audio (mp3, flac, ogg, opus,
-		m4a) seront lisibles dans Dustic et peuvent être téléchargés pour la lecture hors ligne.
+		m4a) seront lisibles dans Inde et peuvent être téléchargés pour la lecture hors ligne.
 	</p>
 
 	<!-- Existing libraries list -->

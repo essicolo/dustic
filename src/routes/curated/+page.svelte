@@ -23,7 +23,7 @@
 	<div class="max-w-4xl mx-auto">
 		<h2 class="text-2xl md:text-3xl font-bold mb-2">Curated Playlists</h2>
 		<p class="text-base-content/70 mb-8">
-			Hand-picked collections from the Dustic team. These are curated playlists created by humans to showcase the best audio from the Internet Archive.
+			Hand-picked collections from the Inde team. These are curated playlists created by humans to showcase the best audio from the Internet Archive.
 		</p>
 
 		{#if curatedPlaylists.length === 0}
@@ -76,7 +76,7 @@
 				<div>
 					<h3 class="font-semibold mb-2">About Curated Playlists</h3>
 					<p class="text-sm text-base-content/70 mb-3">
-						Unlike algorithmic recommendations, these playlists are carefully crafted by human curators from the Dustic team.
+						Unlike algorithmic recommendations, these playlists are carefully crafted by human curators from the Inde team.
 						Each selection is chosen to represent the best of its genre and provide a meaningful listening experience.
 					</p>
 					<p class="text-sm text-base-content/70">

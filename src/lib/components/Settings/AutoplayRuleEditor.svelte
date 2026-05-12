@@ -31,7 +31,7 @@
 		<div>
 			<h3 class="text-lg font-bold">Autoplay Rules</h3>
 			<p class="text-sm text-base-content/70">
-				Configure how Dustic chooses the next track when the queue is empty
+				Configure how Inde chooses the next track when the queue is empty
 			</p>
 		</div>
 		<button on:click={() => autoplayStore.resetToDefaults()} class="btn btn-ghost btn-sm">

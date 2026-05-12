@@ -92,7 +92,7 @@
 				<Icon icon="solar:refresh-circle-bold" width="24" />
 				<div>
 					<h3 class="font-bold">Update Available</h3>
-					<p class="text-sm">A new version of Dustic is available</p>
+					<p class="text-sm">A new version of Inde is available</p>
 				</div>
 			</div>
 			<div class="flex gap-2">

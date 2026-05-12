@@ -3,7 +3,7 @@
 // This prevents casual exposure from inspecting the profile data or exports.
 import { browser } from '$app/environment';
 
-const KEY_STORAGE_KEY = 'dustic-encryption-key';
+const KEY_STORAGE_KEY = 'inde-encryption-key';
 
 // Prefix to distinguish encrypted values from plain text (migration)
 const ENCRYPTED_PREFIX = 'enc:';

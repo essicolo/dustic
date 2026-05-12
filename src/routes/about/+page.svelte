@@ -5,16 +5,21 @@
 </script>
 
 <div class="p-4 md:p-8 max-w-3xl mx-auto">
-	<h1 class="text-3xl font-bold mb-6">About Dustic</h1>
+	<h1 class="text-3xl font-bold mb-6">About Inde</h1>
+	<p class="text-lg italic text-base-content/70 mb-6">
+		Your music, your library, your rules — an indie music player for the post-streaming era.
+	</p>
 
 	<div class="space-y-6">
-		<!-- What is Dustic -->
+		<!-- What is Inde -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">What is Dustic?</h2>
+			<h2 class="text-xl font-semibold mb-3">What is Inde?</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				Dustic is a minimalist audio player that streams music, audiobooks, podcasts, and other audio
-				content from the Internet Archive and FunkWhale. Browse millions of free audio recordings,
-				from live concerts to historical radio programs, all in a clean, modern interface.
+				Inde (formerly Dustic) is a minimalist audio player that streams music, audiobooks,
+				podcasts, and other audio content from the Internet Archive and FunkWhale — alongside
+				your own collection from any WebDAV-compatible cloud (Koofr, Nextcloud, pCloud).
+				Browse millions of free audio recordings, from live concerts to historical radio
+				programs, in a clean, modern interface.
 			</p>
 		</section>
 
@@ -23,7 +28,7 @@
 			<h2 class="text-xl font-semibold mb-3">Install as an App</h2>
 			<div class="space-y-3 text-base-content/80 leading-relaxed">
 				<p>
-					Dustic is a <strong>Progressive Web App (PWA)</strong>, which means you can install it
+					Inde is a <strong>Progressive Web App (PWA)</strong>, which means you can install it
 					on your device and use it like a native app. Once installed, it works offline for your
 					saved content and provides a full-screen experience without browser UI.
 				</p>
@@ -32,7 +37,7 @@
 					<div>
 						<h3 class="font-semibold text-base-content mb-2">On iPhone/iPad:</h3>
 						<ol class="list-decimal list-inside ml-4 space-y-1">
-							<li>Open Dustic in Safari (not Chrome or other browsers)</li>
+							<li>Open Inde in Safari (not Chrome or other browsers)</li>
 							<li>Tap the Share button (square with arrow pointing up)</li>
 							<li>Scroll down and tap "Add to Home Screen"</li>
 							<li>Tap "Add" to confirm</li>
@@ -42,7 +47,7 @@
 					<div>
 						<h3 class="font-semibold text-base-content mb-2">On Android:</h3>
 						<ol class="list-decimal list-inside ml-4 space-y-1">
-							<li>Open Dustic in Chrome</li>
+							<li>Open Inde in Chrome</li>
 							<li>Tap the menu (three dots) in the top-right corner</li>
 							<li>Tap "Add to Home screen" or "Install app"</li>
 							<li>Tap "Install" to confirm</li>
@@ -51,7 +56,7 @@
 				</div>
 
 				<p class="mt-4">
-					After installation, Dustic will appear on your home screen with its icon and can be
+					After installation, Inde will appear on your home screen with its icon and can be
 					launched like any other app on your device.
 				</p>
 			</div>
@@ -61,7 +66,7 @@
 		<section class="card bg-base-200 p-6">
 			<h2 class="text-xl font-semibold mb-3">Creator</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				Dustic is developed by <strong>Essi Parent</strong>.
+				Inde is developed by <strong>Essi Parent</strong>.
 			</p>
 		</section>
 
@@ -102,7 +107,7 @@
 					</a>
 				</div>
 				<p class="text-sm text-base-content/60">
-					Dustic does not host any audio files. It provides a unified interface to discover
+					Inde does not host any audio files. It provides a unified interface to discover
 					and play content from these sources.
 				</p>
 			</div>
@@ -112,8 +117,8 @@
 		<section class="card bg-base-200 p-6 border-l-4 border-info">
 			<h2 class="text-xl font-semibold mb-3">Content Disclaimer</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				All content available through Dustic is served directly from the Internet Archive
-				and connected FunkWhale instances. The creator of Dustic is not responsible for the
+				All content available through Inde is served directly from the Internet Archive
+				and connected FunkWhale instances. The creator of Inde is not responsible for the
 				content, accuracy, or availability of any audio files or metadata provided by these
 				sources.
 			</p>
@@ -124,7 +129,7 @@
 			<h2 class="text-xl font-semibold mb-3">Privacy & Data Collection</h2>
 			<div class="space-y-3 text-base-content/80 leading-relaxed">
 				<p>
-					<strong>No data collection.</strong> Dustic does not collect, transmit, or store any personal
+					<strong>No data collection.</strong> Inde does not collect, transmit, or store any personal
 					information on external servers. Your listening activity is completely private.
 				</p>
 				<p>
@@ -173,7 +178,7 @@
 		<section class="card bg-base-200 p-6">
 			<h2 class="text-xl font-semibold mb-3">Open Source</h2>
 			<p class="text-base-content/80 leading-relaxed mb-3">
-				Dustic is open source software. You can view the source code, report issues, or contribute
+				Inde is open source software. You can view the source code, report issues, or contribute
 				to the project on GitHub.
 			</p>
 			<a
@@ -229,7 +234,7 @@
 				</a>
 			</div>
 			<p class="text-sm text-base-content/70 mt-4">
-				If you enjoy Dustic, consider sponsoring the project. Report bugs or suggest features via GitHub issues.
+				If you enjoy Inde, consider sponsoring the project. Report bugs or suggest features via GitHub issues.
 			</p>
 		</section>
 

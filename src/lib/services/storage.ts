@@ -12,7 +12,7 @@ export function exportProfile(profile: UserProfile): void {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;
-	a.download = `dustic-profile-${Date.now()}.json`;
+	a.download = `inde-profile-${Date.now()}.json`;
 	a.click();
 	URL.revokeObjectURL(url);
 }

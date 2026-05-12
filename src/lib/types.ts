@@ -1,4 +1,4 @@
-// Core types for Dustic
+// Core types for Inde
 
 export type TrackSource = 'internetarchive' | 'funkwhale' | 'webdav';
 

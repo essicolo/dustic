@@ -1,36 +1,35 @@
 // Theme presets for Dustic (Change 5).
 //
-// Each preset is a set of CSS custom properties applied on `:root`.
-// Adding a new theme = adding an entry to `THEMES`; the picker and Settings
-// UI iterate this map.
+// Each preset corresponds to a daisyUI theme defined in tailwind.config.js.
+// Switching themes = setting `data-theme="<id>"` on <html>; daisyUI rebinds
+// its CSS variables (--p, --b1, --bc, …) and the entire app recolors.
+// We also keep a small set of meta variables (--card-radius, --shadow) for
+// rules that depend on theme aesthetics rather than colors.
 
-export type ThemeId = 'minimal' | 'sunset' | 'bubblegum' | 'forest' | 'midnight';
+export type ThemeId = 'dustic' | 'sunset' | 'bubblegum' | 'forest' | 'midnight';
 
 export interface Theme {
 	id: ThemeId;
 	name: string;
 	description: string;
-	// CSS variables applied to :root
-	vars: Record<string, string>;
-	// Maps to a daisyUI theme name so DaisyUI components also recolor cleanly.
-	daisy: 'inde' | 'corporate' | 'dark' | 'cupcake' | 'forest' | 'dracula';
+	// Meta vars layered on top of daisyUI for shape/shadow tweaks.
+	meta: { '--card-radius': string; '--shadow': string };
+	// Tile preview colors used by the picker (read from the daisyUI palette
+	// so what you see in the picker matches what the theme will look like).
+	preview: { bg: string; fg: string; muted: string; accent: string; accentFg: string };
 }
 
-// Pure monochrome — the original Dustic aesthetic. Zero color, zero radius.
-const MINIMAL: Theme = {
-	id: 'minimal',
+const DUSTIC: Theme = {
+	id: 'dustic',
 	name: 'Minimal',
 	description: 'Pure monochrome. Sharp corners, no accent color.',
-	daisy: 'inde',
-	vars: {
-		'--bg': '#ffffff',
-		'--bg-elevated': '#f5f5f5',
-		'--fg': '#000000',
-		'--fg-muted': '#525252',
-		'--accent': '#000000',
-		'--accent-fg': '#ffffff',
-		'--card-radius': '4px',
-		'--shadow': 'none'
+	meta: { '--card-radius': '4px', '--shadow': 'none' },
+	preview: {
+		bg: '#ffffff',
+		fg: '#000000',
+		muted: '#525252',
+		accent: '#000000',
+		accentFg: '#ffffff'
 	}
 };
 
@@ -38,16 +37,16 @@ const SUNSET: Theme = {
 	id: 'sunset',
 	name: 'Sunset',
 	description: 'Cream paper, warm dark text, terracotta accent.',
-	daisy: 'cupcake',
-	vars: {
-		'--bg': '#FAF6F0',
-		'--bg-elevated': '#F0EAE0',
-		'--fg': '#1F1B16',
-		'--fg-muted': '#6B5F50',
-		'--accent': '#C75B39',
-		'--accent-fg': '#FFFFFF',
+	meta: {
 		'--card-radius': '12px',
 		'--shadow': '0 4px 12px -2px rgba(31, 27, 22, 0.08)'
+	},
+	preview: {
+		bg: '#FAF6F0',
+		fg: '#1F1B16',
+		muted: '#6B5F50',
+		accent: '#C75B39',
+		accentFg: '#FFFFFF'
 	}
 };
 
@@ -55,16 +54,16 @@ const BUBBLEGUM: Theme = {
 	id: 'bubblegum',
 	name: 'Bubblegum',
 	description: 'White canvas with a hot-pink kick.',
-	daisy: 'corporate',
-	vars: {
-		'--bg': '#FFFFFF',
-		'--bg-elevated': '#FAFAFB',
-		'--fg': '#1A1A1F',
-		'--fg-muted': '#6B6B75',
-		'--accent': '#FF4D8D',
-		'--accent-fg': '#FFFFFF',
+	meta: {
 		'--card-radius': '16px',
 		'--shadow': '0 4px 16px -4px rgba(255, 77, 141, 0.18)'
+	},
+	preview: {
+		bg: '#FFFFFF',
+		fg: '#1A1A1F',
+		muted: '#6B6B75',
+		accent: '#FF4D8D',
+		accentFg: '#FFFFFF'
 	}
 };
 
@@ -72,16 +71,16 @@ const FOREST: Theme = {
 	id: 'forest',
 	name: 'Forest',
 	description: 'Deep green bed, cream type, sage highlights.',
-	daisy: 'forest',
-	vars: {
-		'--bg': '#1A2E1F',
-		'--bg-elevated': '#243B29',
-		'--fg': '#F0EDE5',
-		'--fg-muted': '#A8B5A8',
-		'--accent': '#8FB996',
-		'--accent-fg': '#1A2E1F',
+	meta: {
 		'--card-radius': '8px',
 		'--shadow': '0 6px 18px -6px rgba(0, 0, 0, 0.45)'
+	},
+	preview: {
+		bg: '#1A2E1F',
+		fg: '#F0EDE5',
+		muted: '#A8B5A8',
+		accent: '#8FB996',
+		accentFg: '#1A2E1F'
 	}
 };
 
@@ -89,42 +88,41 @@ const MIDNIGHT: Theme = {
 	id: 'midnight',
 	name: 'Midnight',
 	description: 'Near-black backdrop, pale text, electric violet.',
-	daisy: 'dracula',
-	vars: {
-		'--bg': '#0F0F14',
-		'--bg-elevated': '#1A1A22',
-		'--fg': '#E8E6F0',
-		'--fg-muted': '#9B98B0',
-		'--accent': '#9B6DFF',
-		'--accent-fg': '#FFFFFF',
+	meta: {
 		'--card-radius': '12px',
 		'--shadow': '0 6px 20px -6px rgba(155, 109, 255, 0.25)'
+	},
+	preview: {
+		bg: '#0F0F14',
+		fg: '#E8E6F0',
+		muted: '#9B98B0',
+		accent: '#9B6DFF',
+		accentFg: '#FFFFFF'
 	}
 };
 
 export const THEMES: Record<ThemeId, Theme> = {
-	minimal: MINIMAL,
+	dustic: DUSTIC,
 	sunset: SUNSET,
 	bubblegum: BUBBLEGUM,
 	forest: FOREST,
 	midnight: MIDNIGHT
 };
 
-export const THEME_LIST: Theme[] = [MINIMAL, SUNSET, BUBBLEGUM, FOREST, MIDNIGHT];
+export const THEME_LIST: Theme[] = [DUSTIC, SUNSET, BUBBLEGUM, FOREST, MIDNIGHT];
 
-export const DEFAULT_THEME: ThemeId = 'minimal';
+export const DEFAULT_THEME: ThemeId = 'dustic';
 
 /**
- * Apply a theme to the document by setting CSS variables on :root and the
- * `data-theme` attribute on <html> (which daisyUI reads).
+ * Apply a theme to the document. Sets `data-theme` (daisyUI does the
+ * heavy lifting) plus a couple of meta vars for shape/shadow.
  */
 export function applyTheme(id: ThemeId): void {
 	if (typeof document === 'undefined') return;
 	const theme = THEMES[id] ?? THEMES[DEFAULT_THEME];
 	const root = document.documentElement;
-	for (const [key, value] of Object.entries(theme.vars)) {
+	root.setAttribute('data-theme', theme.id);
+	for (const [key, value] of Object.entries(theme.meta)) {
 		root.style.setProperty(key, value);
 	}
-	root.setAttribute('data-theme', theme.daisy);
-	root.setAttribute('data-inde-theme', theme.id);
 }

@@ -20,23 +20,22 @@
 		dispatch('done');
 	}
 
-	// Inline mock card preview using each theme's CSS variables
+	// Inline mock card preview using each theme's preview palette.
 	function mockCardStyle(t: Theme): string {
-		const v = t.vars;
 		return [
-			`background:${v['--bg']}`,
-			`color:${v['--fg']}`,
-			`border-radius:${v['--card-radius']}`,
-			`box-shadow:${v['--shadow']}`
+			`background:${t.preview.bg}`,
+			`color:${t.preview.fg}`,
+			`border-radius:${t.meta['--card-radius']}`,
+			`box-shadow:${t.meta['--shadow']}`
 		].join(';');
 	}
 
 	function mockAccentStyle(t: Theme): string {
-		return `background:${t.vars['--accent']};color:${t.vars['--accent-fg']}`;
+		return `background:${t.preview.accent};color:${t.preview.accentFg}`;
 	}
 
 	function mockMutedStyle(t: Theme): string {
-		return `color:${t.vars['--fg-muted']}`;
+		return `color:${t.preview.muted}`;
 	}
 </script>
 
@@ -52,7 +51,7 @@
 				{#each THEME_LIST as t}
 					<button
 						class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
-						style="{mockCardStyle(t)};border-color:{selected === t.id ? t.vars['--accent'] : 'transparent'};"
+						style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
 						on:click={() => preview(t.id)}
 					>
 						<div class="flex items-center justify-between mb-3">
@@ -67,7 +66,7 @@
 						<div class="flex items-center gap-2">
 							<span
 								class="inline-block px-2 py-1 text-xs font-medium"
-								style="{mockAccentStyle(t)};border-radius:calc({t.vars['--card-radius']} / 2);"
+								style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
 							>
 								Play
 							</span>
@@ -91,7 +90,7 @@
 		{#each THEME_LIST as t}
 			<button
 				class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
-				style="{mockCardStyle(t)};border-color:{selected === t.id ? t.vars['--accent'] : 'transparent'};"
+				style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
 				on:click={() => preview(t.id)}
 			>
 				<div class="flex items-center justify-between mb-3">
@@ -106,7 +105,7 @@
 				<div class="flex items-center gap-2">
 					<span
 						class="inline-block px-2 py-1 text-xs font-medium"
-						style="{mockAccentStyle(t)};border-radius:calc({t.vars['--card-radius']} / 2);"
+						style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
 					>
 						Play
 					</span>

@@ -13,14 +13,20 @@ function isValidThemeId(value: string | null | undefined): value is ThemeId {
 	return !!value && value in THEMES;
 }
 
+// One-off rename: the default theme was internally renamed from 'minimal'
+// to 'dustic' so daisyUI's data-theme attribute matches the existing brand
+// theme. Map any old stored value forward.
+function migrateLegacyId(value: string | null | undefined): string | null | undefined {
+	if (value === 'minimal') return 'dustic';
+	return value;
+}
+
 function loadInitial(): ThemeId {
 	if (!browser) return DEFAULT_THEME;
-	// Prefer dedicated localStorage key; fall back to profile.settings.theme
-	// so a freshly-imported profile takes its theme along.
-	const fromLs = localStorage.getItem(STORAGE_KEY);
+	const fromLs = migrateLegacyId(localStorage.getItem(STORAGE_KEY));
 	if (isValidThemeId(fromLs)) return fromLs;
 	const profile = loadFromStorageSync();
-	const fromProfile = profile?.settings?.theme;
+	const fromProfile = migrateLegacyId(profile?.settings?.theme);
 	if (isValidThemeId(fromProfile)) return fromProfile;
 	return DEFAULT_THEME;
 }

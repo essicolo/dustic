@@ -27,6 +27,25 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Theme-driven radius applied to all card-like surfaces (Change 6).
+   The selector covers daisyUI cards, modal boxes, the modal-box used by
+   the profile panel, and the player bar (which gets a softer top edge in
+   non-Minimal themes). Buttons/inputs keep their daisyUI defaults so
+   tactile controls stay consistent. */
+.card,
+.modal-box,
+.alert,
+.menu.rounded-box,
+.rounded-box {
+	border-radius: var(--card-radius);
+	box-shadow: var(--shadow);
+}
+
+.player-bar-themed {
+	border-top-left-radius: var(--card-radius);
+	border-top-right-radius: var(--card-radius);
+}
+
 /* Minimalist scrollbar */
 ::-webkit-scrollbar {
 	width: 8px;

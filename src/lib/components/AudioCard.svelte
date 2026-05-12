@@ -134,22 +134,27 @@
 	$: isFavorite = $library.favorites.some((f) => f.id === item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: isFW = isFunkwhaleTrack(item.identifier);
+	$: isWD = item.identifier.startsWith('wd:');
 	$: thumb = isFW
 		? ((item as any).thumbnailUrl || '')
-		: getThumbnailUrl(item.identifier);
+		: isWD
+			? ''
+			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || 'FunkWhale')
-		: 'Internet Archive';
+		: isWD
+			? ((item as any).collection?.[0] || 'WebDAV')
+			: 'Internet Archive';
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;
 		isFetching = true;
 		try {
 			let fetchedTracks: Track[] = [];
-			if (isFW) {
-				// FW tracks from search already have full data with streamUrl.
-				// Re-fetching via getTrack() loses uploads (v2 API doesn't return them).
-				// Use item data directly if it has a streamUrl.
+			if (isFW || isWD) {
+				// FW & WebDAV tracks already arrive with full data including
+				// streamUrl. Re-fetching loses upload data (FW v2) and incurs
+				// extra PROPFIND calls (WebDAV).
 				const cached = item as any;
 				if (cached.streamUrl) {
 					fetchedTracks = [cached as Track];
@@ -233,7 +238,9 @@
 	}
 
 	function handleNavigate() {
-		if (type === 'album' && !isFW) {
+		// IA albums navigate to the album page; everything else (FW, WebDAV,
+		// individual tracks) plays directly.
+		if (type === 'album' && !isFW && !isWD) {
 			goto(`${base}/item/${item.identifier}`);
 		} else {
 			handlePlay();

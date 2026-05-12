@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
@@ -14,7 +13,7 @@
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import Icon from '$lib/components/Icon.svelte';
-	import DownloadButton from '$lib/components/DownloadButton.svelte';
+	import AudioCard from '$lib/components/AudioCard.svelte';
 
 	let libraryId = '';
 	let path = '';
@@ -22,6 +21,7 @@
 	let entries: WebDAVEntry[] = [];
 	let loading = true;
 	let error = '';
+	let viewMode: 'tiles' | 'list' = 'tiles';
 
 	$: libraryId = $page.params.libraryId ?? '';
 	$: path = (($page.url.searchParams.get('p') || '/')).replace(/\/+$/, '') || '/';
@@ -29,6 +29,10 @@
 	$: if (libraryId) {
 		void load(libraryId, path);
 	}
+
+	$: folders = entries.filter((e) => e.type === 'folder');
+	$: files = entries.filter((e) => e.type === 'file');
+	$: tracks = library ? files.map((e) => buildTrack(library!, e)) : [];
 
 	async function load(id: string, currentPath: string) {
 		loading = true;
@@ -67,46 +71,13 @@
 	}
 
 	function relativePath(absPath: string): string {
-		// Strip the library rootPath prefix; we navigate by relative path
 		const root = (library?.rootPath || '/').replace(/\/+$/, '') || '/';
 		if (root === '/') return absPath;
 		if (absPath.startsWith(root)) return absPath.slice(root.length) || '/';
 		return absPath;
 	}
 
-	function buildTracksList(): Track[] {
-		if (!library) return [];
-		return entries.filter((e) => e.type === 'file').map((e) => buildTrack(library!, e));
-	}
-
-	async function playFile(entry: WebDAVEntry) {
-		if (!library) return;
-		const tracks = buildTracksList();
-		const idx = tracks.findIndex((t) => t.identifier.endsWith(encodeURIComponentSafe(entry.path)));
-		// Replace queue with this folder; play the chosen track
-		queue.clear();
-		tracks.forEach((t) => queue.addToEnd(t));
-		const startTrack = tracks.find((t) => t.metadata.webdavPath === entry.path);
-		if (startTrack) {
-			player.unlockIOSAudio?.();
-			player.playNow(startTrack, false);
-			// Advance queue cursor to the chosen track
-			while (queue.getCurrentTrack()?.identifier !== startTrack.identifier && queue.next()) {}
-		}
-		// `idx` referenced to silence unused warning
-		void idx;
-	}
-
-	function encodeURIComponentSafe(s: string): string {
-		try {
-			return encodeURIComponent(s);
-		} catch {
-			return s;
-		}
-	}
-
 	function playAll() {
-		const tracks = buildTracksList();
 		if (tracks.length === 0) return;
 		queue.clear();
 		tracks.forEach((t) => queue.addToEnd(t));
@@ -130,13 +101,20 @@
 		}
 		return out;
 	}
+
+	function fmtSize(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+	}
 </script>
 
 <svelte:head>
 	<title>{library?.name || 'Library'} — Dustic</title>
 </svelte:head>
 
-<div class="container mx-auto max-w-4xl p-4">
+<div class="container mx-auto max-w-6xl p-4">
+	<!-- Breadcrumbs + view toggle -->
 	<div class="mb-4 flex items-center gap-2 flex-wrap">
 		<a href="{base}/library/webdav" class="btn btn-ghost btn-sm">
 			<Icon icon="mdi:arrow-left" width="20" />
@@ -148,6 +126,23 @@
 			<span class="opacity-50">/</span>
 			<a href={seg.href} class="hover:underline">{seg.label}</a>
 		{/each}
+
+		<div class="ml-auto btn-group" role="group" aria-label="View mode">
+			<button
+				on:click={() => (viewMode = 'tiles')}
+				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
+				title="Tiles view"
+			>
+				<Icon icon="mdi:view-grid" width="18" />
+			</button>
+			<button
+				on:click={() => (viewMode = 'list')}
+				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
+				title="List view"
+			>
+				<Icon icon="mdi:view-list" width="18" />
+			</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -155,52 +150,91 @@
 	{:else if error}
 		<div class="alert alert-error">{error}</div>
 	{:else}
-		{#if entries.some((e) => e.type === 'file')}
-			<div class="mb-3">
+		{#if files.length > 0}
+			<div class="mb-4">
 				<button class="btn btn-primary btn-sm" on:click={playAll}>
 					<Icon icon="mdi:play" width="18" />
-					Play all ({entries.filter((e) => e.type === 'file').length})
+					Play all ({files.length})
 				</button>
 			</div>
 		{/if}
 
-		<ul class="divide-y divide-base-300">
-			{#if path !== '/' && path !== ''}
-				<li>
-					<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={navigateUp}>
-						<Icon icon="mdi:arrow-up" width="20" />
-						<span class="opacity-70">..</span>
-					</button>
-				</li>
+		{#if viewMode === 'tiles'}
+			<!-- Folders row (always list-style) -->
+			{#if folders.length > 0 || path !== '/' && path !== ''}
+				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-6">
+					{#if path !== '/' && path !== ''}
+						<button
+							class="card bg-base-200 hover:bg-base-300 aspect-square flex flex-col items-center justify-center gap-2 p-3 transition-colors"
+							on:click={navigateUp}
+						>
+							<Icon icon="mdi:folder-arrow-up" width="40" class="opacity-60" />
+							<div class="text-sm opacity-70">..</div>
+						</button>
+					{/if}
+					{#each folders as folder (folder.path)}
+						<button
+							class="card bg-base-200 hover:bg-base-300 aspect-square flex flex-col items-center justify-center gap-2 p-3 transition-colors text-center"
+							on:click={() => navigateInto(folder)}
+						>
+							<Icon icon="mdi:folder" width="40" />
+							<div class="text-sm font-medium line-clamp-2 leading-tight w-full">
+								{folder.name}
+							</div>
+						</button>
+					{/each}
+				</div>
 			{/if}
-			{#each entries as entry (entry.path)}
-				{#if entry.type === 'folder'}
+
+			<!-- Tracks tile grid -->
+			{#if tracks.length > 0}
+				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+					{#each tracks as track (track.identifier)}
+						<AudioCard
+							item={{ ...track, tracks: [track] } as any}
+							type="track"
+							layout="tile"
+						/>
+					{/each}
+				</div>
+			{/if}
+
+			{#if folders.length === 0 && tracks.length === 0 && (path === '/' || !path)}
+				<div class="text-center opacity-60 p-12">Empty folder</div>
+			{/if}
+		{:else}
+			<!-- List view -->
+			<ul class="divide-y divide-base-300">
+				{#if path !== '/' && path !== ''}
 					<li>
-						<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={() => navigateInto(entry)}>
+						<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={navigateUp}>
+							<Icon icon="mdi:arrow-up" width="20" />
+							<span class="opacity-70">..</span>
+						</button>
+					</li>
+				{/if}
+				{#each folders as folder (folder.path)}
+					<li>
+						<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={() => navigateInto(folder)}>
 							<Icon icon="mdi:folder" width="22" />
-							<span class="flex-1 truncate">{entry.name}</span>
+							<span class="flex-1 truncate">{folder.name}</span>
 							<Icon icon="mdi:chevron-right" width="18" />
 						</button>
 					</li>
-				{:else}
-					<li class="p-3 flex items-center gap-3 hover:bg-base-200">
-						<button class="btn btn-ghost btn-sm btn-circle" on:click={() => playFile(entry)} title="Play">
-							<Icon icon="mdi:play" width="18" />
-						</button>
-						<div class="flex-1 min-w-0">
-							<div class="truncate">{entry.name}</div>
-							{#if entry.size}
-								<div class="text-xs opacity-50">{(entry.size / 1024 / 1024).toFixed(1)} MB</div>
-							{/if}
-						</div>
-						{#if library}
-							<DownloadButton track={buildTrack(library, entry)} />
-						{/if}
+				{/each}
+				{#each tracks as track, i (track.identifier)}
+					<li class="p-1">
+						<AudioCard
+							item={{ ...track, tracks: [track] } as any}
+							type="track"
+							layout="list"
+						/>
 					</li>
+				{/each}
+				{#if folders.length === 0 && tracks.length === 0}
+					<li class="p-6 text-center opacity-60">Empty folder</li>
 				{/if}
-			{:else}
-				<li class="p-6 text-center opacity-60">Empty folder</li>
-			{/each}
-		</ul>
+			</ul>
+		{/if}
 	{/if}
 </div>

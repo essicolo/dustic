@@ -13,16 +13,16 @@
 </script>
 
 <svelte:head>
-	<title>Bibliothèques WebDAV — Dustic</title>
+	<title>WebDAV libraries — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl p-4">
-	<h1 class="text-2xl font-bold mb-4">Mes bibliothèques WebDAV</h1>
+	<h1 class="text-2xl font-bold mb-4">My WebDAV libraries</h1>
 
 	{#if libraries.length === 0}
 		<div class="card bg-base-200 p-6 text-center">
-			<p class="mb-3 opacity-70">Aucune bibliothèque WebDAV configurée.</p>
-			<a href="{base}/settings/libraries" class="btn btn-primary">Configurer une bibliothèque</a>
+			<p class="mb-3 opacity-70">No WebDAV library configured yet.</p>
+			<a href="{base}/settings/libraries" class="btn btn-primary">Add a library</a>
 		</div>
 	{:else}
 		<ul class="space-y-2">
@@ -40,7 +40,7 @@
 			{/each}
 		</ul>
 		<div class="mt-4 text-right">
-			<a href="{base}/settings/libraries" class="btn btn-ghost btn-sm">Gérer les bibliothèques</a>
+			<a href="{base}/settings/libraries" class="btn btn-ghost btn-sm">Manage libraries</a>
 		</div>
 	{/if}
 </div>

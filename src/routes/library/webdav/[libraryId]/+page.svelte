@@ -36,14 +36,14 @@
 		entries = [];
 		library = findLibrary(settings.getWebDAVLibraries(), id);
 		if (!library) {
-			error = 'Bibliothèque introuvable';
+			error = 'Library not found';
 			loading = false;
 			return;
 		}
 		try {
 			entries = await listFolder(library, currentPath);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Erreur de chargement';
+			error = err instanceof Error ? err.message : 'Failed to load folder';
 		} finally {
 			loading = false;
 		}
@@ -133,7 +133,7 @@
 </script>
 
 <svelte:head>
-	<title>{library?.name || 'Bibliothèque'} — Dustic</title>
+	<title>{library?.name || 'Library'} — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-4xl p-4">
@@ -142,7 +142,7 @@
 			<Icon icon="mdi:arrow-left" width="20" />
 		</a>
 		<a href="{base}/library/webdav/{libraryId}?p=/" class="font-semibold hover:underline">
-			{library?.name || 'Bibliothèque'}
+			{library?.name || 'Library'}
 		</a>
 		{#each pathSegments() as seg}
 			<span class="opacity-50">/</span>
@@ -159,7 +159,7 @@
 			<div class="mb-3">
 				<button class="btn btn-primary btn-sm" on:click={playAll}>
 					<Icon icon="mdi:play" width="18" />
-					Tout lire ({entries.filter((e) => e.type === 'file').length})
+					Play all ({entries.filter((e) => e.type === 'file').length})
 				</button>
 			</div>
 		{/if}
@@ -184,7 +184,7 @@
 					</li>
 				{:else}
 					<li class="p-3 flex items-center gap-3 hover:bg-base-200">
-						<button class="btn btn-ghost btn-sm btn-circle" on:click={() => playFile(entry)} title="Lire">
+						<button class="btn btn-ghost btn-sm btn-circle" on:click={() => playFile(entry)} title="Play">
 							<Icon icon="mdi:play" width="18" />
 						</button>
 						<div class="flex-1 min-w-0">
@@ -199,7 +199,7 @@
 					</li>
 				{/if}
 			{:else}
-				<li class="p-6 text-center opacity-60">Dossier vide</li>
+				<li class="p-6 text-center opacity-60">Empty folder</li>
 			{/each}
 		</ul>
 	{/if}

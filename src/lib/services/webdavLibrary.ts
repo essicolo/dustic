@@ -54,12 +54,26 @@ export async function testLibrary(library: WebDAVLibrary): Promise<{ ok: boolean
 	if (!browser) return { ok: false, error: 'Not in browser' };
 	try {
 		const targetUrl = buildTargetUrl(library, library.rootPath || '/');
-		const response = await proxiedFetch(library, targetUrl, 'PROPFIND', {
+		// Try PROPFIND first; some servers (pCloud) reject PROPFIND but accept
+		// OPTIONS for an auth probe.
+		let response = await proxiedFetch(library, targetUrl, 'PROPFIND', {
 			Depth: '0',
 			'Content-Type': 'application/xml'
 		});
+		if (response.status === 405 || response.status === 501) {
+			// Method not supported on this server — fall back to OPTIONS for the probe.
+			response = await proxiedFetch(library, targetUrl, 'OPTIONS');
+		}
 		if (!response.ok) {
-			return { ok: false, error: `Server returned ${response.status}` };
+			let bodyHint = '';
+			try {
+				const text = (await response.text()).slice(0, 200);
+				if (text) bodyHint = ` — ${text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
+			} catch { /* ignore */ }
+			return {
+				ok: false,
+				error: `${response.status} ${response.statusText} on ${targetUrl}${bodyHint}`
+			};
 		}
 		return { ok: true };
 	} catch (err) {
@@ -86,7 +100,12 @@ export async function listFolder(
 	});
 
 	if (!response.ok) {
-		throw new Error(`PROPFIND failed: ${response.status} ${response.statusText}`);
+		let bodyHint = '';
+		try {
+			const text = (await response.text()).slice(0, 200);
+			if (text) bodyHint = ` — ${text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`;
+		} catch { /* ignore */ }
+		throw new Error(`PROPFIND failed: ${response.status} ${response.statusText} on ${targetUrl}${bodyHint}`);
 	}
 
 	const xml = await response.text();
@@ -186,7 +205,7 @@ async function proxiedFetch(
 ): Promise<Response> {
 	const password = await decryptValue(library.password);
 	const headers: Record<string, string> = {
-		Authorization: 'Basic ' + btoa(`${library.username}:${password}`),
+		Authorization: 'Basic ' + utf8Btoa(`${library.username}:${password}`),
 		...(extraHeaders || {})
 	};
 	return fetch('/api/webdav-proxy', {
@@ -194,6 +213,15 @@ async function proxiedFetch(
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ url: targetUrl, method, headers, body })
 	});
+}
+
+// btoa() throws on non-Latin1 characters; encode UTF-8 first so passwords
+// with accents work.
+function utf8Btoa(str: string): string {
+	const bytes = new TextEncoder().encode(str);
+	let bin = '';
+	for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+	return btoa(bin);
 }
 
 function joinPath(a: string, b: string): string {

@@ -103,6 +103,7 @@ export interface UserProfile {
 		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
 		webdav?: WebDAVConfig;
 		webdavLibraries?: WebDAVLibrary[];
+		theme?: string; // ThemeId — sync'd via WebDAV profile
 	};
 	// Player state persistence
 	lastPlayedTrack?: Track; // Last track that was playing when app closed

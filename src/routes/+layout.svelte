@@ -19,6 +19,10 @@
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
 	import { runRebrandMigration } from '$lib/services/rebrandMigration';
+	import { theme } from '$lib/stores/theme';
+	import ThemePicker from '$lib/components/ThemePicker.svelte';
+
+	let showThemePicker = false;
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
@@ -54,6 +58,9 @@
 	onMount(async () => {
 		// Migrate legacy Dustic storage keys to Inde before any store reads.
 		await runRebrandMigration();
+
+		// First-launch theme picker: shown once per profile.
+		showThemePicker = theme.isFirstLaunch();
 
 		// Initialize stores from storage (tries IndexedDB if localStorage is empty)
 		// This is critical for iOS PWAs where localStorage can be cleared
@@ -344,3 +351,8 @@
 
 <!-- Update notification -->
 <UpdateNotification />
+
+<!-- First-launch theme picker -->
+{#if showThemePicker}
+	<ThemePicker mode="first-launch" on:done={() => (showThemePicker = false)} />
+{/if}

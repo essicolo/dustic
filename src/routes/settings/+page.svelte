@@ -5,6 +5,7 @@
 	import { base } from '$app/paths';
 	import type { AudioQuality } from '$lib/types';
 	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
+	import ThemePicker from '$lib/components/ThemePicker.svelte';
 
 	function handleQualityChange(quality: AudioQuality) {
 		settings.setAudioQuality(quality);
@@ -48,6 +49,21 @@
 		<a href="{base}/settings" class="tab tab-active">Preferences</a>
 		<a href="{base}/settings/profile" class="tab">Profile Data</a>
 		<a href="{base}/settings/libraries" class="tab">WebDAV Libraries</a>
+	</div>
+
+	<!-- Appearance / Theme -->
+	<div class="card bg-base-200 mb-6">
+		<div class="card-body">
+			<h3 class="card-title mb-4">
+				<Icon icon="solar:pallete-2-bold" width="24" />
+				Appearance
+			</h3>
+			<p class="text-sm text-base-content/70 mb-4">
+				Pick a theme. "Minimal" keeps the pure monochrome look; the others apply soft corners,
+				warmer surfaces, and an accent color used for likes, the play button, and the progress bar.
+			</p>
+			<ThemePicker mode="settings" />
+		</div>
 	</div>
 
 	<!-- Audio Quality Settings -->

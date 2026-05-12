@@ -15,6 +15,7 @@ export interface Settings {
 	favoriteInfluencedAutoplay?: boolean;
 	webdav?: WebDAVConfig;
 	webdavLibraries?: WebDAVLibrary[];
+	theme?: string;
 }
 
 // Load from storage or use defaults (sync version for initial load)

@@ -81,34 +81,49 @@ class OfflineStorage {
 		if (!browser) throw new Error('Cannot download in non-browser environment');
 
 		try {
-			// Download the audio file
-			const response = await fetch(track.streamUrl);
-			if (!response.ok) throw new Error('Failed to download track');
+			let blob: Blob;
 
-			const reader = response.body?.getReader();
-			const contentLength = parseInt(response.headers.get('content-length') || '0');
+			// WebDAV tracks need to go through the authenticated proxy.
+			if (track.source === 'webdav') {
+				const { decodeIdentifier, fetchTrackBlob, findLibrary } = await import('./webdavLibrary');
+				const { settings } = await import('$lib/stores/settings');
+				const decoded = decodeIdentifier(track.identifier);
+				const library = decoded
+					? findLibrary(settings.getWebDAVLibraries(), decoded.libraryId)
+					: undefined;
+				if (!decoded || !library) throw new Error('WebDAV library not found');
+				blob = await fetchTrackBlob(library, decoded.path, onProgress);
+			} else {
+				// Download the audio file directly
+				const response = await fetch(track.streamUrl);
+				if (!response.ok) throw new Error('Failed to download track');
 
-			if (!reader) throw new Error('No response body');
+				const reader = response.body?.getReader();
+				const contentLength = parseInt(response.headers.get('content-length') || '0');
 
-			// Read the stream
-			const chunks: Uint8Array[] = [];
-			let receivedLength = 0;
+				if (!reader) throw new Error('No response body');
 
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
+				// Read the stream
+				const chunks: Uint8Array[] = [];
+				let receivedLength = 0;
 
-				chunks.push(value);
-				receivedLength += value.length;
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
 
-				// Report progress
-				if (onProgress && contentLength) {
-					onProgress((receivedLength / contentLength) * 100);
+					chunks.push(value);
+					receivedLength += value.length;
+
+					// Report progress
+					if (onProgress && contentLength) {
+						onProgress((receivedLength / contentLength) * 100);
+					}
 				}
+
+				// Combine chunks into a single blob
+				blob = new Blob(chunks as any[], { type: 'audio/mpeg' });
 			}
 
-			// Combine chunks into a single blob
-			const blob = new Blob(chunks as any[], { type: 'audio/mpeg' });
 			const fileSize = blob.size;
 
 			// Store in Cache API

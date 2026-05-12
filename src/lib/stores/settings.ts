@@ -1,7 +1,7 @@
 // Settings store for app preferences
 
 import { writable, get } from 'svelte/store';
-import type { AudioQuality, FunkwhaleInstance, WebDAVConfig } from '$lib/types';
+import type { AudioQuality, FunkwhaleInstance, WebDAVConfig, WebDAVLibrary } from '$lib/types';
 import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 import { createDefaultProfile } from '$lib/services/storage';
 import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
@@ -14,6 +14,7 @@ export interface Settings {
 	funkwhaleInstances?: FunkwhaleInstance[];
 	favoriteInfluencedAutoplay?: boolean;
 	webdav?: WebDAVConfig;
+	webdavLibraries?: WebDAVLibrary[];
 }
 
 // Load from storage or use defaults (sync version for initial load)
@@ -181,6 +182,53 @@ function createSettingsStore() {
 				const newState = {
 					...state,
 					webdav: { ...state.webdav, lastSync: timestamp }
+				};
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		getWebDAVLibraries(): WebDAVLibrary[] {
+			return get({ subscribe }).webdavLibraries || [];
+		},
+
+		addWebDAVLibrary(library: WebDAVLibrary) {
+			update((state) => {
+				const current = state.webdavLibraries || [];
+				if (current.some((l) => l.id === library.id)) return state;
+				const newState = { ...state, webdavLibraries: [...current, library] };
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		updateWebDAVLibrary(id: string, patch: Partial<WebDAVLibrary>) {
+			update((state) => {
+				const current = state.webdavLibraries || [];
+				const newState = {
+					...state,
+					webdavLibraries: current.map((l) => (l.id === id ? { ...l, ...patch } : l))
+				};
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		removeWebDAVLibrary(id: string) {
+			update((state) => {
+				const current = state.webdavLibraries || [];
+				const newState = { ...state, webdavLibraries: current.filter((l) => l.id !== id) };
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		toggleWebDAVLibrary(id: string) {
+			update((state) => {
+				const current = state.webdavLibraries || [];
+				const newState = {
+					...state,
+					webdavLibraries: current.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
 				};
 				saveSettings(newState);
 				return newState;

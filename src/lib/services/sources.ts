@@ -3,6 +3,8 @@
 import type { Track, SearchParams, SearchResult } from '$lib/types';
 import { smartSearch as iaSearch, getTrack as iaGetTrack } from './internetArchive';
 import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './funkwhale';
+import { isWebDAVTrack, decodeIdentifier, buildTrack as buildWebDAVTrack, findLibrary } from './webdavLibrary';
+import { settings } from '$lib/stores/settings';
 import { CONTENT_TYPES } from '$lib/utils/constants';
 import { withCache } from '$lib/utils/cache';
 
@@ -136,6 +138,14 @@ export async function unifiedGetTrack(identifier: string): Promise<Track | null>
 	return withCache(
 		`track:${identifier}`,
 		async () => {
+			if (isWebDAVTrack(identifier)) {
+				const decoded = decodeIdentifier(identifier);
+				if (!decoded) return null;
+				const library = findLibrary(settings.getWebDAVLibraries(), decoded.libraryId);
+				if (!library) return null;
+				const name = decoded.path.split('/').filter(Boolean).pop() || decoded.path;
+				return buildWebDAVTrack(library, { type: 'file', name, path: decoded.path });
+			}
 			if (isFunkwhaleTrack(identifier)) {
 				return fwGetTrack(identifier);
 			}

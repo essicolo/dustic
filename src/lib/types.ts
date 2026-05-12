@@ -1,6 +1,6 @@
 // Core types for Dustic
 
-export type TrackSource = 'internetarchive' | 'funkwhale';
+export type TrackSource = 'internetarchive' | 'funkwhale' | 'webdav';
 
 export type FavoriteType = 'track' | 'album';
 
@@ -75,6 +75,18 @@ export interface WebDAVConfig {
 	lastSync?: number; // timestamp
 }
 
+// A personal music library exposed over WebDAV (Koofr, Nextcloud, pCloud, …).
+// Distinct from `WebDAVConfig` which is used for profile sync.
+export interface WebDAVLibrary {
+	id: string; // uuid
+	name: string; // display name
+	url: string; // base URL, with or without trailing slash
+	username: string;
+	password: string; // encrypted via crypto.ts
+	rootPath: string; // subfolder inside the WebDAV root, e.g. "/Music"
+	enabled: boolean;
+}
+
 export interface UserProfile {
 	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
@@ -90,6 +102,7 @@ export interface UserProfile {
 		funkwhaleInstances?: FunkwhaleInstance[];
 		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
 		webdav?: WebDAVConfig;
+		webdavLibraries?: WebDAVLibrary[];
 	};
 	// Player state persistence
 	lastPlayedTrack?: Track; // Last track that was playing when app closed

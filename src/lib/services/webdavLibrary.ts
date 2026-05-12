@@ -53,7 +53,9 @@ export function isWebDAVTrack(identifier: string): boolean {
 export async function testLibrary(library: WebDAVLibrary): Promise<{ ok: boolean; error?: string }> {
 	if (!browser) return { ok: false, error: 'Not in browser' };
 	try {
-		const targetUrl = buildTargetUrl(library, library.rootPath || '/');
+		// Folder PROPFIND requires a trailing slash on some servers (Koofr is
+		// strict; pCloud is lenient). Always ensure it.
+		const targetUrl = withTrailingSlash(buildTargetUrl(library, library.rootPath || '/'));
 		// Try PROPFIND first; some servers (pCloud) reject PROPFIND but accept
 		// OPTIONS for an auth probe.
 		let response = await proxiedFetch(library, targetUrl, 'PROPFIND', {
@@ -92,7 +94,7 @@ export async function listFolder(
 	if (!browser) return [];
 
 	const absolutePath = joinPath(library.rootPath || '/', relativePath);
-	const targetUrl = buildTargetUrl(library, absolutePath);
+	const targetUrl = withTrailingSlash(buildTargetUrl(library, absolutePath));
 
 	const response = await proxiedFetch(library, targetUrl, 'PROPFIND', {
 		Depth: '1',
@@ -184,6 +186,10 @@ export function findLibrary(libraries: WebDAVLibrary[], id: string): WebDAVLibra
 // ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
+
+function withTrailingSlash(url: string): string {
+	return url.endsWith('/') ? url : url + '/';
+}
 
 function buildTargetUrl(library: WebDAVLibrary, absolutePath: string): string {
 	const base = library.url.replace(/\/+$/, '');

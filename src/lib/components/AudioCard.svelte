@@ -348,7 +348,7 @@
 			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
 	>
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
-			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}" title={item.title}>
+			<h2 class="card-title card-title-clamp {compact ? 'text-sm' : 'text-base'}" title={item.title}>
 				{item.title}
 				{#if isFW}
 					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
@@ -479,3 +479,19 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	/* Reserve consistent space for 2-line titles (Change 2): prevents grid jitter
+	   when some titles are short and others wrap. */
+	.card-title-clamp {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		word-break: break-word;
+		min-height: calc(2 * 1.25em);
+		line-height: 1.25;
+	}
+</style>

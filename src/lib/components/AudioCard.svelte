@@ -350,11 +350,6 @@
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
 			<h2 class="card-title card-title-clamp {compact ? 'text-sm' : 'text-base'}" title={item.title}>
 				{item.title}
-				{#if isFW}
-					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
-				{:else}
-					<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
-				{/if}
 			</h2>
 			<button
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
@@ -369,6 +364,7 @@
 			>
 				{(item as any).artist || item.creator || 'Unknown Artist'}
 			</button>
+			<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
 		</div>
 
 		<div

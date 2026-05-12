@@ -39,12 +39,14 @@
 	let tracks: Track[] = item.tracks || [];
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Auto-collapse actions on small screens, full on desktop
+	// `actionsLayout` is preserved as a prop for backwards compat but the
+	// inline action row was replaced by a single overflow menu in the
+	// rebrand. See README "Change 1".
 	let windowWidth = 0;
-	$: effectiveActionsLayout = actionsLayout === 'auto'
-		? (windowWidth < 640 ? 'collapsed' : 'full')
-		: actionsLayout;
+	$: void actionsLayout;
+	$: void windowWidth;
 
 	// --- Portal Action for Dropdown ---
 	function portal(node: HTMLElement) {
@@ -93,6 +95,22 @@
 		showActions = !showActions;
 		if (showActions) {
 			setTimeout(positionActionsMenu, 0);
+		}
+	}
+
+	function startLongPress(event: TouchEvent) {
+		cancelLongPress();
+		longPressTimer = setTimeout(() => {
+			event.preventDefault();
+			showActions = true;
+			setTimeout(positionActionsMenu, 0);
+		}, 500);
+	}
+
+	function cancelLongPress() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
 		}
 	}
 
@@ -295,6 +313,10 @@
 		class:w-20={layout === 'list'}
 		class:h-20={layout === 'list'}
 		class:flex-shrink-0={layout === 'list'}
+		on:touchstart={startLongPress}
+		on:touchend={cancelLongPress}
+		on:touchmove={cancelLongPress}
+		on:touchcancel={cancelLongPress}
 	>
 		<LoadingImage
 			src={thumb}
@@ -351,108 +373,36 @@
 
 		<div
 			class="card-actions items-center {layout === 'list'
-				? 'flex-shrink-0 flex-nowrap'
-				: 'justify-between mt-auto -ml-2'}"
+				? 'flex-shrink-0 flex-nowrap gap-0'
+				: 'justify-end mt-auto -mr-1 gap-0'}"
 		>
-			{#if effectiveActionsLayout === 'full'}
-				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
-					<DownloadButton
-						track={tracks?.[0] || item}
-						lazy={!tracks?.length}
-						size={compact ? 'xs' : 'sm'}
-					/>
-				</div>
+			<slot name="extra-actions" />
 
-				<slot name="extra-actions" />
+			<button
+				class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
+				title="Favorite"
+				on:click={handleToggleFavorite}
+				aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+			>
+				<Icon
+					icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+					class={isFavorite ? 'text-accent' : ''}
+					width="20"
+				/>
+			</button>
 
+			<div class="relative">
 				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-2'}"
-					title="Favorite"
-					on:click={handleToggleFavorite}
+					bind:this={actionsButton}
+					on:click={toggleActions}
+					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
+					title="More actions"
+					aria-label="More actions"
 				>
-					<Icon
-						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-						class={isFavorite ? 'text-error' : ''}
-						width="20"
-					/>
+					<Icon icon="solar:menu-dots-bold" width="20" />
 				</button>
 
-				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-3'}"
-					title="Share"
-					on:click={handleShare}
-				>
-					<Icon icon="solar:share-linear" width="20" />
-				</button>
-
-				<div class="relative {layout === 'list' ? '' : 'order-4'}">
-					<button
-						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
-						title="Add to Playlist"
-						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
-					>
-						<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
-					</button>
-					{#if showPlaylistSelector}
-						<div
-							id="playlist-selector-{item.identifier}"
-							class="absolute bottom-full left-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
-						>
-							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
-							{#each playlists as p}
-								<button
-									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
-									on:click={(e) => handleAddToPlaylist(e, p.id)}
-								>
-									{p.name}
-								</button>
-							{/each}
-							<a
-								href="{base}/library/playlists"
-								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
-							>
-								+ New Playlist
-							</a>
-						</div>
-					{/if}
-				</div>
-
-				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-5'}"
-					title="Add to Queue"
-					on:click={handleAddToQueue}
-				>
-					<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
-				</button>
-
-				{#if showRemoveFromQueue}
-					<button
-						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-							? ''
-							: 'order-6'}"
-						title="Remove from Queue"
-						on:click={handleRemoveFromQueue}
-					>
-						<Icon icon="solar:close-circle-bold" width="20" />
-					</button>
-				{/if}
-			{:else}
-				<div class="relative">
-					<button
-						bind:this={actionsButton}
-						on:click={toggleActions}
-						class="btn btn-ghost btn-circle btn-xs"
-					>
-						<Icon icon="solar:menu-dots-bold" width="20" />
-					</button>
-
-					{#if showActions}
+				{#if showActions}
 						<div
 							use:portal
 							bind:this={actionsMenu}
@@ -472,16 +422,6 @@
 											className="w-full justify-start gap-3 px-4 font-normal normal-case"
 										/>
 									</div>
-								</li>
-								<li>
-									<a role="button" tabindex="0" on:click={handleToggleFavorite} on:keydown={handleToggleFavorite} class="flex items-center">
-										<Icon
-											icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-											class={isFavorite ? 'text-error' : ''}
-											width="20"
-										/>
-										Favorite
-									</a>
 								</li>
 								<li>
 									<a role="button" tabindex="0" on:click={handleShare} on:keydown={handleShare} class="flex items-center">
@@ -536,7 +476,6 @@
 						</div>
 					{/if}
 				</div>
-			{/if}
 		</div>
 	</div>
 </div>

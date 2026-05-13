@@ -99,7 +99,7 @@
 						href="{base}/library/webdav/{src.id}"
 						class="card bg-base-200 hover:bg-base-300 transition-colors p-3 flex flex-row items-center gap-3"
 					>
-						<Icon icon="mdi:folder-music" width="32" class="flex-shrink-0" class:opacity-40={!src.enabled} />
+						<Icon icon="mdi:folder-music" width="32" class={src.enabled ? 'flex-shrink-0' : 'flex-shrink-0 opacity-40'} />
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2">
 								<span class="font-medium truncate" class:opacity-60={!src.enabled}>{src.name}</span>

@@ -23,7 +23,13 @@
 	import type { ArchiveItem, Track } from '$lib/types';
 	import { isFunkwhaleTrack } from '$lib/services/funkwhale';
 
-	export let item: ArchiveItem;
+	// AudioCard accepts either a full Track (FW / WebDAV / loaded IA track)
+	// or an ArchiveItem (IA album/listing). ArchiveItem already has an
+	// index signature so Track fields like `streamUrl` / `thumbnailUrl` are
+	// reachable without casts; we keep one narrow helper to keep TS happy
+	// for the optional ones.
+	type CardItem = ArchiveItem & Partial<Track>;
+	export let item: CardItem;
 	export let type: 'album' | 'track' = 'album';
 	export let layout: 'tile' | 'list' = 'tile';
 	export let compact = false;
@@ -137,24 +143,28 @@
 	$: isFW = isFunkwhaleTrack(item.identifier);
 	$: isWD = item.identifier.startsWith('wd:');
 	$: thumb = isFW
-		? ((item as any).thumbnailUrl || '')
+		? (item.thumbnailUrl || '')
 		: isWD
 			? fetchedThumb || ''
 			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || 'FunkWhale')
 		: isWD
-			? ((item as any).collection?.[0] || 'WebDAV')
+			? (item.collection?.[0] || 'WebDAV')
 			: 'Internet Archive';
 
 	// Lazy cover lookup for WebDAV tracks via iTunes Search.
 	let fetchedThumb: string | null = null;
+	let thumbLookupDone = false;
 	let lookedUpId: string | null = null;
 	$: if (isWD && item.identifier !== lookedUpId) {
 		lookedUpId = item.identifier;
 		fetchedThumb = null;
-		getThumbnailFor(item as any).then((url) => {
-			if (lookedUpId === item.identifier) fetchedThumb = url;
+		thumbLookupDone = false;
+		getThumbnailFor(item as Track).then((url) => {
+			if (lookedUpId !== item.identifier) return;
+			fetchedThumb = url;
+			thumbLookupDone = true;
 		});
 	}
 
@@ -167,9 +177,8 @@
 				// FW & WebDAV tracks already arrive with full data including
 				// streamUrl. Re-fetching loses upload data (FW v2) and incurs
 				// extra PROPFIND calls (WebDAV).
-				const cached = item as any;
-				if (cached.streamUrl) {
-					fetchedTracks = [cached as Track];
+				if (item.streamUrl) {
+					fetchedTracks = [item as Track];
 				} else {
 					const track = await getTrack(item.identifier);
 					if (track) fetchedTracks = [track];
@@ -344,12 +353,25 @@
 		on:touchmove={cancelLongPress}
 		on:touchcancel={cancelLongPress}
 	>
-		<LoadingImage
-			src={thumb}
-			alt="Cover for {item.title}"
-			className="w-full h-full object-cover"
-			aspectRatio="square"
-		/>
+		{#if isWD && !fetchedThumb}
+			<!-- WebDAV tracks: show music-note placeholder during lookup; if
+			     iTunes returns nothing we keep the placeholder permanently
+			     instead of an ugly gray pulse. -->
+			<div class="w-full h-full bg-base-300 flex items-center justify-center">
+				<Icon
+					icon="solar:music-note-bold-duotone"
+					width="40"
+					class="opacity-30 {thumbLookupDone ? '' : 'animate-pulse'}"
+				/>
+			</div>
+		{:else}
+			<LoadingImage
+				src={thumb}
+				alt="Cover for {item.title}"
+				className="w-full h-full object-cover"
+				aspectRatio="square"
+			/>
+		{/if}
 		<div
 			class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
 		>
@@ -381,14 +403,14 @@
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
 				on:click={(e) => {
 					e.stopPropagation();
-					const artist = (item as any).artist || item.creator || '';
+					const artist = item.artist || item.creator || '';
 					if (artist && artist !== 'Unknown Artist') {
 						goto(`${base}/search?artist=${encodeURIComponent(artist)}`);
 					}
 				}}
 				title="Search for more by this artist"
 			>
-				{(item as any).artist || item.creator || 'Unknown Artist'}
+				{item.artist || item.creator || 'Unknown Artist'}
 			</button>
 			<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
 		</div>

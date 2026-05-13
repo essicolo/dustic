@@ -20,7 +20,9 @@
 		dispatch('done');
 	}
 
-	// Inline mock card preview using each theme's preview palette.
+	// Theme preview swatches use inline `style=` because we need to render
+	// each tile in *its own* theme palette (not the currently-applied one).
+	// Values come from a typed THEMES table — no user input is interpolated.
 	function mockCardStyle(t: Theme): string {
 		return [
 			`background:${t.preview.bg}`,
@@ -29,15 +31,39 @@
 			`box-shadow:${t.meta['--shadow']}`
 		].join(';');
 	}
-
-	function mockAccentStyle(t: Theme): string {
-		return `background:${t.preview.accent};color:${t.preview.accentFg}`;
-	}
-
-	function mockMutedStyle(t: Theme): string {
-		return `color:${t.preview.muted}`;
-	}
+	const mockAccentStyle = (t: Theme) =>
+		`background:${t.preview.accent};color:${t.preview.accentFg}`;
+	const mockMutedStyle = (t: Theme) => `color:${t.preview.muted}`;
 </script>
+
+{#snippet tile(t: Theme)}
+	<button
+		class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
+		style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
+		on:click={() => preview(t.id)}
+		aria-label="Use {t.name} theme"
+		aria-pressed={selected === t.id}
+	>
+		<div class="flex items-center justify-between mb-3">
+			<span class="font-semibold text-base">{t.name}</span>
+			{#if selected === t.id}
+				<Icon icon="solar:check-circle-bold" width="20" />
+			{/if}
+		</div>
+		<div class="text-xs leading-relaxed mb-3" style={mockMutedStyle(t)}>
+			{t.description}
+		</div>
+		<div class="flex items-center gap-2">
+			<span
+				class="inline-block px-2 py-1 text-xs font-medium"
+				style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
+			>
+				Play
+			</span>
+			<span style={mockMutedStyle(t)} class="text-xs">Artist · Song</span>
+		</div>
+	</button>
+{/snippet}
 
 {#if mode === 'first-launch'}
 	<div class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -51,33 +77,8 @@
 			</p>
 
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-				{#each THEME_LIST as t}
-					<button
-						class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
-						style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
-						on:click={() => preview(t.id)}
-					>
-						<div class="flex items-center justify-between mb-3">
-							<span class="font-semibold text-base">{t.name}</span>
-							{#if selected === t.id}
-								<Icon icon="solar:check-circle-bold" width="20" />
-							{/if}
-						</div>
-						<div class="text-xs leading-relaxed mb-3" style={mockMutedStyle(t)}>
-							{t.description}
-						</div>
-						<div class="flex items-center gap-2">
-							<span
-								class="inline-block px-2 py-1 text-xs font-medium"
-								style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
-							>
-								Play
-							</span>
-							<span style={mockMutedStyle(t)} class="text-xs">
-								Artist · Song
-							</span>
-						</div>
-					</button>
+				{#each THEME_LIST as t (t.id)}
+					{@render tile(t)}
 				{/each}
 			</div>
 
@@ -90,33 +91,8 @@
 	</div>
 {:else}
 	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-		{#each THEME_LIST as t}
-			<button
-				class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
-				style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
-				on:click={() => preview(t.id)}
-			>
-				<div class="flex items-center justify-between mb-3">
-					<span class="font-semibold text-base">{t.name}</span>
-					{#if selected === t.id}
-						<Icon icon="solar:check-circle-bold" width="20" />
-					{/if}
-				</div>
-				<div class="text-xs leading-relaxed mb-3" style={mockMutedStyle(t)}>
-					{t.description}
-				</div>
-				<div class="flex items-center gap-2">
-					<span
-						class="inline-block px-2 py-1 text-xs font-medium"
-						style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
-					>
-						Play
-					</span>
-					<span style={mockMutedStyle(t)} class="text-xs">
-						Artist · Song
-					</span>
-				</div>
-			</button>
+		{#each THEME_LIST as t (t.id)}
+			{@render tile(t)}
 		{/each}
 	</div>
 {/if}

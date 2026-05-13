@@ -31,15 +31,26 @@ export function encodeIdentifier(libraryId: string, path: string): string {
 }
 
 /**
- * Decode a WebDAV identifier. Returns null if not a WebDAV identifier.
+ * Decode a WebDAV identifier. Returns null if the identifier isn't a
+ * WebDAV one OR if it's malformed (missing libraryId, empty path,
+ * un-decodable payload). Malformed-but-prefixed inputs used to silently
+ * return { libraryId: '', path: '' } and confuse callers downstream.
  */
 export function decodeIdentifier(identifier: string): { libraryId: string; path: string } | null {
 	if (!identifier.startsWith('wd:')) return null;
 	const rest = identifier.slice(3);
 	const sep = rest.indexOf(':');
-	if (sep === -1) return null;
+	if (sep <= 0) return null; // missing libraryId
 	const libraryId = rest.slice(0, sep);
-	const path = b64urlDecode(rest.slice(sep + 1));
+	const encodedPath = rest.slice(sep + 1);
+	if (!encodedPath) return null;
+	let path: string;
+	try {
+		path = b64urlDecode(encodedPath);
+	} catch {
+		return null;
+	}
+	if (!path) return null;
 	return { libraryId, path };
 }
 

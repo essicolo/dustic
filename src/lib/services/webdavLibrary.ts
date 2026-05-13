@@ -144,18 +144,28 @@ export function buildTrack(library: WebDAVLibrary, entry: WebDAVEntry): Track {
 	const ext = (entry.name.split('.').pop() || 'mp3').toLowerCase();
 	const identifier = encodeIdentifier(library.id, entry.path);
 
-	// Common library layout: /Artist/Album/Track.mp3. When the filename
-	// doesn't carry artist/album info, walk the path: parent = album,
-	// grandparent = artist. Both are filtered through isPlaceholderFolder
-	// so junk names like "Unknown Album" or "Various Artists" don't pollute
-	// the metadata (and don't confuse the iTunes cover lookup).
+	// Walk the path upward looking at meaningful (non-placeholder) folder
+	// names. Layouts like /Artist/Album/Disc/Track.mp3 are common — when
+	// the immediate parent is a disc folder ("CD2", "Disc 1") it gets
+	// filtered out so the album falls back to its actual parent folder.
+	//
+	//   /Tori Amos/Little Earthquakes (Deluxe)/CD2/01 - Upside Down.mp3
+	//     → meaningful = ["Tori Amos", "Little Earthquakes (Deluxe)"]
+	//     → artist = "Tori Amos", album = "Little Earthquakes (Deluxe)"
 	const parts = entry.path.split('/').filter(Boolean);
-	const rawParent = parts.length >= 2 ? parts[parts.length - 2] : '';
-	const rawGrandparent = parts.length >= 3 ? parts[parts.length - 3] : '';
-	const parentFolder = isPlaceholderFolder(rawParent) ? '' : rawParent;
-	const grandparentFolder = isPlaceholderFolder(rawGrandparent) ? '' : rawGrandparent;
-	const resolvedAlbum = album || parentFolder || undefined;
-	const resolvedArtist = artist || grandparentFolder || parentFolder || 'Unknown Artist';
+	const meaningful: string[] = [];
+	for (let i = parts.length - 2; i >= 0 && meaningful.length < 2; i--) {
+		if (!isPlaceholderFolder(parts[i])) meaningful.unshift(parts[i]);
+	}
+	const folderAlbum = meaningful.length >= 1 ? meaningful[meaningful.length - 1] : '';
+	const folderArtist = meaningful.length >= 2 ? meaningful[0] : '';
+	// If we only found one meaningful folder it's more likely the artist
+	// (a flat /Artist/Track.mp3 layout). Promote it.
+	const finalFolderArtist = folderArtist || (meaningful.length === 1 ? folderAlbum : '');
+	const finalFolderAlbum = meaningful.length >= 2 ? folderAlbum : '';
+
+	const resolvedArtist = artist || finalFolderArtist || 'Unknown Artist';
+	const resolvedAlbum = album || finalFolderAlbum || undefined;
 
 	return {
 		identifier,
@@ -456,7 +466,11 @@ const PLACEHOLDER_FOLDER_PATTERNS = [
 	/^no album$/i,
 	/^aucun album$/i,
 	/^artiste inconnu$/i,
-	/^album inconnu$/i
+	/^album inconnu$/i,
+	// Disc subfolders (CD1, CD 2, Disc 3, Disque 02, Disk 1, etc.) — these
+	// sit between the album and the tracks and aren't useful as metadata.
+	/^(cd|disc|disk|disque)\s*-?\s*\d+$/i,
+	/^vol(\.|ume)?\s*-?\s*\d+$/i
 ];
 
 function isPlaceholderFolder(name: string): boolean {

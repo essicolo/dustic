@@ -386,7 +386,7 @@
 			role="dialog"
 			tabindex="-1"
 		>
-			<div class="modal-box max-w-md">
+			<div class="modal-box max-w-sm">
 				<div class="flex items-center justify-between mb-4">
 					<h3 class="text-lg font-semibold">Profile</h3>
 					<button
@@ -398,25 +398,17 @@
 					</button>
 				</div>
 
-				<p class="text-sm opacity-70 mb-4">
-					Your favorites, playlists, history, settings, and theme are stored locally.
-					Use these actions to back up or move them between devices.
-				</p>
-
-				<div class="grid grid-cols-1 gap-2">
+				<div class="grid grid-cols-1 gap-1.5">
 					<button
-						class="btn btn-outline justify-start gap-3 normal-case"
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
 						on:click={handleExport}
 					>
 						<Icon icon="solar:download-bold" width="20" />
-						<div class="text-left flex-1">
-							<div class="font-medium">Export profile</div>
-							<div class="text-xs opacity-60 font-normal">Save as JSON file</div>
-						</div>
+						Export
 					</button>
 
 					<button
-						class="btn btn-outline justify-start gap-3 normal-case"
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
 						on:click={handleImportClick}
 						disabled={isImporting}
 					>
@@ -425,14 +417,11 @@
 						{:else}
 							<Icon icon="solar:upload-bold" width="20" />
 						{/if}
-						<div class="text-left flex-1">
-							<div class="font-medium">Import profile</div>
-							<div class="text-xs opacity-60 font-normal">Load from JSON file</div>
-						</div>
+						Import
 					</button>
 
 					<button
-						class="btn btn-outline justify-start gap-3 normal-case"
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
 						on:click={handleCopyToClipboard}
 					>
 						{#if copySuccess}
@@ -440,15 +429,20 @@
 						{:else}
 							<Icon icon="solar:copy-bold" width="20" />
 						{/if}
-						<div class="text-left flex-1">
-							<div class="font-medium">{copySuccess ? 'Copied!' : 'Copy profile link'}</div>
-							<div class="text-xs opacity-60 font-normal">JSON to clipboard for paste-sharing</div>
-						</div>
+						{copySuccess ? 'Copied!' : 'Copy to clipboard'}
+					</button>
+
+					<button
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+						on:click={openPasteArea}
+					>
+						<Icon icon="solar:clipboard-bold" width="20" />
+						Paste from clipboard
 					</button>
 
 					{#if webdavEnabled}
 						<button
-							class="btn btn-outline justify-start gap-3 normal-case"
+							class="btn btn-ghost justify-start gap-3 normal-case font-normal"
 							on:click={handleWebDAVSync}
 							disabled={isSyncing}
 							class:text-success={syncSuccess}
@@ -460,20 +454,9 @@
 							{:else}
 								<Icon icon="solar:refresh-bold" width="20" />
 							{/if}
-							<div class="text-left flex-1">
-								<div class="font-medium">{syncSuccess ? 'Synced!' : 'Sync now'}</div>
-								<div class="text-xs opacity-60 font-normal">Push profile to WebDAV</div>
-							</div>
+							{syncSuccess ? 'Synced!' : 'Sync to cloud'}
 						</button>
 					{/if}
-
-					<button
-						class="btn btn-ghost btn-sm justify-start gap-3 normal-case mt-1"
-						on:click={openPasteArea}
-					>
-						<Icon icon="solar:clipboard-bold" width="18" />
-						<span class="text-sm opacity-70">Paste profile JSON from clipboard…</span>
-					</button>
 				</div>
 
 	<!-- Paste Area -->

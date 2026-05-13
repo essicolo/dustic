@@ -270,6 +270,7 @@
 				on:click={handlePlayButtonClick}
 				class="btn btn-circle btn-primary btn-md"
 				disabled={!$player.currentTrack}
+				aria-label={$player.isPlaying ? 'Pause' : 'Play'}
 			>
 				{#if $player.isLoading}
 					<span class="loading loading-spinner loading-sm"></span>
@@ -338,9 +339,10 @@
 						id="desktop-player-playlist-btn"
 						class="btn btn-ghost btn-sm btn-circle"
 						title="Add to Playlist"
+						aria-label="Add to Playlist"
 						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
 					>
-						<Icon icon="solar:list-heart-minimalistic-outline" width="18" />
+						<Icon icon="mdi:playlist-plus" width="18" />
 					</button>
 					{#if showPlaylistSelector}
 						<div
@@ -371,7 +373,7 @@
 					on:click={handleShare}
 					class="btn btn-ghost btn-sm btn-circle"
 					title="Share track"
-				>
+				 aria-label="Share track">
 					<Icon icon="solar:share-linear" width="18" />
 				</button>
 			</div>

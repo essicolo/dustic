@@ -3,7 +3,7 @@
   "version": "0.0.122",
   "private": true,
   "scripts": {
-    "dev": "vite dev",
+    "dev": "node scripts/generate-version.js && vite dev",
     "build": "node scripts/generate-version.js && vite build && node scripts/post-build.js",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

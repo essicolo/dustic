@@ -4,49 +4,26 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { base } from '$app/paths';
 	import type { AudioQuality } from '$lib/types';
-	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
+	import ThemePicker from '$lib/components/ThemePicker.svelte';
 
 	function handleQualityChange(quality: AudioQuality) {
 		settings.setAudioQuality(quality);
 	}
-
-	// FunkWhale instance management
-	let newInstanceUrl = '';
-	let newInstanceName = '';
-	let addInstanceError = '';
-
-	$: funkwhaleInstances = $settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES;
-
-	function addInstance() {
-		addInstanceError = '';
-		const url = newInstanceUrl.trim();
-		const name = newInstanceName.trim();
-
-		if (!url) {
-			addInstanceError = 'URL is required';
-			return;
-		}
-
-		try {
-			new URL(url);
-		} catch {
-			addInstanceError = 'Invalid URL';
-			return;
-		}
-
-		settings.addFunkwhaleInstance(url, name || new URL(url).host);
-		newInstanceUrl = '';
-		newInstanceName = '';
-	}
 </script>
 
-<div class="p-8 max-w-4xl">
-	<h2 class="text-3xl font-bold mb-6">Settings</h2>
-
-	<!-- Navigation Tabs -->
-	<div class="tabs tabs-boxed mb-6">
-		<a href="{base}/settings" class="tab tab-active">Preferences</a>
-		<a href="{base}/settings/profile" class="tab">Profile Data</a>
+<!-- Appearance / Theme -->
+	<div class="card bg-base-200 mb-6">
+		<div class="card-body">
+			<h3 class="card-title mb-4">
+				<Icon icon="solar:pallete-2-bold" width="24" />
+				Appearance
+			</h3>
+			<p class="text-sm text-base-content/70 mb-4">
+				Pick a theme. "Minimal" keeps the pure monochrome look; the others apply soft corners,
+				warmer surfaces, and an accent color used for likes, the play button, and the progress bar.
+			</p>
+			<ThemePicker mode="settings" />
+		</div>
 	</div>
 
 	<!-- Audio Quality Settings -->
@@ -57,7 +34,8 @@
 				Audio Quality
 			</h3>
 			<p class="text-sm text-base-content/70 mb-4">
-				Choose the audio quality for streaming and downloads. Archive.org files have different quality levels available.
+				Choose the audio quality for streaming and downloads.
+				<span class="opacity-70">Applies to Internet Archive only — FunkWhale and your folders use whatever the file provides.</span>
 			</p>
 
 			<div class="form-control gap-3">
@@ -143,82 +121,9 @@
 		</div>
 	</div>
 
-	<!-- FunkWhale Instances -->
-	<div class="card bg-base-200 mb-6">
-		<div class="card-body">
-			<h3 class="card-title mb-4">
-				<img src="/funkwhale-icon.svg" alt="FunkWhale" class="w-6 h-6" />
-				FunkWhale Sources
-			</h3>
-			<p class="text-sm text-base-content/70 mb-4">
-				Connect to public FunkWhale instances to search their music libraries alongside Internet Archive. Results from all enabled instances appear in your search.
-			</p>
-
-			<!-- Current instances -->
-			<div class="space-y-2 mb-4">
-				{#each funkwhaleInstances as instance}
-					<div class="flex items-center gap-3 p-3 border rounded-lg"
-						class:border-primary={instance.enabled}
-						class:opacity-50={!instance.enabled}
-					>
-						<input
-							type="checkbox"
-							class="toggle toggle-primary toggle-sm"
-							checked={instance.enabled}
-							on:change={() => settings.toggleFunkwhaleInstance(instance.url)}
-						/>
-						<div class="flex-1 min-w-0">
-							<div class="font-semibold text-sm truncate">{instance.name}</div>
-							<div class="text-xs text-base-content/50 truncate">{instance.url}</div>
-						</div>
-						<button
-							class="btn btn-ghost btn-xs btn-square"
-							title="Remove instance"
-							on:click={() => settings.removeFunkwhaleInstance(instance.url)}
-						>
-							<Icon icon="solar:close-circle-bold" width="16" />
-						</button>
-					</div>
-				{/each}
-
-				{#if funkwhaleInstances.length === 0}
-					<p class="text-sm text-base-content/50 italic">No FunkWhale instances configured.</p>
-				{/if}
-			</div>
-
-			<!-- Add new instance -->
-			<div class="border-t border-base-content/10 pt-4">
-				<h4 class="text-sm font-semibold mb-2">Add Instance</h4>
-				<div class="flex flex-col sm:flex-row gap-2">
-					<input
-						type="url"
-						bind:value={newInstanceUrl}
-						placeholder="https://funkwhale.example.com"
-						class="input input-bordered input-sm flex-1"
-						on:keydown={(e) => e.key === 'Enter' && addInstance()}
-					/>
-					<input
-						type="text"
-						bind:value={newInstanceName}
-						placeholder="Display name (optional)"
-						class="input input-bordered input-sm w-full sm:w-40"
-						on:keydown={(e) => e.key === 'Enter' && addInstance()}
-					/>
-					<button class="btn btn-primary btn-sm" on:click={addInstance}>
-						Add
-					</button>
-				</div>
-				{#if addInstanceError}
-					<p class="text-error text-xs mt-1">{addInstanceError}</p>
-				{/if}
-			</div>
-		</div>
-	</div>
-
-	<!-- Autoplay Settings -->
-	<div class="card bg-base-200">
-		<div class="card-body">
-			<AutoplayRuleEditor />
-		</div>
+<!-- Autoplay Settings -->
+<div class="card bg-base-200">
+	<div class="card-body">
+		<AutoplayRuleEditor />
 	</div>
 </div>

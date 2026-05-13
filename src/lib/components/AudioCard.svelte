@@ -13,6 +13,7 @@
 	import { getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { shareTrack } from '$lib/utils/share';
+	import { getThumbnailFor } from '$lib/services/thumbnails';
 
 	// Components
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
@@ -22,7 +23,13 @@
 	import type { ArchiveItem, Track } from '$lib/types';
 	import { isFunkwhaleTrack } from '$lib/services/funkwhale';
 
-	export let item: ArchiveItem;
+	// AudioCard accepts either a full Track (FW / WebDAV / loaded IA track)
+	// or an ArchiveItem (IA album/listing). ArchiveItem already has an
+	// index signature so Track fields like `streamUrl` / `thumbnailUrl` are
+	// reachable without casts; we keep one narrow helper to keep TS happy
+	// for the optional ones.
+	type CardItem = ArchiveItem & Partial<Track>;
+	export let item: CardItem;
 	export let type: 'album' | 'track' = 'album';
 	export let layout: 'tile' | 'list' = 'tile';
 	export let compact = false;
@@ -39,12 +46,14 @@
 	let tracks: Track[] = item.tracks || [];
 	let actionsButton: HTMLElement;
 	let actionsMenu: HTMLElement;
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Auto-collapse actions on small screens, full on desktop
+	// `actionsLayout` is preserved as a prop for backwards compat but the
+	// inline action row was replaced by a single overflow menu in the
+	// rebrand. See README "Change 1".
 	let windowWidth = 0;
-	$: effectiveActionsLayout = actionsLayout === 'auto'
-		? (windowWidth < 640 ? 'collapsed' : 'full')
-		: actionsLayout;
+	$: void actionsLayout;
+	$: void windowWidth;
 
 	// --- Portal Action for Dropdown ---
 	function portal(node: HTMLElement) {
@@ -96,6 +105,22 @@
 		}
 	}
 
+	function startLongPress(event: TouchEvent) {
+		cancelLongPress();
+		longPressTimer = setTimeout(() => {
+			event.preventDefault();
+			showActions = true;
+			setTimeout(positionActionsMenu, 0);
+		}, 500);
+	}
+
+	function cancelLongPress() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+	}
+
 	function clickOutside(node: HTMLElement) {
 		const handleClick = (event: MouseEvent) => {
 			if (node && !node.contains(event.target as Node) && !actionsButton.contains(event.target as Node)) {
@@ -116,25 +141,44 @@
 	$: isFavorite = $library.favorites.some((f) => f.id === item.identifier);
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: isFW = isFunkwhaleTrack(item.identifier);
+	$: isWD = item.identifier.startsWith('wd:');
 	$: thumb = isFW
-		? ((item as any).thumbnailUrl || '')
-		: getThumbnailUrl(item.identifier);
+		? (item.thumbnailUrl || '')
+		: isWD
+			? fetchedThumb || ''
+			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || 'FunkWhale')
-		: 'Internet Archive';
+		: isWD
+			? (item.collection?.[0] || 'WebDAV')
+			: 'Internet Archive';
+
+	// Lazy cover lookup for WebDAV tracks via iTunes Search.
+	let fetchedThumb: string | null = null;
+	let thumbLookupDone = false;
+	let lookedUpId: string | null = null;
+	$: if (isWD && item.identifier !== lookedUpId) {
+		lookedUpId = item.identifier;
+		fetchedThumb = null;
+		thumbLookupDone = false;
+		getThumbnailFor(item as Track).then((url) => {
+			if (lookedUpId !== item.identifier) return;
+			fetchedThumb = url;
+			thumbLookupDone = true;
+		});
+	}
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;
 		isFetching = true;
 		try {
 			let fetchedTracks: Track[] = [];
-			if (isFW) {
-				// FW tracks from search already have full data with streamUrl.
-				// Re-fetching via getTrack() loses uploads (v2 API doesn't return them).
-				// Use item data directly if it has a streamUrl.
-				const cached = item as any;
-				if (cached.streamUrl) {
-					fetchedTracks = [cached as Track];
+			if (isFW || isWD) {
+				// FW & WebDAV tracks already arrive with full data including
+				// streamUrl. Re-fetching loses upload data (FW v2) and incurs
+				// extra PROPFIND calls (WebDAV).
+				if (item.streamUrl) {
+					fetchedTracks = [item as Track];
 				} else {
 					const track = await getTrack(item.identifier);
 					if (track) fetchedTracks = [track];
@@ -215,7 +259,9 @@
 	}
 
 	function handleNavigate() {
-		if (type === 'album' && !isFW) {
+		// IA albums navigate to the album page; everything else (FW, WebDAV,
+		// individual tracks) plays directly.
+		if (type === 'album' && !isFW && !isWD) {
 			goto(`${base}/item/${item.identifier}`);
 		} else {
 			handlePlay();
@@ -256,6 +302,13 @@
 		return () => {
 			window.removeEventListener('keydown', closeOnEscape);
 			document.removeEventListener('click', closeOnClickOutside);
+			// Catch-all cleanup for the scroll/resize handlers in case the
+			// component unmounts while the overflow menu is still open.
+			if (scrollResizeHandler) {
+				window.removeEventListener('scroll', scrollResizeHandler, true);
+				window.removeEventListener('resize', scrollResizeHandler);
+				scrollResizeHandler = null;
+			}
 		};
 	});
 
@@ -295,13 +348,30 @@
 		class:w-20={layout === 'list'}
 		class:h-20={layout === 'list'}
 		class:flex-shrink-0={layout === 'list'}
+		on:touchstart={startLongPress}
+		on:touchend={cancelLongPress}
+		on:touchmove={cancelLongPress}
+		on:touchcancel={cancelLongPress}
 	>
-		<LoadingImage
-			src={thumb}
-			alt="Cover for {item.title}"
-			className="w-full h-full object-cover"
-			aspectRatio="square"
-		/>
+		{#if isWD && !fetchedThumb}
+			<!-- WebDAV tracks: show music-note placeholder during lookup; if
+			     iTunes returns nothing we keep the placeholder permanently
+			     instead of an ugly gray pulse. -->
+			<div class="w-full h-full bg-base-300 flex items-center justify-center">
+				<Icon
+					icon="solar:music-note-bold-duotone"
+					width="40"
+					class="opacity-30 {thumbLookupDone ? '' : 'animate-pulse'}"
+				/>
+			</div>
+		{:else}
+			<LoadingImage
+				src={thumb}
+				alt="Cover for {item.title}"
+				className="w-full h-full object-cover"
+				aspectRatio="square"
+			/>
+		{/if}
 		<div
 			class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
 		>
@@ -326,133 +396,59 @@
 			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
 	>
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
-			<h2 class="card-title truncate {compact ? 'text-sm' : 'text-base'}" title={item.title}>
+			<h2 class="card-title card-title-clamp {compact ? 'text-sm' : 'text-base'}" title={item.title}>
 				{item.title}
-				{#if isFW}
-					<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
-				{:else}
-					<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" title="{sourceName}" class="w-3.5 h-3.5 opacity-60 ml-1 flex-shrink-0 inline-block" />
-				{/if}
 			</h2>
 			<button
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
 				on:click={(e) => {
 					e.stopPropagation();
-					const artist = (item as any).artist || item.creator || '';
+					const artist = item.artist || item.creator || '';
 					if (artist && artist !== 'Unknown Artist') {
 						goto(`${base}/search?artist=${encodeURIComponent(artist)}`);
 					}
 				}}
 				title="Search for more by this artist"
 			>
-				{(item as any).artist || item.creator || 'Unknown Artist'}
+				{item.artist || item.creator || 'Unknown Artist'}
 			</button>
+			{#if layout !== 'list' && sourceName && sourceName !== (item.artist || item.creator)}
+				<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
+			{/if}
 		</div>
 
 		<div
 			class="card-actions items-center {layout === 'list'
-				? 'flex-shrink-0 flex-nowrap'
-				: 'justify-between mt-auto -ml-2'}"
+				? 'flex-shrink-0 flex-nowrap gap-0'
+				: 'justify-end mt-auto -mr-1 gap-0'}"
 		>
-			{#if effectiveActionsLayout === 'full'}
-				<div on:click|stopPropagation class="{layout === 'list' ? '' : 'order-1'}">
-					<DownloadButton
-						track={tracks?.[0] || item}
-						lazy={!tracks?.length}
-						size={compact ? 'xs' : 'sm'}
-					/>
-				</div>
+			<slot name="extra-actions" />
 
-				<slot name="extra-actions" />
+			<button
+				class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
+				title="Favorite"
+				on:click={handleToggleFavorite}
+				aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+			>
+				<Icon
+					icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
+					class={isFavorite ? 'text-accent' : ''}
+					width="20"
+				/>
+			</button>
 
+			<div class="relative">
 				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-2'}"
-					title="Favorite"
-					on:click={handleToggleFavorite}
+					bind:this={actionsButton}
+					on:click={toggleActions}
+					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
+					title="More actions"
+					aria-label="More actions"
 				>
-					<Icon
-						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-						class={isFavorite ? 'text-error' : ''}
-						width="20"
-					/>
+					<Icon icon="solar:menu-dots-bold" width="20" />
 				</button>
 
-				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-3'}"
-					title="Share"
-					on:click={handleShare}
-				>
-					<Icon icon="solar:share-linear" width="20" />
-				</button>
-
-				<div class="relative {layout === 'list' ? '' : 'order-4'}">
-					<button
-						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
-						title="Add to Playlist"
-						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
-					>
-						<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
-					</button>
-					{#if showPlaylistSelector}
-						<div
-							id="playlist-selector-{item.identifier}"
-							class="absolute bottom-full left-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
-						>
-							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
-							{#each playlists as p}
-								<button
-									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
-									on:click={(e) => handleAddToPlaylist(e, p.id)}
-								>
-									{p.name}
-								</button>
-							{/each}
-							<a
-								href="{base}/library/playlists"
-								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
-							>
-								+ New Playlist
-							</a>
-						</div>
-					{/if}
-				</div>
-
-				<button
-					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-						? ''
-						: 'order-5'}"
-					title="Add to Queue"
-					on:click={handleAddToQueue}
-				>
-					<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
-				</button>
-
-				{#if showRemoveFromQueue}
-					<button
-						class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'} {layout === 'list'
-							? ''
-							: 'order-6'}"
-						title="Remove from Queue"
-						on:click={handleRemoveFromQueue}
-					>
-						<Icon icon="solar:close-circle-bold" width="20" />
-					</button>
-				{/if}
-			{:else}
-				<div class="relative">
-					<button
-						bind:this={actionsButton}
-						on:click={toggleActions}
-						class="btn btn-ghost btn-circle btn-xs"
-					>
-						<Icon icon="solar:menu-dots-bold" width="20" />
-					</button>
-
-					{#if showActions}
+				{#if showActions}
 						<div
 							use:portal
 							bind:this={actionsMenu}
@@ -474,16 +470,6 @@
 									</div>
 								</li>
 								<li>
-									<a role="button" tabindex="0" on:click={handleToggleFavorite} on:keydown={handleToggleFavorite} class="flex items-center">
-										<Icon
-											icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-											class={isFavorite ? 'text-error' : ''}
-											width="20"
-										/>
-										Favorite
-									</a>
-								</li>
-								<li>
 									<a role="button" tabindex="0" on:click={handleShare} on:keydown={handleShare} class="flex items-center">
 										<Icon icon="solar:share-linear" width="20" />
 										Share
@@ -491,13 +477,13 @@
 								</li>
 								<li on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}>
 									<a role="button" tabindex="0" class="flex items-center">
-										<Icon icon="solar:list-heart-minimalistic-outline" width="20" />
+										<Icon icon="mdi:playlist-plus" width="20" />
 										Add to Playlist
 									</a>
 								</li>
 								<li>
 									<a role="button" tabindex="0" on:click={handleAddToQueue} on:keydown={handleAddToQueue} class="flex items-center">
-										<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
+										<Icon icon="mdi:playlist-music" width="20" />
 										Add to Queue
 									</a>
 								</li>
@@ -536,7 +522,22 @@
 						</div>
 					{/if}
 				</div>
-			{/if}
 		</div>
 	</div>
 </div>
+
+<style>
+	/* Reserve consistent space for 2-line titles (Change 2): prevents grid jitter
+	   when some titles are short and others wrap. */
+	.card-title-clamp {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		word-break: break-word;
+		min-height: calc(2 * 1.25em);
+		line-height: 1.25;
+	}
+</style>

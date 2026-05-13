@@ -36,12 +36,19 @@ export const POST: RequestHandler = async ({ request }) => {
 			body: payload.body || undefined
 		});
 
+		const forwardedHeaders: Record<string, string> = {
+			'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream'
+		};
+		// Forward headers needed for range requests and progress reporting.
+		for (const name of ['Content-Length', 'Content-Range', 'Accept-Ranges', 'Last-Modified', 'ETag']) {
+			const value = response.headers.get(name);
+			if (value) forwardedHeaders[name] = value;
+		}
+
 		return new Response(response.body, {
 			status: response.status,
 			statusText: response.statusText,
-			headers: {
-				'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream'
-			}
+			headers: forwardedHeaders
 		});
 	} catch (error) {
 		return json(

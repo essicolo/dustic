@@ -27,6 +27,7 @@
 	let syncSuccess = false;
 	let syncError = '';
 	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
+	let panelOpen = false;
 
 	// Pending import awaiting merge/replace choice
 	let pendingImport: UserProfile | null = null;
@@ -363,73 +364,100 @@
 		class="hidden"
 	/>
 
-	<!-- Compact Profile Manager - Single Line -->
-	<div class="flex items-center justify-between gap-2">
-		<span class="text-sm font-medium flex items-center gap-1.5">
-			{#if isDirty}
-				<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning" />
-			{/if}
-			Profile
-		</span>
-		<div class="flex items-center gap-1">
-			<button
-				on:click={handleExport}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Download profile"
-			>
-				<Icon icon="solar:download-bold" width="16" />
-			</button>
-			<button
-				on:click={handleImportClick}
-				class="btn btn-ghost btn-xs btn-circle"
-				disabled={isImporting}
-				title="Upload profile"
-			>
-				{#if isImporting}
-					<span class="loading loading-spinner loading-xs"></span>
-				{:else}
-					<Icon icon="solar:upload-bold" width="16" />
-				{/if}
-			</button>
-			<span class="w-px h-4 bg-base-content/10"></span>
-			<button
-				on:click={handleCopyToClipboard}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Copy profile to clipboard"
-			>
-				{#if copySuccess}
-					<Icon icon="solar:check-circle-bold" width="16" className="text-success" />
-				{:else}
-					<Icon icon="solar:copy-bold" width="16" />
-				{/if}
-			</button>
-			<button
-				on:click={openPasteArea}
-				class="btn btn-ghost btn-xs btn-circle"
-				title="Paste profile from clipboard"
-			>
-				<Icon icon="solar:clipboard-bold" width="16" />
-			</button>
-			{#if webdavEnabled}
-				<span class="w-px h-4 bg-base-content/10"></span>
-				<button
-					on:click={handleWebDAVSync}
-					class="btn btn-ghost btn-xs btn-circle"
-					class:text-success={syncSuccess}
-					disabled={isSyncing}
-					title="Sync profile to WebDAV"
-				>
-					{#if isSyncing}
-						<span class="loading loading-spinner loading-xs"></span>
-					{:else if syncSuccess}
-						<Icon icon="solar:check-circle-bold" width="16" />
-					{:else}
-						<Icon icon="solar:refresh-bold" width="16" />
+	<!-- Single "Profile" entry point (Change 4) -->
+	<button
+		class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
+		on:click={() => (panelOpen = true)}
+		aria-label="Open profile panel"
+	>
+		<Icon icon="solar:user-circle-bold-duotone" width="20" />
+		<span>Profile</span>
+		{#if isDirty}
+			<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning ml-auto" />
+		{/if}
+	</button>
+
+	{#if panelOpen}
+		<!-- Modal backdrop -->
+		<div
+			class="modal modal-open"
+			on:click|self={() => (panelOpen = false)}
+			on:keydown={(e) => e.key === 'Escape' && (panelOpen = false)}
+			role="dialog"
+			tabindex="-1"
+		>
+			<div class="modal-box max-w-sm">
+				<div class="flex items-center justify-between mb-4">
+					<h3 class="text-lg font-semibold">Profile</h3>
+					<button
+						class="btn btn-ghost btn-sm btn-circle"
+						on:click={() => (panelOpen = false)}
+						aria-label="Close"
+					>
+						<Icon icon="solar:close-circle-bold" width="18" />
+					</button>
+				</div>
+
+				<div class="grid grid-cols-1 gap-1.5">
+					<button
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+						on:click={handleExport}
+					>
+						<Icon icon="solar:download-bold" width="20" />
+						Export
+					</button>
+
+					<button
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+						on:click={handleImportClick}
+						disabled={isImporting}
+					>
+						{#if isImporting}
+							<span class="loading loading-spinner loading-sm"></span>
+						{:else}
+							<Icon icon="solar:upload-bold" width="20" />
+						{/if}
+						Import
+					</button>
+
+					<button
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+						on:click={handleCopyToClipboard}
+					>
+						{#if copySuccess}
+							<Icon icon="solar:check-circle-bold" width="20" className="text-success" />
+						{:else}
+							<Icon icon="solar:copy-bold" width="20" />
+						{/if}
+						{copySuccess ? 'Copied!' : 'Copy to clipboard'}
+					</button>
+
+					<button
+						class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+						on:click={openPasteArea}
+					>
+						<Icon icon="solar:clipboard-bold" width="20" />
+						Paste from clipboard
+					</button>
+
+					{#if webdavEnabled}
+						<button
+							class="btn btn-ghost justify-start gap-3 normal-case font-normal"
+							on:click={handleWebDAVSync}
+							disabled={isSyncing}
+							class:text-success={syncSuccess}
+						>
+							{#if isSyncing}
+								<span class="loading loading-spinner loading-sm"></span>
+							{:else if syncSuccess}
+								<Icon icon="solar:check-circle-bold" width="20" />
+							{:else}
+								<Icon icon="solar:refresh-bold" width="20" />
+							{/if}
+							{syncSuccess ? 'Synced!' : 'Sync to cloud'}
+						</button>
 					{/if}
-				</button>
-			{/if}
-		</div>
-	</div>
+				</div>
 
 	<!-- Paste Area -->
 	{#if showPasteArea}
@@ -493,6 +521,9 @@
 	{#if syncError}
 		<div class="alert alert-error mt-2 text-xs p-2">
 			<span>{syncError}</span>
+		</div>
+	{/if}
+			</div>
 		</div>
 	{/if}
 

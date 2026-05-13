@@ -9,7 +9,7 @@
 
 <!-- Queue Toggle Button -->
 <button on:click={() => queuePanelOpen.toggle()} class="btn btn-ghost btn-sm btn-circle relative" title="Queue">
-	<Icon icon="solar:plaaylist-minimalistic-linear" width="20" />
+	<Icon icon="mdi:playlist-music" width="20" />
 	{#if queueCount > 0}
 		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
 			{queueCount}

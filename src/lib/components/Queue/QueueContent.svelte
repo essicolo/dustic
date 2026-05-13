@@ -125,7 +125,7 @@
 				on:click={openSaveDialog}
 				class="btn btn-primary btn-sm"
 				title="Save queue as playlist"
-			>
+			 aria-label="Save queue as playlist">
 				<Icon icon="solar:list-heart-bold" width="16" />
 				Save
 			</button>

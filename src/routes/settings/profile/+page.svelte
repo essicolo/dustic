@@ -369,16 +369,7 @@
 	class="hidden"
 />
 
-<div class="p-4 md:p-8 max-w-4xl">
-	<h2 class="text-2xl md:text-3xl font-bold mb-6">Settings</h2>
-
-	<!-- Navigation Tabs -->
-	<div class="tabs tabs-boxed mb-6">
-		<a href="{base}/settings" class="tab">Autoplay</a>
-		<a href="{base}/settings/profile" class="tab tab-active">Profile Data</a>
-	</div>
-
-	<!-- Profile Statistics -->
+<!-- Profile Statistics -->
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
 			<h3 class="text-xl font-semibold mb-4">Your Profile Statistics</h3>
@@ -824,4 +815,3 @@
 			</div>
 		</div>
 	</div>
-</div>

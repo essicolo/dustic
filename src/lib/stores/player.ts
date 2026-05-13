@@ -7,6 +7,8 @@ import { history } from './history';
 import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 import { offlineStorage } from '$lib/services/offlineStorage';
+import { settings } from './settings';
+import { decodeIdentifier, fetchTrackBlob, findLibrary } from '$lib/services/webdavLibrary';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
 export interface PlayerState {
@@ -177,9 +179,14 @@ function createPlayerStore() {
 			// Set initial volume
 			element.volume = initialState.volume;
 
-			// If there's a current track from restored state, load it into audio element
+			// If there's a current track from restored state, load it into audio element.
+			// WebDAV tracks need a fresh fetch on user gesture; skip auto-restore.
 			const currentState = get({ subscribe });
-			if (currentState.currentTrack && currentState.currentTrack.streamUrl) {
+			if (
+				currentState.currentTrack &&
+				currentState.currentTrack.streamUrl &&
+				currentState.currentTrack.source !== 'webdav'
+			) {
 				console.log('[Player] Restoring track on audio element mount:', currentState.currentTrack.title);
 				element.src = currentState.currentTrack.streamUrl;
 				element.load();
@@ -259,9 +266,35 @@ function createPlayerStore() {
 				currentBlobUrl = null;
 			}
 
+			// WebDAV tracks must be fetched through the auth proxy (POST with
+			// credentials in body) and converted to a blob URL before the audio
+			// element can play them.
+			let playUrl = track.streamUrl;
+			if (track.source === 'webdav' && !playUrl.startsWith('blob:')) {
+				const decoded = decodeIdentifier(track.identifier);
+				const library = decoded
+					? findLibrary(settings.getWebDAVLibraries(), decoded.libraryId)
+					: undefined;
+				if (decoded && library) {
+					try {
+						const blob = await fetchTrackBlob(library, decoded.path);
+						currentBlobUrl = URL.createObjectURL(blob);
+						playUrl = currentBlobUrl;
+					} catch (err) {
+						console.error('[Player] WebDAV fetch failed:', err);
+						update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+						return;
+					}
+				} else {
+					console.error('[Player] No WebDAV library for', track.identifier);
+					update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+					return;
+				}
+			}
+
 			// All FW tracks now use /api/fw-listen proxy (local URL, no CORS).
 			// IA tracks, blob: URLs, and proxy URLs all just set src directly.
-			audioElement.src = track.streamUrl;
+			audioElement.src = playUrl;
 			audioElement.currentTime = 0; // Ensure playback starts from beginning
 
 			audioElement.load();

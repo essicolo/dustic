@@ -3,18 +3,26 @@
 import type { Track, SearchParams, SearchResult } from '$lib/types';
 import { smartSearch as iaSearch, getTrack as iaGetTrack } from './internetArchive';
 import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './funkwhale';
+import { isWebDAVTrack, decodeIdentifier, buildTrack as buildWebDAVTrack, findLibrary } from './webdavLibrary';
+import { settings } from '$lib/stores/settings';
 import { CONTENT_TYPES } from '$lib/utils/constants';
 import { withCache } from '$lib/utils/cache';
+
+interface EnrichedParams {
+	params: SearchParams;
+	/** Extra keywords FW should prepend to its query (content-type tags). */
+	fwTags: string[];
+}
 
 /**
  * Apply content type filtering to search params.
  * Maps content types to IA collections and FW tag queries.
  */
-function applyContentType(params: SearchParams): SearchParams {
-	if (!params.contentType) return params;
+function applyContentType(params: SearchParams): EnrichedParams {
+	if (!params.contentType) return { params, fwTags: [] };
 
 	const ct = CONTENT_TYPES.find((t) => t.id === params.contentType);
-	if (!ct) return params;
+	if (!ct) return { params, fwTags: [] };
 
 	const updated = { ...params };
 
@@ -23,14 +31,9 @@ function applyContentType(params: SearchParams): SearchParams {
 		updated.collection = ct.iaCollections;
 	}
 
-	// For FW: prepend content type tags to the query
-	// (FW doesn't support tag filtering in the API, so we add keywords)
-	if (ct.fwTags.length > 0) {
-		// Store FW tags for the FW search to use
-		(updated as any)._fwTags = ct.fwTags;
-	}
-
-	return updated;
+	// FW doesn't support tag filtering in the API; pass tags through so the
+	// caller can fold them into the FW query as keywords.
+	return { params: updated, fwTags: ct.fwTags };
 }
 
 /**
@@ -66,17 +69,13 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 	const enableFW = params.sources?.fw !== false;
 
 	// Apply content type and tag filters
-	let enriched = applyContentType(params);
-	enriched = applyTag(enriched);
+	const { params: typedParams, fwTags } = applyContentType(params);
+	const enriched = applyTag(typedParams);
 
-	// For FW, build a separate query with content type tags if needed
+	// For FW, build a separate query with content-type tags folded in.
 	const fwParams = { ...enriched };
-	const fwTags = (enriched as any)._fwTags as string[] | undefined;
-	if (fwTags?.length) {
-		// If no query, use first FW tag as the query
-		if (!fwParams.query) {
-			fwParams.query = fwTags[0];
-		}
+	if (fwTags.length && !fwParams.query) {
+		fwParams.query = fwTags[0];
 	}
 
 	// Search enabled sources in parallel
@@ -136,6 +135,14 @@ export async function unifiedGetTrack(identifier: string): Promise<Track | null>
 	return withCache(
 		`track:${identifier}`,
 		async () => {
+			if (isWebDAVTrack(identifier)) {
+				const decoded = decodeIdentifier(identifier);
+				if (!decoded) return null;
+				const library = findLibrary(settings.getWebDAVLibraries(), decoded.libraryId);
+				if (!library) return null;
+				const name = decoded.path.split('/').filter(Boolean).pop() || decoded.path;
+				return buildWebDAVTrack(library, { type: 'file', name, path: decoded.path });
+			}
 			if (isFunkwhaleTrack(identifier)) {
 				return fwGetTrack(identifier);
 			}

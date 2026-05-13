@@ -128,10 +128,26 @@ async function queryItunes(track: Track): Promise<string | null> {
 	}
 }
 
-function buildTerm(track: Track): string {
+function buildTerm(track: Track): string | null {
+	// We only query iTunes when we have enough signal to expect a real match.
+	// "Lyra" alone matches a thousand songs and returns a confidently-wrong
+	// random cover. Require at least one of:
+	//   - artist + (album or title)
+	//   - album + title (covers compilations / folder-as-album cases)
+	const artist = (track.artist || '').trim();
+	const album = (track.album || '').trim();
+	const title = (track.title || '').trim();
+	const hasArtist = artist && artist !== 'Unknown Artist';
 	const parts: string[] = [];
-	if (track.artist && track.artist !== 'Unknown Artist') parts.push(track.artist);
-	if (track.album) parts.push(track.album);
-	else if (track.title) parts.push(track.title);
+	if (hasArtist && (album || title)) {
+		parts.push(artist);
+		parts.push(album || title);
+	} else if (album && title && album !== title) {
+		parts.push(album);
+		parts.push(title);
+	} else {
+		// Not enough signal — skip iTunes to avoid wrong covers.
+		return null;
+	}
 	return parts.join(' ').trim();
 }

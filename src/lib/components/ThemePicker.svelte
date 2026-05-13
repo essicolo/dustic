@@ -71,7 +71,7 @@
 								Play
 							</span>
 							<span style={mockMutedStyle(t)} class="text-xs">
-								Mogwai — Helicon 1
+								Artist · Song
 							</span>
 						</div>
 					</button>
@@ -110,7 +110,7 @@
 						Play
 					</span>
 					<span style={mockMutedStyle(t)} class="text-xs">
-						Mogwai — Helicon 1
+						Artist · Song
 					</span>
 				</div>
 			</button>

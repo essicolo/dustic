@@ -45,6 +45,10 @@ function createPlayerStore() {
 	let currentBlobUrl: string | null = null;
 	let consecutiveErrors = 0;
 	const MAX_CONSECUTIVE_ERRORS = 3;
+	// Position restore only applies to the FIRST track loaded after app
+	// open (the one we restore from lastPlayedPosition). Every subsequent
+	// user-initiated play() starts from 0.
+	let allowPositionRestore = true;
 	// Track the last track that actually played successfully, so autoplay
 	// can use it as basis instead of a failed track
 	let lastSuccessfulTrack: Track | null = null;
@@ -165,12 +169,19 @@ function createPlayerStore() {
 			});
 
 			element.addEventListener('loadedmetadata', () => {
-				// When audio metadata is loaded, restore saved position
+				// Restore the saved position only on the very first track loaded
+				// after app open (the lastPlayedTrack from a previous session).
+				// All later track switches start at 0.
 				const state = get({ subscribe });
-				if (state.currentTime > 0 && element.currentTime === 0) {
+				if (
+					allowPositionRestore &&
+					state.currentTime > 0 &&
+					element.currentTime === 0
+				) {
 					element.currentTime = state.currentTime;
 					console.log('[Player] Restored position:', state.currentTime);
 				}
+				allowPositionRestore = false;
 			});
 
 			element.addEventListener('waiting', () => {});
@@ -198,6 +209,22 @@ function createPlayerStore() {
 			if (!audioElement) {
 				console.error('[Player] Audio element not set');
 				return;
+			}
+			// User-initiated play always starts at 0.
+			allowPositionRestore = false;
+
+			// Stop the previous track *before* any await. If we don't pause
+			// here, the timeupdate listener keeps firing on the old audio
+			// during the WebDAV blob fetch (which can take a second or two)
+			// and overwrites state.currentTime back to the old track's
+			// position. Then when loadedmetadata fires on the new src, the
+			// restore-position logic seeks the new track to that old offset.
+			try {
+				audioElement.pause();
+				audioElement.removeAttribute('src');
+				audioElement.load();
+			} catch {
+				// element might not have a src yet — that's fine.
 			}
 
 			// Check if track is available offline (use blob URL instead of remote URL)

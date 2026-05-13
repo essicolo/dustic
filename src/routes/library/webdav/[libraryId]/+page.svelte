@@ -94,19 +94,14 @@
 		}
 	}
 
-	function pathSegments(): { label: string; href: string }[] {
-		const out: { label: string; href: string }[] = [];
-		const parts = path.split('/').filter(Boolean);
-		let acc = '';
-		for (const p of parts) {
-			acc += '/' + p;
-			out.push({
-				label: p,
-				href: `${base}/library/webdav/${libraryId}?p=${encodeURIComponent(acc)}`
-			});
-		}
-		return out;
-	}
+	$: pathParts = path.split('/').filter(Boolean);
+	$: segments = pathParts.map((label, i) => {
+		const acc = '/' + pathParts.slice(0, i + 1).join('/');
+		return {
+			label,
+			href: `${base}/library/webdav/${libraryId}?p=${encodeURIComponent(acc)}`
+		};
+	});
 
 	function fmtSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
@@ -133,7 +128,7 @@
 		<a href="{base}/library/webdav/{libraryId}?p=/" class="font-semibold hover:underline">
 			{library?.name || 'Library'}
 		</a>
-		{#each pathSegments() as seg}
+		{#each segments as seg}
 			<span class="opacity-50">/</span>
 			<a href={seg.href} class="hover:underline">{seg.label}</a>
 		{/each}

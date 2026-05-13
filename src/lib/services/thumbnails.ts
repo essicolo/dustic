@@ -128,25 +128,34 @@ async function queryItunes(track: Track): Promise<string | null> {
 	}
 }
 
+// Strings users have actually entered as "metadata" but mean nothing —
+// we treat them as missing so we don't query iTunes with garbage.
+const PLACEHOLDER_VALUES = /^(unknown( artist| album)?|various( artists)?|untitled|n\/a|no album)$/i;
+
+function meaningful(value: string | undefined | null): string {
+	if (!value) return '';
+	const v = value.trim();
+	if (!v || PLACEHOLDER_VALUES.test(v)) return '';
+	return v;
+}
+
 function buildTerm(track: Track): string | null {
-	// We only query iTunes when we have enough signal to expect a real match.
-	// "Lyra" alone matches a thousand songs and returns a confidently-wrong
-	// random cover. Require at least one of:
-	//   - artist + (album or title)
+	// Only query iTunes when we have enough signal to expect a real match.
+	// "Lyra" alone, or "Unknown Album · Déjeuner en paix", match thousands
+	// of unrelated songs and return confidently-wrong covers. Require:
+	//   - artist + (album or title), or
 	//   - album + title (covers compilations / folder-as-album cases)
-	const artist = (track.artist || '').trim();
-	const album = (track.album || '').trim();
-	const title = (track.title || '').trim();
-	const hasArtist = artist && artist !== 'Unknown Artist';
+	const artist = meaningful(track.artist);
+	const album = meaningful(track.album);
+	const title = meaningful(track.title);
 	const parts: string[] = [];
-	if (hasArtist && (album || title)) {
+	if (artist && (album || title)) {
 		parts.push(artist);
 		parts.push(album || title);
 	} else if (album && title && album !== title) {
 		parts.push(album);
 		parts.push(title);
 	} else {
-		// Not enough signal — skip iTunes to avoid wrong covers.
 		return null;
 	}
 	return parts.join(' ').trim();

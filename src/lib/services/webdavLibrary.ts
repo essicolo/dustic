@@ -144,20 +144,34 @@ export function buildTrack(library: WebDAVLibrary, entry: WebDAVEntry): Track {
 	const ext = (entry.name.split('.').pop() || 'mp3').toLowerCase();
 	const identifier = encodeIdentifier(library.id, entry.path);
 
-	// Use the parent folder as a fallback for album when filename doesn't
-	// carry that info, and as a meaningful fallback for artist when the
-	// filename has no "Artist - Title" structure. "01 Lyra.ogg" inside
-	// "/Music/MoonAlbum/" becomes album="MoonAlbum" → far more useful than
-	// "Unknown Artist".
+	// Walk the path upward looking at meaningful (non-placeholder) folder
+	// names. Layouts like /Artist/Album/Disc/Track.mp3 are common — when
+	// the immediate parent is a disc folder ("CD2", "Disc 1") it gets
+	// filtered out so the album falls back to its actual parent folder.
+	//
+	//   /Tori Amos/Little Earthquakes (Deluxe)/CD2/01 - Upside Down.mp3
+	//     → meaningful = ["Tori Amos", "Little Earthquakes (Deluxe)"]
+	//     → artist = "Tori Amos", album = "Little Earthquakes (Deluxe)"
 	const parts = entry.path.split('/').filter(Boolean);
-	const parentFolder = parts.length >= 2 ? parts[parts.length - 2] : '';
-	const resolvedAlbum = album || parentFolder || undefined;
+	const meaningful: string[] = [];
+	for (let i = parts.length - 2; i >= 0 && meaningful.length < 2; i--) {
+		if (!isPlaceholderFolder(parts[i])) meaningful.unshift(parts[i]);
+	}
+	const folderAlbum = meaningful.length >= 1 ? meaningful[meaningful.length - 1] : '';
+	const folderArtist = meaningful.length >= 2 ? meaningful[0] : '';
+	// If we only found one meaningful folder it's more likely the artist
+	// (a flat /Artist/Track.mp3 layout). Promote it.
+	const finalFolderArtist = folderArtist || (meaningful.length === 1 ? folderAlbum : '');
+	const finalFolderAlbum = meaningful.length >= 2 ? folderAlbum : '';
+
+	const resolvedArtist = artist || finalFolderArtist || 'Unknown Artist';
+	const resolvedAlbum = album || finalFolderAlbum || undefined;
 
 	return {
 		identifier,
 		filename: entry.name,
 		title: title || entry.name.replace(/\.[^.]+$/, ''),
-		artist: artist || parentFolder || 'Unknown Artist',
+		artist: resolvedArtist,
 		album: resolvedAlbum,
 		collection: [library.name],
 		format: ext,
@@ -439,4 +453,29 @@ export function parseFilenameHeuristics(name: string): {
 		return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() };
 	}
 	return { title: noNum.trim() };
+}
+
+/**
+ * Folder names that look like metadata placeholders rather than real labels.
+ * Used to skip them when deriving artist/album from the WebDAV path.
+ */
+const PLACEHOLDER_FOLDER_PATTERNS = [
+	/^unknown( artist| album)?$/i,
+	/^various( artists)?$/i,
+	/^untitled$/i,
+	/^no album$/i,
+	/^aucun album$/i,
+	/^artiste inconnu$/i,
+	/^album inconnu$/i,
+	// Disc subfolders (CD1, CD 2, Disc 3, Disque 02, Disk 1, etc.) — these
+	// sit between the album and the tracks and aren't useful as metadata.
+	/^(cd|disc|disk|disque)\s*-?\s*\d+$/i,
+	/^vol(\.|ume)?\s*-?\s*\d+$/i
+];
+
+function isPlaceholderFolder(name: string): boolean {
+	if (!name) return true;
+	const trimmed = name.trim();
+	if (!trimmed) return true;
+	return PLACEHOLDER_FOLDER_PATTERNS.some((re) => re.test(trimmed));
 }

@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "eruda": "^3.4.3",
+    "music-metadata-browser": "^2.5.11",
     "zod": "^3.23.0"
   },
   "devDependencies": {

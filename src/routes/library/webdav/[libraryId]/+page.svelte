@@ -70,6 +70,12 @@
 		goto(url.toString(), { keepFocus: true });
 	}
 
+	/** Back button: go up one folder if possible, else back to Library hub. */
+	function goBack() {
+		if (path && path !== '/') navigateUp();
+		else goto(`${base}/library`);
+	}
+
 	function relativePath(absPath: string): string {
 		const root = (library?.rootPath || '/').replace(/\/+$/, '') || '/';
 		if (root === '/') return absPath;
@@ -116,9 +122,14 @@
 <div class="container mx-auto max-w-6xl p-4">
 	<!-- Breadcrumbs + view toggle -->
 	<div class="mb-4 flex items-center gap-2 flex-wrap">
-		<a href="{base}/library/webdav" class="btn btn-ghost btn-sm">
+		<button
+			class="btn btn-ghost btn-sm"
+			on:click={goBack}
+			aria-label="Back"
+			title={path === '/' || !path ? 'Back to Library' : 'Up one folder'}
+		>
 			<Icon icon="mdi:arrow-left" width="20" />
-		</a>
+		</button>
 		<a href="{base}/library/webdav/{libraryId}?p=/" class="font-semibold hover:underline">
 			{library?.name || 'Library'}
 		</a>

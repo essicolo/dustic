@@ -14,6 +14,9 @@
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { shareTrack } from '$lib/utils/share';
 	import { getThumbnailFor } from '$lib/services/thumbnails';
+	import { fetchAudioMetadata, type AudioMetadata } from '$lib/services/audioMetadata';
+	import { decodeIdentifier as decodeWebDAVIdentifier, findLibrary as findWebDAVLibrary } from '$lib/services/webdavLibrary';
+	import { settings } from '$lib/stores/settings';
 
 	// Components
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
@@ -142,10 +145,26 @@
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: isFW = isFunkwhaleTrack(item.identifier);
 	$: isWD = item.identifier.startsWith('wd:');
+
+	// WebDAV cards display tags read from the file itself (overriding the
+	// path-derived heuristics) and the embedded cover art when present.
+	let parsedMeta: AudioMetadata | null = null;
+	let fetchedThumb: string | null = null;
+	let thumbLookupDone = false;
+	let lookedUpId: string | null = null;
+
+	$: displayTitle = (isWD && parsedMeta?.title) || item.title || 'Untitled';
+	$: displayArtist =
+		(isWD && parsedMeta?.artist) ||
+		item.artist ||
+		(item as ArchiveItem).creator ||
+		'Unknown Artist';
+	$: displayAlbum = (isWD && parsedMeta?.album) || item.album || undefined;
+
 	$: thumb = isFW
 		? (item.thumbnailUrl || '')
 		: isWD
-			? fetchedThumb || ''
+			? parsedMeta?.pictureUrl || fetchedThumb || ''
 			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || 'FunkWhale')
@@ -153,19 +172,43 @@
 			? (item.collection?.[0] || 'WebDAV')
 			: 'Internet Archive';
 
-	// Lazy cover lookup for WebDAV tracks via iTunes Search.
-	let fetchedThumb: string | null = null;
-	let thumbLookupDone = false;
-	let lookedUpId: string | null = null;
 	$: if (isWD && item.identifier !== lookedUpId) {
 		lookedUpId = item.identifier;
+		parsedMeta = null;
 		fetchedThumb = null;
 		thumbLookupDone = false;
-		getThumbnailFor(item as Track).then((url) => {
-			if (lookedUpId !== item.identifier) return;
-			fetchedThumb = url;
+		void loadWebDAVMetadata(item.identifier);
+	}
+
+	async function loadWebDAVMetadata(id: string) {
+		const decoded = decodeWebDAVIdentifier(id);
+		const library = decoded
+			? findWebDAVLibrary(settings.getWebDAVLibraries(), decoded.libraryId)
+			: undefined;
+		if (!decoded || !library) {
 			thumbLookupDone = true;
-		});
+			return;
+		}
+
+		// 1. Read embedded ID3/Vorbis/MP4 tags.
+		const meta = await fetchAudioMetadata(id, library, decoded.path);
+		if (lookedUpId !== id) return;
+		parsedMeta = meta;
+
+		// 2. If no embedded picture, fall back to iTunes with whatever the
+		// real tags gave us (more accurate than path heuristics).
+		if (!meta?.pictureUrl) {
+			const enriched: Track = {
+				...(item as Track),
+				artist: meta?.artist || item.artist || 'Unknown Artist',
+				album: meta?.album || item.album,
+				title: meta?.title || item.title || 'Untitled'
+			};
+			const url = await getThumbnailFor(enriched);
+			if (lookedUpId !== id) return;
+			fetchedThumb = url;
+		}
+		thumbLookupDone = true;
 	}
 
 	async function ensureTracks(): Promise<Track[]> {
@@ -398,24 +441,23 @@
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
 			<h2
 				class="card-title {layout === 'list' ? 'truncate' : 'card-title-clamp'} {compact ? 'text-sm' : 'text-base'}"
-				title={item.title}
+				title={displayTitle}
 			>
-				{item.title}
+				{displayTitle}
 			</h2>
 			<button
 				class="text-sm opacity-70 truncate {compact ? 'text-xs' : 'text-sm'} hover:opacity-100 hover:underline text-left w-full"
 				on:click={(e) => {
 					e.stopPropagation();
-					const artist = item.artist || item.creator || '';
-					if (artist && artist !== 'Unknown Artist') {
-						goto(`${base}/search?artist=${encodeURIComponent(artist)}`);
+					if (displayArtist && displayArtist !== 'Unknown Artist') {
+						goto(`${base}/search?artist=${encodeURIComponent(displayArtist)}`);
 					}
 				}}
 				title="Search for more by this artist"
 			>
-				{item.artist || item.creator || 'Unknown Artist'}
+				{displayArtist}
 			</button>
-			{#if layout !== 'list' && sourceName && sourceName !== (item.artist || item.creator)}
+			{#if layout !== 'list' && sourceName && sourceName !== displayArtist}
 				<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
 			{/if}
 		</div>

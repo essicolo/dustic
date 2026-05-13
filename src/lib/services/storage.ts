@@ -4,10 +4,31 @@ import type { UserProfile, AutoplayRule } from '$lib/types';
 import { DEFAULT_AUTOPLAY_RULES, CONFIG } from '$lib/utils/constants';
 
 /**
+ * Strip device-bound secrets (encrypted passwords) from a profile before
+ * exporting or copying. They're encrypted with a localStorage-only key so
+ * they're unreadable on another device anyway — surfacing them in the
+ * export would leak ciphertext into shareable files for nothing.
+ */
+function sanitizeForExport(profile: UserProfile): UserProfile {
+	const clone: UserProfile = JSON.parse(JSON.stringify(profile));
+	if (clone.settings?.webdav) {
+		clone.settings.webdav = { ...clone.settings.webdav, password: '' };
+	}
+	if (clone.settings?.webdavLibraries) {
+		clone.settings.webdavLibraries = clone.settings.webdavLibraries.map((l) => ({
+			...l,
+			password: ''
+		}));
+	}
+	return clone;
+}
+
+/**
  * Export user profile as JSON file
  */
 export function exportProfile(profile: UserProfile): void {
-	const json = JSON.stringify(profile, null, 2);
+	const sanitized = sanitizeForExport(profile);
+	const json = JSON.stringify(sanitized, null, 2);
 	const blob = new Blob([json], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
@@ -101,10 +122,11 @@ export function createDefaultProfile(): UserProfile {
 }
 
 /**
- * Export profile as JSON string (for clipboard)
+ * Export profile as JSON string (for clipboard). Passwords are stripped —
+ * see sanitizeForExport().
  */
 export function profileToJson(profile: UserProfile): string {
-	return JSON.stringify(profile, null, 2);
+	return JSON.stringify(sanitizeForExport(profile), null, 2);
 }
 
 /**

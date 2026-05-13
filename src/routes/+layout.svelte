@@ -2,6 +2,7 @@
 	import '../app.css';
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
+	import SourcesStatus from '$lib/components/Sidebar/SourcesStatus.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
 	import QueueContent from '$lib/components/Queue/QueueContent.svelte';
 	import { queuePanelOpen } from '$lib/stores/queuePanel';
@@ -261,39 +262,6 @@
 
 				<div class="border-t border-base-300 my-3"></div>
 
-				<!-- Sources status -->
-				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
-					Sources
-				</div>
-
-				<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
-					<span class="relative inline-block">
-						<img src="{base}/internet-archive-icon.svg" alt="IA" class="w-4 h-4 opacity-50" />
-						{#if $sourceStatus.ia === 'online'}
-							<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
-						{:else if $sourceStatus.ia === 'offline'}
-							<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
-						{/if}
-					</span>
-					<span>archive.org</span>
-				</div>
-
-				{#each funkwhaleInstances as instance}
-					<div class="px-4 py-1.5 flex items-center gap-3 text-sm text-base-content/60">
-						<span class="relative inline-block">
-							<img src="{base}/funkwhale-icon.svg" alt="FW" class="w-4 h-4 opacity-50" />
-							{#if $sourceStatus.fw[instance.url] === 'online'}
-								<Icon icon="solar:check-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-success" />
-							{:else if $sourceStatus.fw[instance.url] === 'offline'}
-								<Icon icon="solar:close-circle-bold" width="10" class="absolute -top-1 -right-1.5 text-error" />
-							{/if}
-						</span>
-						<span>{instance.name}</span>
-					</div>
-				{/each}
-
-				<div class="border-t border-base-300 my-3"></div>
-
 				<a
 					href="{base}/settings"
 					on:click={closeSidebar}
@@ -316,6 +284,11 @@
 					About
 				</a>
 			</nav>
+
+			<!-- Sources status (compact) -->
+			<div class="px-4 py-1">
+				<SourcesStatus />
+			</div>
 
 			<!-- Compact Profile Manager -->
 			<ProfileManager />

@@ -24,15 +24,19 @@ interface CacheRow {
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
 function openDb(): Promise<IDBDatabase | null> {
-	if (!browser) return Promise.resolve(null);
+	if (!browser || typeof indexedDB === 'undefined') return Promise.resolve(null);
 	if (dbPromise) return dbPromise;
 	dbPromise = new Promise((resolve) => {
-		const req = indexedDB.open(DB_NAME, DB_VERSION);
-		req.onupgradeneeded = () => {
-			req.result.createObjectStore(STORE, { keyPath: 'key' });
-		};
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => resolve(null);
+		try {
+			const req = indexedDB.open(DB_NAME, DB_VERSION);
+			req.onupgradeneeded = () => {
+				req.result.createObjectStore(STORE, { keyPath: 'key' });
+			};
+			req.onsuccess = () => resolve(req.result);
+			req.onerror = () => resolve(null);
+		} catch {
+			resolve(null);
+		}
 	});
 	return dbPromise;
 }

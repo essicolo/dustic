@@ -293,6 +293,13 @@
 		return () => {
 			window.removeEventListener('keydown', closeOnEscape);
 			document.removeEventListener('click', closeOnClickOutside);
+			// Catch-all cleanup for the scroll/resize handlers in case the
+			// component unmounts while the overflow menu is still open.
+			if (scrollResizeHandler) {
+				window.removeEventListener('scroll', scrollResizeHandler, true);
+				window.removeEventListener('resize', scrollResizeHandler);
+				scrollResizeHandler = null;
+			}
 		};
 	});
 

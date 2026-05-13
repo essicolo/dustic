@@ -126,24 +126,28 @@ class OfflineStorage {
 
 			const fileSize = blob.size;
 
-			// Store in Cache API
-			const cache = await caches.open(CACHE_NAME);
-			const blobResponse = new Response(blob);
-			await cache.put(track.streamUrl, blobResponse);
-
-			// Create blob URL for offline playback
+			// Create blob URL up-front so we can revoke it if anything below fails.
 			const blobUrl = URL.createObjectURL(blob);
-			blobManager.track(blobUrl);
+			let committed = false;
+			try {
+				// Store in Cache API
+				const cache = await caches.open(CACHE_NAME);
+				const blobResponse = new Response(blob);
+				await cache.put(track.streamUrl, blobResponse);
 
-			// Save metadata to IndexedDB
-			const offlineTrack: OfflineTrack = {
-				track,
-				downloadedAt: Date.now(),
-				fileSize,
-				blobUrl
-			};
-
-			await this.saveTrack(offlineTrack);
+				// Save metadata to IndexedDB
+				const offlineTrack: OfflineTrack = {
+					track,
+					downloadedAt: Date.now(),
+					fileSize,
+					blobUrl
+				};
+				await this.saveTrack(offlineTrack);
+				blobManager.track(blobUrl);
+				committed = true;
+			} finally {
+				if (!committed) URL.revokeObjectURL(blobUrl);
+			}
 		} catch (error) {
 			console.error('Failed to download track:', error);
 			throw error;

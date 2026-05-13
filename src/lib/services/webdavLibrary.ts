@@ -144,12 +144,21 @@ export function buildTrack(library: WebDAVLibrary, entry: WebDAVEntry): Track {
 	const ext = (entry.name.split('.').pop() || 'mp3').toLowerCase();
 	const identifier = encodeIdentifier(library.id, entry.path);
 
+	// Use the parent folder as a fallback for album when filename doesn't
+	// carry that info, and as a meaningful fallback for artist when the
+	// filename has no "Artist - Title" structure. "01 Lyra.ogg" inside
+	// "/Music/MoonAlbum/" becomes album="MoonAlbum" → far more useful than
+	// "Unknown Artist".
+	const parts = entry.path.split('/').filter(Boolean);
+	const parentFolder = parts.length >= 2 ? parts[parts.length - 2] : '';
+	const resolvedAlbum = album || parentFolder || undefined;
+
 	return {
 		identifier,
 		filename: entry.name,
 		title: title || entry.name.replace(/\.[^.]+$/, ''),
-		artist: artist || 'Unknown Artist',
-		album,
+		artist: artist || parentFolder || 'Unknown Artist',
+		album: resolvedAlbum,
 		collection: [library.name],
 		format: ext,
 		// Marker URL: same-origin so Cache API accepts it, but never actually

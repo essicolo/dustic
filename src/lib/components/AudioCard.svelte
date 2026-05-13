@@ -392,11 +392,14 @@
 
 	<div
 		class="card-body min-w-0 {layout === 'list'
-			? 'flex-row items-center justify-between'
-			: 'flex flex-col'} {compact ? 'p-2' : 'p-4'}"
+			? 'flex-row items-center justify-between p-3'
+			: `flex flex-col ${compact ? 'p-2' : 'p-4'}`}"
 	>
 		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
-			<h2 class="card-title card-title-clamp {compact ? 'text-sm' : 'text-base'}" title={item.title}>
+			<h2
+				class="card-title {layout === 'list' ? 'truncate' : 'card-title-clamp'} {compact ? 'text-sm' : 'text-base'}"
+				title={item.title}
+			>
 				{item.title}
 			</h2>
 			<button

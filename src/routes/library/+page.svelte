@@ -75,16 +75,21 @@
 
 		{#if audioSources.length === 0}
 			<div class="card bg-base-200 p-6">
-				<p class="text-base-content/70 leading-relaxed">
-					Play your own audio collection — music, audiobooks, courses, podcasts —
-					alongside Internet Archive and FunkWhale. Works with Koofr, Nextcloud,
-					pCloud, or any cloud that supports WebDAV.
-				</p>
-				<div class="mt-4">
-					<a href="{base}/settings/libraries" class="btn btn-primary btn-sm gap-1">
-						<Icon icon="mdi:plus" width="18" />
-						Connect a folder
-					</a>
+				<div class="flex items-start gap-3">
+					<Icon icon="mdi:folder-music-outline" width="24" class="opacity-50 flex-shrink-0" />
+					<div class="flex-1">
+						<p class="text-sm text-base-content/70 leading-relaxed">
+							<strong class="text-base-content/90">Internet Archive and FunkWhale work out of the box</strong> — no setup needed.
+							Connect a folder here to add your own audio: music, audiobooks, courses, podcasts.
+							Works with Koofr, Nextcloud, pCloud, or any cloud that supports WebDAV.
+						</p>
+						<div class="mt-4">
+							<a href="{base}/settings/libraries" class="btn btn-primary btn-sm gap-1">
+								<Icon icon="mdi:plus" width="18" />
+								Connect a folder
+							</a>
+						</div>
+					</div>
 				</div>
 			</div>
 		{:else}
@@ -93,14 +98,17 @@
 					<a
 						href="{base}/library/webdav/{src.id}"
 						class="card bg-base-200 hover:bg-base-300 transition-colors p-3 flex flex-row items-center gap-3"
-						class:opacity-50={!src.enabled}
 					>
-						<Icon icon="mdi:folder-music" width="32" class="flex-shrink-0" />
+						<Icon icon="mdi:folder-music" width="32" class="flex-shrink-0" class:opacity-40={!src.enabled} />
 						<div class="flex-1 min-w-0">
-							<div class="font-medium truncate">{src.name}</div>
+							<div class="flex items-center gap-2">
+								<span class="font-medium truncate" class:opacity-60={!src.enabled}>{src.name}</span>
+								{#if !src.enabled}
+									<span class="badge badge-ghost badge-sm">disabled</span>
+								{/if}
+							</div>
 							<div class="text-xs opacity-60 truncate">
 								{hostFromUrl(src.url)}{src.rootPath && src.rootPath !== '/' ? ` · ${src.rootPath}` : ''}
-								{#if !src.enabled} · disabled{/if}
 							</div>
 						</div>
 						<Icon icon="mdi:chevron-right" width="20" class="flex-shrink-0 opacity-50" />

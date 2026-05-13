@@ -212,30 +212,33 @@
 			{/if}
 		</div>
 
-		<div class="border-t border-base-content/10 pt-3">
-			<div class="flex flex-col sm:flex-row gap-2">
+		<details class="border-t border-base-content/10 pt-3">
+			<summary class="cursor-pointer text-sm font-medium opacity-70 mb-2">
+				+ Add a server
+			</summary>
+			<div class="space-y-2 mt-2">
 				<input
 					type="url"
 					bind:value={newInstanceUrl}
 					placeholder="https://funkwhale.example.com"
-					class="input input-bordered input-sm flex-1"
+					class="input input-bordered input-sm w-full"
 					on:keydown={(e) => e.key === 'Enter' && addInstance()}
 				/>
 				<input
 					type="text"
 					bind:value={newInstanceName}
 					placeholder="Nickname (optional)"
-					class="input input-bordered input-sm w-full sm:w-40"
+					class="input input-bordered input-sm w-full"
 					on:keydown={(e) => e.key === 'Enter' && addInstance()}
 				/>
-				<button class="btn btn-primary btn-sm" on:click={addInstance}>
+				<button class="btn btn-primary btn-sm w-full sm:w-auto" on:click={addInstance}>
 					Add server
 				</button>
+				{#if addInstanceError}
+					<p class="text-error text-xs">{addInstanceError}</p>
+				{/if}
 			</div>
-			{#if addInstanceError}
-				<p class="text-error text-xs mt-1">{addInstanceError}</p>
-			{/if}
-		</div>
+		</details>
 	</section>
 
 	<!-- Your folders -->
@@ -268,16 +271,28 @@
 							<div class="font-medium truncate">{lib.name}</div>
 							<div class="text-xs opacity-60 truncate">{lib.url}{lib.rootPath}</div>
 						</div>
-						<a href="{base}/library/webdav/{lib.id}" class="btn btn-sm btn-primary">
-							Browse
-						</a>
-						<a href="{base}/library/webdav/{lib.id}" class="btn btn-sm btn-ghost" title="Browse">
+						<a
+							href="{base}/library/webdav/{lib.id}"
+							class="btn btn-sm btn-ghost"
+							title="Browse"
+							aria-label="Browse {lib.name}"
+						>
 							<Icon icon="mdi:folder-open" width="18" />
 						</a>
-						<button class="btn btn-sm btn-ghost" on:click={() => handleEdit(lib)} title="Edit">
+						<button
+							class="btn btn-sm btn-ghost"
+							on:click={() => handleEdit(lib)}
+							title="Edit"
+							aria-label="Edit {lib.name}"
+						>
 							<Icon icon="mdi:pencil" width="18" />
 						</button>
-						<button class="btn btn-sm btn-ghost text-error" on:click={() => handleRemove(lib)} title="Remove">
+						<button
+							class="btn btn-sm btn-ghost text-error"
+							on:click={() => handleRemove(lib)}
+							title="Remove"
+							aria-label="Remove {lib.name}"
+						>
 							<Icon icon="mdi:trash-can" width="18" />
 						</button>
 					</div>

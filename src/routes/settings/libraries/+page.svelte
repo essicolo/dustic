@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-	<title>WebDAV libraries — Dustic</title>
+	<title>Audio sources — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl p-4">
@@ -117,18 +117,19 @@
 		<a href="{base}/settings" class="btn btn-ghost btn-sm">
 			<Icon icon="mdi:arrow-left" width="20" />
 		</a>
-		<h1 class="text-2xl font-bold">WebDAV libraries</h1>
+		<h1 class="text-2xl font-bold">Audio sources</h1>
 	</div>
 
 	<p class="mb-4 text-sm opacity-70">
-		Add your own music folders stored on Koofr, Nextcloud, pCloud (paid plan), or any
-		WebDAV-compatible server. Audio files (mp3, flac, ogg, opus, m4a) become playable
+		Play your own audio — music, audiobooks, courses, podcasts — from a cloud folder
+		you already use. Works with Koofr, Nextcloud, pCloud (paid plan), or any cloud
+		that supports WebDAV. Audio files (mp3, flac, ogg, opus, m4a) become playable
 		inside Dustic and can be downloaded for offline listening.
 	</p>
 
 	<!-- Existing libraries list -->
 	{#if libraries.length > 0}
-		<h2 class="mt-6 mb-2 text-lg font-semibold">Configured libraries</h2>
+		<h2 class="mt-6 mb-2 text-lg font-semibold">Your connected folders</h2>
 		<ul class="space-y-2">
 			{#each libraries as lib (lib.id)}
 				<li class="card bg-base-200 p-3">
@@ -162,14 +163,14 @@
 
 	<!-- Add/edit form -->
 	<h2 class="mt-8 mb-2 text-lg font-semibold">
-		{editingId ? 'Edit library' : 'Add a library'}
+		{editingId ? 'Edit source' : 'Connect a folder'}
 	</h2>
 	<form on:submit|preventDefault={handleSave} class="card bg-base-200 p-4 space-y-3">
 		<label class="form-control">
-			<span class="label-text">Name</span>
+			<span class="label-text">Nickname</span>
 			<input
 				type="text"
-				placeholder="My Koofr"
+				placeholder="e.g. My audiobooks, koofr, Cours d'histoire"
 				class="input input-bordered"
 				bind:value={form.name}
 				required
@@ -177,7 +178,7 @@
 		</label>
 
 		<label class="form-control">
-			<span class="label-text">WebDAV URL</span>
+			<span class="label-text">Server address (WebDAV URL)</span>
 			<input
 				type="url"
 				placeholder="https://app.koofr.net/dav/Koofr"
@@ -185,6 +186,9 @@
 				bind:value={form.url}
 				required
 			/>
+			<span class="label-text-alt opacity-60">
+				Get this from your cloud provider's settings. Common examples in Help below.
+			</span>
 		</label>
 
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -220,7 +224,7 @@
 		</div>
 
 		<label class="form-control">
-			<span class="label-text">Root folder (optional)</span>
+			<span class="label-text">Folder to listen to (optional)</span>
 			<input
 				type="text"
 				placeholder="/Music"
@@ -228,13 +232,13 @@
 				bind:value={form.rootPath}
 			/>
 			<span class="label-text-alt opacity-60">
-				Subpath inside your WebDAV space. Leave as "/" for the root.
+				The folder inside your cloud that holds your audio. Leave as "/" to browse everything.
 			</span>
 		</label>
 
 		<div class="flex flex-wrap gap-2">
 			<button type="submit" class="btn btn-primary">
-				{editingId ? 'Save' : 'Add'}
+				{editingId ? 'Save' : 'Connect'}
 			</button>
 			<button type="button" class="btn btn-ghost" on:click={handleTest} disabled={testStatus === 'testing'}>
 				{testStatus === 'testing' ? 'Testing…' : 'Test connection'}

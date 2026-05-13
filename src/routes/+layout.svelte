@@ -36,7 +36,6 @@
 	let fwExpandedMap: Record<string, boolean> = {};
 
 	$: funkwhaleInstances = ($settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES).filter(i => i.enabled);
-	$: webdavLibraries = ($settings.webdavLibraries || []).filter((l) => l.enabled);
 
 	function toggleSidebar() {
 		isSidebarOpen = !isSidebarOpen;
@@ -208,8 +207,8 @@
 					href="{base}/library"
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={(currentPath.startsWith(`${base}/library`) && !currentPath.startsWith(`${base}/library/webdav`)) || currentPath === `${base}/history`}
-					class:text-primary-content={(currentPath.startsWith(`${base}/library`) && !currentPath.startsWith(`${base}/library/webdav`)) || currentPath === `${base}/history`}
+					class:bg-primary={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
+					class:text-primary-content={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 				>
 					Library
 				</a>
@@ -292,31 +291,6 @@
 						<span>{instance.name}</span>
 					</div>
 				{/each}
-
-				{#each webdavLibraries as lib (lib.id)}
-					<a
-						href="{base}/library/webdav/{lib.id}"
-						on:click={closeSidebar}
-						class="px-4 py-1.5 flex items-center gap-3 text-sm hover:bg-base-300 rounded transition-colors"
-						class:bg-primary={currentPath.startsWith(`${base}/library/webdav/${lib.id}`)}
-						class:text-primary-content={currentPath.startsWith(`${base}/library/webdav/${lib.id}`)}
-						class:text-base-content={!currentPath.startsWith(`${base}/library/webdav/${lib.id}`)}
-					>
-						<Icon icon="mdi:folder-music" width="16" />
-						<span class="truncate">{lib.name}</span>
-					</a>
-				{/each}
-
-				<a
-					href="{base}/library/webdav"
-					on:click={closeSidebar}
-					class="px-4 py-1.5 flex items-center gap-3 text-sm hover:bg-base-300 rounded transition-colors text-base-content/60"
-					class:bg-primary={currentPath === `${base}/library/webdav`}
-					class:text-primary-content={currentPath === `${base}/library/webdav`}
-				>
-					<Icon icon="mdi:cloud-plus-outline" width="16" />
-					<span>{webdavLibraries.length === 0 ? 'Add WebDAV library' : 'Manage WebDAV…'}</span>
-				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
 

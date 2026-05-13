@@ -48,7 +48,7 @@
 	<div class="tabs tabs-boxed mb-6">
 		<a href="{base}/settings" class="tab tab-active">Preferences</a>
 		<a href="{base}/settings/profile" class="tab">Profile Data</a>
-		<a href="{base}/settings/libraries" class="tab">WebDAV Libraries</a>
+		<a href="{base}/settings/libraries" class="tab">Audio sources</a>
 	</div>
 
 	<!-- Appearance / Theme -->

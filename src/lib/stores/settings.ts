@@ -16,6 +16,7 @@ export interface Settings {
 	webdav?: WebDAVConfig;
 	webdavLibraries?: WebDAVLibrary[];
 	theme?: string;
+	iaEnabled?: boolean; // Internet Archive search/browse toggle (defaults true)
 }
 
 // Load from storage or use defaults (sync version for initial load)
@@ -231,6 +232,14 @@ function createSettingsStore() {
 					...state,
 					webdavLibraries: current.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
 				};
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		setIaEnabled(enabled: boolean) {
+			update((state) => {
+				const newState = { ...state, iaEnabled: enabled };
 				saveSettings(newState);
 				return newState;
 			});

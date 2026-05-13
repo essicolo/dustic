@@ -104,6 +104,7 @@ export interface UserProfile {
 		webdav?: WebDAVConfig;
 		webdavLibraries?: WebDAVLibrary[];
 		theme?: string; // ThemeId — sync'd via WebDAV profile
+		iaEnabled?: boolean; // Internet Archive on/off (defaults true)
 	};
 	// Player state persistence
 	lastPlayedTrack?: Track; // Last track that was playing when app closed

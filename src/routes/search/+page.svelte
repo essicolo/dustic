@@ -2,6 +2,7 @@
 	import { unifiedSearch as searchAPI, unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import { settings } from '$lib/stores/settings';
 	import { CONTENT_TYPES, POPULAR_TAGS } from '$lib/utils/constants';
 	import { base } from '$app/paths';
 	import type { Track, SearchParams } from '$lib/types';
@@ -40,7 +41,7 @@
 	let selectedContentType = '';
 	let selectedTag = '';
 	let sortBy: 'relevance' | 'date' | 'downloads' = 'relevance';
-	let sourceIA = true;
+	let sourceIA = $settings.iaEnabled !== false;
 	let sourceFW = true;
 	let currentPage = 1;
 	let pageSize = 50;

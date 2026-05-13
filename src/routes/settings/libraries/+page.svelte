@@ -3,11 +3,38 @@
 	import type { WebDAVLibrary } from '$lib/types';
 	import { testLibrary } from '$lib/services/webdavLibrary';
 	import { encryptValue, decryptValue } from '$lib/services/crypto';
+	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let libraries: WebDAVLibrary[] = [];
+
+	// FunkWhale instance management
+	let newInstanceUrl = '';
+	let newInstanceName = '';
+	let addInstanceError = '';
+	$: funkwhaleInstances = $settings.funkwhaleInstances || DEFAULT_FUNKWHALE_INSTANCES;
+	$: iaEnabled = $settings.iaEnabled !== false;
+
+	function addInstance() {
+		addInstanceError = '';
+		const url = newInstanceUrl.trim();
+		const name = newInstanceName.trim();
+		if (!url) {
+			addInstanceError = 'URL is required';
+			return;
+		}
+		try {
+			new URL(url);
+		} catch {
+			addInstanceError = 'Invalid URL';
+			return;
+		}
+		settings.addFunkwhaleInstance(url, name || new URL(url).host);
+		newInstanceUrl = '';
+		newInstanceName = '';
+	}
 
 	// Working copy for the "add new" form
 	let form: WebDAVLibrary = blankForm();
@@ -120,20 +147,123 @@
 		<h1 class="text-2xl font-bold">Audio sources</h1>
 	</div>
 
-	<p class="mb-4 text-sm opacity-70">
-		Play your own audio — music, audiobooks, courses, podcasts — from a cloud folder
-		you already use. Works with Koofr, Nextcloud, pCloud (paid plan), or any cloud
-		that supports WebDAV. Audio files (mp3, flac, ogg, opus, m4a) become playable
-		inside Dustic and can be downloaded for offline listening.
+	<p class="mb-6 text-sm opacity-70">
+		Choose where your audio comes from: the Internet Archive's public catalogue,
+		one or more FunkWhale servers, and/or your own cloud folders.
 	</p>
+
+	<!-- Internet Archive -->
+	<section class="card bg-base-200 p-4 mb-4">
+		<div class="flex items-center gap-3">
+			<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" class="w-6 h-6" />
+			<div class="flex-1 min-w-0">
+				<div class="font-semibold">Internet Archive</div>
+				<div class="text-xs opacity-60">
+					Millions of free recordings: live concerts, vinyl rips, old radio, audiobooks…
+				</div>
+			</div>
+			<input
+				type="checkbox"
+				class="toggle toggle-primary toggle-sm"
+				checked={iaEnabled}
+				on:change={(e) => settings.setIaEnabled(e.currentTarget.checked)}
+			/>
+		</div>
+	</section>
+
+	<!-- FunkWhale -->
+	<section class="card bg-base-200 p-4 mb-4">
+		<div class="flex items-center gap-3 mb-3">
+			<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-6 h-6" />
+			<div class="flex-1 min-w-0">
+				<div class="font-semibold">FunkWhale servers</div>
+				<div class="text-xs opacity-60">
+					Federated music communities. Add one or more public instances.
+				</div>
+			</div>
+		</div>
+
+		<div class="space-y-2 mb-3">
+			{#each funkwhaleInstances as instance}
+				<div class="flex items-center gap-3 p-2 border border-base-300 rounded"
+					class:opacity-50={!instance.enabled}
+				>
+					<input
+						type="checkbox"
+						class="toggle toggle-primary toggle-sm"
+						checked={instance.enabled}
+						on:change={() => settings.toggleFunkwhaleInstance(instance.url)}
+					/>
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium truncate">{instance.name}</div>
+						<div class="text-xs opacity-50 truncate">{instance.url}</div>
+					</div>
+					<button
+						class="btn btn-ghost btn-xs btn-square"
+						title="Remove"
+						on:click={() => settings.removeFunkwhaleInstance(instance.url)}
+					>
+						<Icon icon="solar:close-circle-bold" width="16" />
+					</button>
+				</div>
+			{/each}
+			{#if funkwhaleInstances.length === 0}
+				<p class="text-sm opacity-50 italic">No FunkWhale server configured.</p>
+			{/if}
+		</div>
+
+		<div class="border-t border-base-content/10 pt-3">
+			<div class="flex flex-col sm:flex-row gap-2">
+				<input
+					type="url"
+					bind:value={newInstanceUrl}
+					placeholder="https://funkwhale.example.com"
+					class="input input-bordered input-sm flex-1"
+					on:keydown={(e) => e.key === 'Enter' && addInstance()}
+				/>
+				<input
+					type="text"
+					bind:value={newInstanceName}
+					placeholder="Nickname (optional)"
+					class="input input-bordered input-sm w-full sm:w-40"
+					on:keydown={(e) => e.key === 'Enter' && addInstance()}
+				/>
+				<button class="btn btn-primary btn-sm" on:click={addInstance}>
+					Add server
+				</button>
+			</div>
+			{#if addInstanceError}
+				<p class="text-error text-xs mt-1">{addInstanceError}</p>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Your folders -->
+	<section class="card bg-base-200 p-4 mb-4">
+		<div class="flex items-center gap-3 mb-3">
+			<Icon icon="mdi:folder-music" width="24" />
+			<div class="flex-1 min-w-0">
+				<div class="font-semibold">Your folders</div>
+				<div class="text-xs opacity-60">
+					Play your own audio — music, audiobooks, courses — from a cloud folder you
+					already use. Works with Koofr, Nextcloud, pCloud (paid plan), or any cloud that
+					supports WebDAV.
+				</div>
+			</div>
+		</div>
 
 	<!-- Existing libraries list -->
 	{#if libraries.length > 0}
-		<h2 class="mt-6 mb-2 text-lg font-semibold">Your connected folders</h2>
 		<ul class="space-y-2">
 			{#each libraries as lib (lib.id)}
-				<li class="card bg-base-200 p-3">
+				<li class="p-3 border border-base-300 rounded">
 					<div class="flex items-center gap-3">
+						<input
+							type="checkbox"
+							class="toggle toggle-primary toggle-sm"
+							checked={lib.enabled}
+							on:change={() => handleToggle(lib)}
+						/>
 						<div class="flex-1 min-w-0">
 							<div class="font-medium truncate">{lib.name}</div>
 							<div class="text-xs opacity-60 truncate">{lib.url}{lib.rootPath}</div>
@@ -141,14 +271,9 @@
 						<a href="{base}/library/webdav/{lib.id}" class="btn btn-sm btn-primary">
 							Browse
 						</a>
-						<button
-							class="btn btn-sm btn-ghost"
-							class:btn-success={lib.enabled}
-							on:click={() => handleToggle(lib)}
-							title={lib.enabled ? 'Disable' : 'Enable'}
-						>
-							<Icon icon={lib.enabled ? 'mdi:check' : 'mdi:close'} width="18" />
-						</button>
+						<a href="{base}/library/webdav/{lib.id}" class="btn btn-sm btn-ghost" title="Browse">
+							<Icon icon="mdi:folder-open" width="18" />
+						</a>
 						<button class="btn btn-sm btn-ghost" on:click={() => handleEdit(lib)} title="Edit">
 							<Icon icon="mdi:pencil" width="18" />
 						</button>
@@ -162,10 +287,11 @@
 	{/if}
 
 	<!-- Add/edit form -->
-	<h2 class="mt-8 mb-2 text-lg font-semibold">
-		{editingId ? 'Edit source' : 'Connect a folder'}
-	</h2>
-	<form on:submit|preventDefault={handleSave} class="card bg-base-200 p-4 space-y-3">
+	<details class="mt-4" open={libraries.length === 0 || editingId !== null}>
+		<summary class="cursor-pointer text-sm font-medium opacity-70 mb-2">
+			{editingId ? 'Edit folder' : '+ Connect a folder'}
+		</summary>
+	<form on:submit|preventDefault={handleSave} class="bg-base-100 border border-base-300 p-4 rounded space-y-3">
 		<label class="form-control">
 			<span class="label-text">Nickname</span>
 			<input
@@ -260,9 +386,11 @@
 			</div>
 		{/if}
 	</form>
+	</details>
+	</section>
 
-	<details class="mt-6">
-		<summary class="cursor-pointer text-sm opacity-70">Help: common WebDAV URLs</summary>
+	<details class="mt-2">
+		<summary class="cursor-pointer text-xs opacity-60 ml-2">Help: common WebDAV URLs</summary>
 		<div class="mt-2 text-sm opacity-70 space-y-2">
 			<p>
 				<strong>Koofr</strong>: <code>https://app.koofr.net/dav/Koofr</code><br />

@@ -59,17 +59,17 @@
 		</a>
 	</section>
 
-	<!-- Your audio sources -->
+	<!-- Your folders -->
 	<section>
 		<div class="flex items-center justify-between mb-3">
-			<h3 class="text-xl font-semibold">Your audio sources</h3>
+			<h3 class="text-xl font-semibold">Your folders</h3>
 			<a
 				href="{base}/settings/libraries"
 				class="btn btn-sm btn-ghost gap-1"
 				title="Connect a cloud folder"
 			>
 				<Icon icon="mdi:plus" width="18" />
-				Add audio source
+				Add folder
 			</a>
 		</div>
 

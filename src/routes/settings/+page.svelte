@@ -44,7 +44,8 @@
 				Audio Quality
 			</h3>
 			<p class="text-sm text-base-content/70 mb-4">
-				Choose the audio quality for streaming and downloads. Archive.org files have different quality levels available.
+				Choose the audio quality for streaming and downloads.
+				<span class="opacity-70">Applies to Internet Archive only — FunkWhale and your folders use whatever the file provides.</span>
 			</p>
 
 			<div class="form-control gap-3">

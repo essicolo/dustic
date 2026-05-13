@@ -39,7 +39,7 @@ const SUNSET: Theme = {
 	description: 'Cream paper, warm dark text, terracotta accent.',
 	meta: {
 		'--card-radius': '12px',
-		'--shadow': '0 4px 12px -2px rgba(31, 27, 22, 0.08)'
+		'--shadow': '0 2px 6px -2px rgba(0, 0, 0, 0.08)'
 	},
 	preview: {
 		bg: '#FAF6F0',
@@ -56,7 +56,7 @@ const BUBBLEGUM: Theme = {
 	description: 'White canvas with a hot-pink kick.',
 	meta: {
 		'--card-radius': '16px',
-		'--shadow': '0 4px 16px -4px rgba(255, 77, 141, 0.18)'
+		'--shadow': '0 2px 8px -2px rgba(0, 0, 0, 0.06)'
 	},
 	preview: {
 		bg: '#FFFFFF',
@@ -73,7 +73,7 @@ const FOREST: Theme = {
 	description: 'Deep green bed, cream type, sage highlights.',
 	meta: {
 		'--card-radius': '8px',
-		'--shadow': '0 6px 18px -6px rgba(0, 0, 0, 0.45)'
+		'--shadow': '0 2px 8px -2px rgba(0, 0, 0, 0.35)'
 	},
 	preview: {
 		bg: '#1A2E1F',
@@ -90,7 +90,7 @@ const MIDNIGHT: Theme = {
 	description: 'Near-black backdrop, pale text, electric violet.',
 	meta: {
 		'--card-radius': '12px',
-		'--shadow': '0 6px 20px -6px rgba(155, 109, 255, 0.25)'
+		'--shadow': '0 2px 10px -2px rgba(0, 0, 0, 0.5)'
 	},
 	preview: {
 		bg: '#0F0F14',

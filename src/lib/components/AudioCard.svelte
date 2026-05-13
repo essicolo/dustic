@@ -13,6 +13,7 @@
 	import { getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { shareTrack } from '$lib/utils/share';
+	import { getThumbnailFor } from '$lib/services/thumbnails';
 
 	// Components
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
@@ -138,13 +139,24 @@
 	$: thumb = isFW
 		? ((item as any).thumbnailUrl || '')
 		: isWD
-			? ''
+			? fetchedThumb || ''
 			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || 'FunkWhale')
 		: isWD
 			? ((item as any).collection?.[0] || 'WebDAV')
 			: 'Internet Archive';
+
+	// Lazy cover lookup for WebDAV tracks via iTunes Search.
+	let fetchedThumb: string | null = null;
+	let lookedUpId: string | null = null;
+	$: if (isWD && item.identifier !== lookedUpId) {
+		lookedUpId = item.identifier;
+		fetchedThumb = null;
+		getThumbnailFor(item as any).then((url) => {
+			if (lookedUpId === item.identifier) fetchedThumb = url;
+		});
+	}
 
 	async function ensureTracks(): Promise<Track[]> {
 		if (tracks.length > 0) return tracks;

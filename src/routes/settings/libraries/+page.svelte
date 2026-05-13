@@ -139,15 +139,7 @@
 	<title>Audio sources — Dustic</title>
 </svelte:head>
 
-<div class="container mx-auto max-w-3xl p-4">
-	<div class="mb-6 flex items-center gap-3">
-		<a href="{base}/settings" class="btn btn-ghost btn-sm">
-			<Icon icon="mdi:arrow-left" width="20" />
-		</a>
-		<h1 class="text-2xl font-bold">Audio sources</h1>
-	</div>
-
-	<p class="mb-6 text-sm opacity-70">
+<p class="mb-6 text-sm opacity-70">
 		Choose where your audio comes from: the Internet Archive's public catalogue,
 		one or more FunkWhale servers, and/or your own cloud folders.
 	</p>
@@ -424,4 +416,3 @@
 			</p>
 		</div>
 	</details>
-</div>

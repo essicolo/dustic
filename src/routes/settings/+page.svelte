@@ -11,17 +11,7 @@
 	}
 </script>
 
-<div class="p-8 max-w-4xl">
-	<h2 class="text-3xl font-bold mb-6">Settings</h2>
-
-	<!-- Navigation Tabs -->
-	<div class="tabs tabs-boxed mb-6 flex-wrap">
-		<a href="{base}/settings" class="tab tab-sm sm:tab-md tab-active">Preferences</a>
-		<a href="{base}/settings/profile" class="tab tab-sm sm:tab-md">Profile</a>
-		<a href="{base}/settings/libraries" class="tab tab-sm sm:tab-md">Audio sources</a>
-	</div>
-
-	<!-- Appearance / Theme -->
+<!-- Appearance / Theme -->
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
 			<h3 class="card-title mb-4">
@@ -131,10 +121,9 @@
 		</div>
 	</div>
 
-	<!-- Autoplay Settings -->
-	<div class="card bg-base-200">
-		<div class="card-body">
-			<AutoplayRuleEditor />
-		</div>
+<!-- Autoplay Settings -->
+<div class="card bg-base-200">
+	<div class="card-body">
+		<AutoplayRuleEditor />
 	</div>
 </div>

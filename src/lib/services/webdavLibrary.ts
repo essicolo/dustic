@@ -144,20 +144,24 @@ export function buildTrack(library: WebDAVLibrary, entry: WebDAVEntry): Track {
 	const ext = (entry.name.split('.').pop() || 'mp3').toLowerCase();
 	const identifier = encodeIdentifier(library.id, entry.path);
 
-	// Use the parent folder as a fallback for album when filename doesn't
-	// carry that info, and as a meaningful fallback for artist when the
-	// filename has no "Artist - Title" structure. "01 Lyra.ogg" inside
-	// "/Music/MoonAlbum/" becomes album="MoonAlbum" → far more useful than
-	// "Unknown Artist".
+	// Common library layout: /Artist/Album/Track.mp3. When the filename
+	// doesn't carry artist/album info, walk the path: parent = album,
+	// grandparent = artist. Both are filtered through isPlaceholderFolder
+	// so junk names like "Unknown Album" or "Various Artists" don't pollute
+	// the metadata (and don't confuse the iTunes cover lookup).
 	const parts = entry.path.split('/').filter(Boolean);
-	const parentFolder = parts.length >= 2 ? parts[parts.length - 2] : '';
+	const rawParent = parts.length >= 2 ? parts[parts.length - 2] : '';
+	const rawGrandparent = parts.length >= 3 ? parts[parts.length - 3] : '';
+	const parentFolder = isPlaceholderFolder(rawParent) ? '' : rawParent;
+	const grandparentFolder = isPlaceholderFolder(rawGrandparent) ? '' : rawGrandparent;
 	const resolvedAlbum = album || parentFolder || undefined;
+	const resolvedArtist = artist || grandparentFolder || parentFolder || 'Unknown Artist';
 
 	return {
 		identifier,
 		filename: entry.name,
 		title: title || entry.name.replace(/\.[^.]+$/, ''),
-		artist: artist || parentFolder || 'Unknown Artist',
+		artist: resolvedArtist,
 		album: resolvedAlbum,
 		collection: [library.name],
 		format: ext,
@@ -439,4 +443,25 @@ export function parseFilenameHeuristics(name: string): {
 		return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() };
 	}
 	return { title: noNum.trim() };
+}
+
+/**
+ * Folder names that look like metadata placeholders rather than real labels.
+ * Used to skip them when deriving artist/album from the WebDAV path.
+ */
+const PLACEHOLDER_FOLDER_PATTERNS = [
+	/^unknown( artist| album)?$/i,
+	/^various( artists)?$/i,
+	/^untitled$/i,
+	/^no album$/i,
+	/^aucun album$/i,
+	/^artiste inconnu$/i,
+	/^album inconnu$/i
+];
+
+function isPlaceholderFolder(name: string): boolean {
+	if (!name) return true;
+	const trimmed = name.trim();
+	if (!trimmed) return true;
+	return PLACEHOLDER_FOLDER_PATTERNS.some((re) => re.test(trimmed));
 }

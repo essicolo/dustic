@@ -412,7 +412,9 @@
 			>
 				{item.artist || item.creator || 'Unknown Artist'}
 			</button>
-			<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
+			{#if layout !== 'list' && sourceName && sourceName !== (item.artist || item.creator)}
+				<div class="text-xs opacity-50 truncate mt-0.5">{sourceName}</div>
+			{/if}
 		</div>
 
 		<div

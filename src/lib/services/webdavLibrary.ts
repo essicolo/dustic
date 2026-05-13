@@ -148,7 +148,7 @@ export function buildTrack(library: WebDAVLibrary, entry: WebDAVEntry): Track {
 		identifier,
 		filename: entry.name,
 		title: title || entry.name.replace(/\.[^.]+$/, ''),
-		artist: artist || library.name,
+		artist: artist || 'Unknown Artist',
 		album,
 		collection: [library.name],
 		format: ext,

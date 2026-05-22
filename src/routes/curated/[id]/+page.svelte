@@ -13,6 +13,7 @@
 	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
+	import { _ } from '$lib/i18n';
 
 	interface CuratedPlaylist {
 		id: string;
@@ -75,7 +76,7 @@
 			const foundPlaylist = curatedPlaylistsData.find(p => p.id === playlistId);
 
 			if (!foundPlaylist) {
-				error = 'Curated playlist not found';
+				error = $_('curated.detailNotFound');
 				return;
 			}
 
@@ -113,7 +114,7 @@
 
 		} catch (e) {
 			console.error('Error loading curated playlist:', e);
-			error = 'Failed to load curated playlist';
+			error = $_('curated.detailLoadError');
 		} finally {
 			isLoading = false;
 		}
@@ -135,7 +136,7 @@
 	<div class="flex items-center justify-between mb-6">
 		<button on:click={goBack} class="btn btn-ghost btn-sm">
 			<Icon icon="solar:arrow-left-linear" width="20" />
-			<span>Back</span>
+			<span>{$_('common.back')}</span>
 		</button>
 
 		{#if tracks.length > 0}
@@ -146,7 +147,7 @@
 						on:click={() => setViewMode('grid')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'grid'}
-						title="Grid view"
+						title={$_('viewMode.grid')}
 					>
 						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
@@ -154,7 +155,7 @@
 						on:click={() => setViewMode('list')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'list'}
-						title="List view"
+						title={$_('viewMode.list')}
 					>
 						<Icon icon="solar:list-bold" width="18" />
 					</button>
@@ -163,7 +164,7 @@
 				<!-- Offline only toggle - Desktop -->
 				<label class="label cursor-pointer gap-2 hidden md:flex">
 					<Icon icon="solar:download-minimalistic-bold" width="20" />
-					<span class="label-text">Offline only</span>
+					<span class="label-text">{$_('history.offlineOnly')}</span>
 					<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 				</label>
 			</div>
@@ -176,7 +177,7 @@
 			<label class="label cursor-pointer gap-2 justify-start">
 				<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 				<Icon icon="solar:download-minimalistic-bold" width="20" />
-				<span class="label-text">Offline only</span>
+				<span class="label-text">{$_('history.offlineOnly')}</span>
 			</label>
 		</div>
 	{/if}
@@ -200,18 +201,18 @@
 					<Icon icon="solar:star-bold" width="48" class="text-primary-content" />
 				</div>
 				<div class="flex-1">
-					<div class="badge badge-primary badge-sm mb-2">Curated Playlist</div>
+					<div class="badge badge-primary badge-sm mb-2">{$_('curated.badge')}</div>
 					<h1 class="text-3xl md:text-4xl font-bold mb-2">{playlist.name}</h1>
 					<p class="text-base-content/70 mb-3">{playlist.description}</p>
 					<div class="flex items-center gap-2 text-sm text-base-content/60">
 						<Icon icon="solar:user-circle-bold" width="16" />
-						<span>Curated by {playlist.curator}</span>
+						<span>{$_('curated.curatedByShort', { values: { curator: playlist.curator } })}</span>
 						<span class="mx-2">•</span>
 						<span>
 							{#if showOfflineOnly && filteredTracks.length !== tracks.length}
-								{filteredTracks.length} of {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+								{$_('curated.trackCountOf', { values: { filtered: filteredTracks.length, total: tracks.length } })}
 							{:else}
-								{tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+								{$_('curated.trackCount', { values: { count: tracks.length } })}
 							{/if}
 						</span>
 					</div>
@@ -222,7 +223,7 @@
 				<div class="flex gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
 						<Icon icon="solar:play-bold" width="20" />
-						<span>Play All</span>
+						<span>{$_('common.playAll')}</span>
 					</button>
 				</div>
 			{/if}
@@ -231,12 +232,12 @@
 		<!-- Tracks -->
 		{#if tracks.length === 0}
 			<div class="text-center py-20 text-base-content/50">
-				<p class="text-lg">No tracks available in this playlist</p>
+				<p class="text-lg">{$_('curated.emptyTracks')}</p>
 			</div>
 		{:else if filteredTracks.length === 0}
 			<div class="text-center py-20 text-base-content/50">
-				<p class="text-lg">No offline tracks in this playlist</p>
-				<p class="text-sm mt-2">Download some tracks to see them here</p>
+				<p class="text-lg">{$_('curated.emptyOffline')}</p>
+				<p class="text-sm mt-2">{$_('curated.emptyOfflineHint')}</p>
 			</div>
 		{:else if viewMode === 'grid'}
 			<!-- Grid View -->

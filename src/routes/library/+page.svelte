@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import Icon from '@iconify/svelte';
 	import type { WebDAVLibrary } from '$lib/types';
+	import { _ } from '$lib/i18n';
 
 	$: playlistCount = Object.keys($library.playlists).length;
 	$: audioSources = ($settings.webdavLibraries || []) as WebDAVLibrary[];
@@ -18,7 +19,7 @@
 </script>
 
 <div class="p-8">
-	<h2 class="text-3xl font-bold mb-6">Library</h2>
+	<h2 class="text-3xl font-bold mb-6">{$_('library.title')}</h2>
 
 	<!-- Favorites -->
 	<section class="mb-4">
@@ -27,8 +28,8 @@
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
-				<h3 class="card-title">Favorites</h3>
-				<p class="text-base-content/70">{$library.favorites.length} items</p>
+				<h3 class="card-title">{$_('home.favorites')}</h3>
+				<p class="text-base-content/70">{$_('library.favoritesItems', { values: { count: $library.favorites.length } })}</p>
 			</div>
 		</a>
 	</section>
@@ -40,8 +41,8 @@
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
-				<h3 class="card-title">History</h3>
-				<p class="text-base-content/70">Recently played</p>
+				<h3 class="card-title">{$_('history.title')}</h3>
+				<p class="text-base-content/70">{$_('library.historySubtitle')}</p>
 			</div>
 		</a>
 	</section>
@@ -53,8 +54,8 @@
 			class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 		>
 			<div class="card-body">
-				<h3 class="card-title">Playlists</h3>
-				<p class="text-base-content/70">{playlistCount} playlist{playlistCount !== 1 ? 's' : ''}</p>
+				<h3 class="card-title">{$_('home.playlists')}</h3>
+				<p class="text-base-content/70">{$_('library.playlistCount', { values: { count: playlistCount } })}</p>
 			</div>
 		</a>
 	</section>
@@ -62,14 +63,14 @@
 	<!-- Your folders -->
 	<section>
 		<div class="flex items-center justify-between mb-3">
-			<h3 class="text-xl font-semibold">Your folders</h3>
+			<h3 class="text-xl font-semibold">{$_('library.folders.title')}</h3>
 			<a
 				href="{base}/settings/libraries"
 				class="btn btn-sm btn-ghost gap-1"
-				title="Connect a cloud folder"
+				title={$_('library.folders.connectTitle')}
 			>
 				<Icon icon="mdi:plus" width="18" />
-				Add folder
+				{$_('library.folders.addFolder')}
 			</a>
 		</div>
 
@@ -79,14 +80,12 @@
 					<Icon icon="mdi:folder-music-outline" width="24" class="opacity-50 flex-shrink-0" />
 					<div class="flex-1">
 						<p class="text-sm text-base-content/70 leading-relaxed">
-							<strong class="text-base-content/90">Internet Archive and FunkWhale work out of the box</strong> — no setup needed.
-							Connect a folder here to add your own audio: music, audiobooks, courses, podcasts.
-							Works with Koofr, Nextcloud, pCloud, or any cloud that supports WebDAV.
+							<strong class="text-base-content/90">{$_('library.folders.introStrong')}</strong>{$_('library.folders.introRest')}
 						</p>
 						<div class="mt-4">
 							<a href="{base}/settings/libraries" class="btn btn-primary btn-sm gap-1">
 								<Icon icon="mdi:plus" width="18" />
-								Connect a folder
+								{$_('library.folders.connectFolder')}
 							</a>
 						</div>
 					</div>
@@ -104,7 +103,7 @@
 							<div class="flex items-center gap-2">
 								<span class="font-medium truncate" class:opacity-60={!src.enabled}>{src.name}</span>
 								{#if !src.enabled}
-									<span class="badge badge-ghost badge-sm">disabled</span>
+									<span class="badge badge-ghost badge-sm">{$_('library.folders.disabled')}</span>
 								{/if}
 							</div>
 							<div class="text-xs opacity-60 truncate">

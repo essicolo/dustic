@@ -14,6 +14,7 @@
 	import { queue } from '$lib/stores/queue';
 	import Icon from '$lib/components/Icon.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import { _ } from '$lib/i18n';
 
 	let libraryId = '';
 	let path = '';
@@ -40,14 +41,14 @@
 		entries = [];
 		library = findLibrary(settings.getWebDAVLibraries(), id);
 		if (!library) {
-			error = 'Library not found';
+			error = $_('webdav.libraryNotFound');
 			loading = false;
 			return;
 		}
 		try {
 			entries = await listFolder(library, currentPath);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load folder';
+			error = err instanceof Error ? err.message : $_('webdav.loadError');
 		} finally {
 			loading = false;
 		}
@@ -111,7 +112,7 @@
 </script>
 
 <svelte:head>
-	<title>{library?.name || 'Library'} — Dustic</title>
+	<title>{library?.name || $_('webdav.libraryFallback')} — Dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-6xl p-4">
@@ -120,31 +121,31 @@
 		<button
 			class="btn btn-ghost btn-sm"
 			on:click={goBack}
-			aria-label="Back"
-			title={path === '/' || !path ? 'Back to Library' : 'Up one folder'}
+			aria-label={$_('common.back')}
+			title={path === '/' || !path ? $_('webdav.backToLibrary') : $_('webdav.upOneFolder')}
 		>
 			<Icon icon="mdi:arrow-left" width="20" />
 		</button>
 		<a href="{base}/library/webdav/{libraryId}?p=/" class="font-semibold hover:underline">
-			{library?.name || 'Library'}
+			{library?.name || $_('webdav.libraryFallback')}
 		</a>
 		{#each segments as seg}
 			<span class="opacity-50">/</span>
 			<a href={seg.href} class="hover:underline">{seg.label}</a>
 		{/each}
 
-		<div class="ml-auto btn-group" role="group" aria-label="View mode">
+		<div class="ml-auto btn-group" role="group" aria-label={$_('viewMode.label')}>
 			<button
 				on:click={() => (viewMode = 'tiles')}
 				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
-				title="Tiles view"
+				title={$_('viewMode.tiles')}
 			>
 				<Icon icon="mdi:view-grid" width="18" />
 			</button>
 			<button
 				on:click={() => (viewMode = 'list')}
 				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
-				title="List view"
+				title={$_('viewMode.list')}
 			>
 				<Icon icon="mdi:view-list" width="18" />
 			</button>
@@ -160,7 +161,7 @@
 			<div class="mb-4">
 				<button class="btn btn-primary btn-sm" on:click={playAll}>
 					<Icon icon="mdi:play" width="18" />
-					Play all ({files.length})
+					{$_('common.playAllCount', { values: { count: files.length } })}
 				</button>
 			</div>
 		{/if}
@@ -206,7 +207,7 @@
 			{/if}
 
 			{#if folders.length === 0 && tracks.length === 0 && (path === '/' || !path)}
-				<div class="text-center opacity-60 p-12">Empty folder</div>
+				<div class="text-center opacity-60 p-12">{$_('webdav.emptyFolder')}</div>
 			{/if}
 		{:else}
 			<!-- List view -->
@@ -238,7 +239,7 @@
 					</li>
 				{/each}
 				{#if folders.length === 0 && tracks.length === 0}
-					<li class="p-6 text-center opacity-60">Empty folder</li>
+					<li class="p-6 text-center opacity-60">{$_('webdav.emptyFolder')}</li>
 				{/if}
 			</ul>
 		{/if}

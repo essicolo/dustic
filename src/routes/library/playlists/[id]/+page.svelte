@@ -11,6 +11,7 @@
 	import Icon from '@iconify/svelte';
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import { _ } from '$lib/i18n';
 
 	$: playlistId = $page.params.id as string;
 	$: playlist = playlistId ? $library.playlists[playlistId] : undefined;
@@ -79,7 +80,7 @@
 	}
 
 	function removeFromPlaylist(trackId: string) {
-		if (confirm('Remove this track from the playlist?')) {
+		if (confirm($_('playlists.removeTrackConfirm'))) {
 			library.removeFromPlaylist(playlistId, trackId);
 			loadTracks();
 		}
@@ -87,7 +88,7 @@
 
 	function deletePlaylist() {
 		if (!playlist) return;
-		if (confirm(`Delete playlist "${playlist.name}"?`)) {
+		if (confirm($_('playlists.deletePlaylistConfirm', { values: { name: playlist.name } }))) {
 			library.deletePlaylist(playlistId);
 			goto(`${base}/library`);
 		}
@@ -138,17 +139,17 @@
 					<p class="text-base-content/70">{playlist.description}</p>
 				{/if}
 				<p class="text-sm text-base-content/50 mt-2">
-					{playlist.tracks.length} track{playlist.tracks.length !== 1 ? 's' : ''}
+					{$_('home.trackCount', { values: { count: playlist.tracks.length } })}
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
 				<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm">
 					<Icon icon="solar:arrow-left-linear" width="18" />
-					Back
+					{$_('common.back')}
 				</button>
 				<button on:click={deletePlaylist} class="btn btn-error btn-sm">
 					<Icon icon="solar:trash-bin-2-bold" width="18" />
-					Delete
+					{$_('common.delete')}
 				</button>
 			</div>
 		</div>
@@ -162,7 +163,7 @@
 					disabled={isLoading}
 				>
 					<Icon icon="solar:play-bold" width="20" />
-					Play All
+					{$_('common.playAll')}
 				</button>
 			</div>
 		{/if}
@@ -175,7 +176,7 @@
 		{:else if tracks.length === 0}
 			<div class="text-center py-12 text-base-content/50">
 				<Icon icon="solar:playlist-bold" width="48" className="mx-auto mb-4 opacity-50" />
-				<p>This playlist is empty</p>
+				<p>{$_('playlists.detailEmpty')}</p>
 			</div>
 		{:else}
 			<div class="space-y-2">

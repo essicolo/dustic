@@ -31,6 +31,7 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { batchExecute } from '$lib/utils/throttle';
+	import { _ } from '$lib/i18n';
 
 	let collectionId = '';
 	let collectionInfo: { name: string; icon: string } | null = null;
@@ -80,7 +81,7 @@
 			results = result.items;
 			totalResults = result.total;
 		} catch (e) {
-			error = 'Failed to load collection.';
+			error = $_('collection.loadError');
 			console.error(e);
 		} finally {
 			isLoading = false;
@@ -97,7 +98,7 @@
 			}
 		} catch (e) {
 			console.error('Failed to play track:', e);
-			error = 'Failed to load track. Please try another.';
+			error = $_('collection.loadTrackError');
 		} finally {
 			loadingTrack = null;
 		}
@@ -178,13 +179,13 @@
 			</h2>
 			{#if totalResults > 0}
 				<p class="text-sm text-base-content/70 mt-1">
-					{totalResults.toLocaleString()} items
+					{$_('collection.itemsCount', { values: { count: totalResults.toLocaleString() } })}
 				</p>
 			{/if}
 		</div>
 		{#if results.length > 0}
 			<button on:click={playAll} class="btn btn-primary">
-				Play All
+				{$_('common.playAll')}
 			</button>
 		{/if}
 	</div>
@@ -193,25 +194,25 @@
 	<div class="flex items-center justify-between mb-6">
 		<!-- Sort Options -->
 		<div class="flex items-center gap-2">
-			<span class="text-sm text-base-content/70">Sort:</span>
+			<span class="text-sm text-base-content/70">{$_('collection.sortLabel')}</span>
 			<div class="btn-group">
 				<button
 					on:click={() => (sortBy = 'downloads')}
 					class="btn btn-sm {sortBy === 'downloads' ? 'btn-active' : ''}"
 				>
-					Popular
+					{$_('collection.sortPopular')}
 				</button>
 				<button
 					on:click={() => (sortBy = 'date')}
 					class="btn btn-sm {sortBy === 'date' ? 'btn-active' : ''}"
 				>
-					Newest
+					{$_('collection.sortNewest')}
 				</button>
 				<button
 					on:click={() => (sortBy = 'relevance')}
 					class="btn btn-sm {sortBy === 'relevance' ? 'btn-active' : ''}"
 				>
-					Relevance
+					{$_('collection.sortRelevance')}
 				</button>
 			</div>
 		</div>
@@ -220,14 +221,14 @@
 			<button
 				on:click={() => setViewMode('tiles')}
 				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
-				title="Tiles view"
+				title={$_('viewMode.tiles')}
 			>
 				<Icon icon="solar:widget-5-bold" width="18" />
 			</button>
 			<button
 				on:click={() => setViewMode('list')}
 				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
-				title="List view"
+				title={$_('viewMode.list')}
 			>
 				<Icon icon="solar:list-bold" width="18" />
 			</button>
@@ -278,23 +279,23 @@
 					disabled={currentPage === 1 || isLoading}
 					class="btn btn-sm"
 				>
-					← Previous
+					{$_('collection.prev')}
 				</button>
 				<span class="text-sm">
-					Page {currentPage} of {totalPages}
+					{$_('collection.pageOf', { values: { current: currentPage, total: totalPages } })}
 				</span>
 				<button
 					on:click={nextPage}
 					disabled={currentPage >= totalPages || isLoading}
 					class="btn btn-sm"
 				>
-					Next →
+					{$_('collection.next')}
 				</button>
 			</div>
 		{/if}
 	{:else}
 		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No items found in this collection</p>
+			<p class="text-lg">{$_('collection.empty')}</p>
 		</div>
 	{/if}
 </div>

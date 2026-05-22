@@ -15,6 +15,7 @@
 	import { batchExecute } from '$lib/utils/throttle';
 	import { base } from '$app/paths';
 	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
+	import { _ } from '$lib/i18n';
 
 	let error = '';
 	let loadingTrack: string | null = null;
@@ -87,18 +88,18 @@
 <div class="p-4 md:p-8">
 	<!-- Page Header / Controls -->
 	<div class="flex justify-end mb-4">
-		<div class="btn-group" role="group" aria-label="View mode">
+		<div class="btn-group" role="group" aria-label={$_('viewMode.label')}>
 			<button
 				on:click={() => (viewMode = 'tiles')}
 				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
-				title="Tiles view"
+				title={$_('viewMode.tiles')}
 			>
 				<Icon icon="solar:widget-5-bold" width="20" />
 			</button>
 			<button
 				on:click={() => (viewMode = 'list')}
 				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
-				title="List view"
+				title={$_('viewMode.list')}
 			>
 				<Icon icon="solar:list-bold" width="20" />
 			</button>
@@ -109,9 +110,9 @@
 	{#if continueListening.length > 0}
 		<div class="mb-12">
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-xl md:text-2xl font-bold">Continue Listening</h2>
+				<h2 class="text-xl md:text-2xl font-bold">{$_('home.continueListening')}</h2>
 				<a href="{base}/history" class="btn btn-ghost btn-sm">
-					View All
+					{$_('common.viewAll')}
 					<Icon icon="solar:arrow-right-linear" width="16" />
 				</a>
 			</div>
@@ -153,13 +154,13 @@
 			<div class="flex items-center justify-between mb-4">
 				<div>
 					<h2 class="text-xl md:text-2xl font-bold flex items-center gap-2">
-						<span>Curated Playlists</span>
+						<span>{$_('home.curatedPlaylists')}</span>
 						<Icon icon="solar:star-bold" width="20" class="text-primary" />
 					</h2>
-					<p class="text-sm text-base-content/60 mt-1">Hand-picked by the Dustic team</p>
+					<p class="text-sm text-base-content/60 mt-1">{$_('home.curatedSubtitle')}</p>
 				</div>
 				<a href="{base}/curated" class="btn btn-ghost btn-sm">
-					View All
+					{$_('common.viewAll')}
 					<Icon icon="solar:arrow-right-linear" width="16" />
 				</a>
 			</div>
@@ -181,7 +182,7 @@
 									<h3 class="card-title text-base">{playlist.name}</h3>
 									<p class="text-sm text-base-content/60 line-clamp-2">{playlist.description}</p>
 									<div class="text-xs text-base-content/50 mt-2">
-										{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}
+										{$_('home.trackCount', { values: { count: playlist.tracks.length } })}
 									</div>
 								</div>
 							</a>
@@ -202,7 +203,7 @@
 										<h3 class="font-semibold">{playlist.name}</h3>
 										<p class="text-sm text-base-content/60 truncate">{playlist.description}</p>
 										<div class="text-xs text-base-content/50 mt-1">
-											{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}
+											{$_('home.trackCount', { values: { count: playlist.tracks.length } })}
 										</div>
 									</div>
 									<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
@@ -219,9 +220,9 @@
 	{#if favorites.length > 0 || playlists.length > 0}
 		<div class="mb-12">
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-xl md:text-2xl font-bold">Your Library</h2>
+				<h2 class="text-xl md:text-2xl font-bold">{$_('home.yourLibrary')}</h2>
 				<a href="{base}/library" class="btn btn-ghost btn-sm">
-					View All
+					{$_('common.viewAll')}
 					<Icon icon="solar:arrow-right-linear" width="16" />
 				</a>
 			</div>
@@ -231,7 +232,7 @@
 				<div class="mb-6">
 					<h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
 						<Icon icon="solar:heart-bold" width="18" class="text-error" />
-						<span>Favorites</span>
+						<span>{$_('home.favorites')}</span>
 						<span class="text-sm text-base-content/50 font-normal">({favorites.length})</span>
 					</h3>
 					<a
@@ -243,8 +244,8 @@
 								<Icon icon="solar:heart-bold" width="24" class="text-error" />
 							</div>
 							<div class="flex-1">
-								<h4 class="font-semibold">Favorites</h4>
-								<p class="text-sm text-base-content/60">{favorites.length} {favorites.length === 1 ? 'item' : 'items'}</p>
+								<h4 class="font-semibold">{$_('home.favorites')}</h4>
+								<p class="text-sm text-base-content/60">{$_('home.itemCount', { values: { count: favorites.length } })}</p>
 							</div>
 							<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
 						</div>
@@ -257,7 +258,7 @@
 				<div>
 					<h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
 						<Icon icon="solar:list-heart-bold" width="18" class="text-primary" />
-						<span>Playlists</span>
+						<span>{$_('home.playlists')}</span>
 						<span class="text-sm text-base-content/50 font-normal">({playlists.length})</span>
 					</h3>
 					<div class="space-y-2">
@@ -272,7 +273,7 @@
 									</div>
 									<div class="flex-1 min-w-0">
 										<h4 class="font-semibold truncate">{playlist.name}</h4>
-										<p class="text-sm text-base-content/60">{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}</p>
+										<p class="text-sm text-base-content/60">{$_('home.trackCount', { values: { count: playlist.tracks.length } })}</p>
 									</div>
 									<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40 flex-shrink-0" />
 								</div>
@@ -280,7 +281,7 @@
 						{/each}
 						{#if playlists.length > 5}
 							<a href="{base}/library/playlists" class="btn btn-ghost btn-sm w-full">
-								View all {playlists.length} playlists
+								{$_('home.viewAllPlaylists', { values: { count: playlists.length } })}
 							</a>
 						{/if}
 					</div>
@@ -295,16 +296,16 @@
 			<div class="mb-6">
 				<Icon icon="solar:music-library-2-bold" width="64" class="text-base-content/20 mx-auto" />
 			</div>
-			<h3 class="text-2xl font-bold mb-2">Welcome to Dustic</h3>
-			<p class="text-base-content/60 mb-6">Start exploring music from the Internet Archive and FunkWhale</p>
+			<h3 class="text-2xl font-bold mb-2">{$_('home.welcome')}</h3>
+			<p class="text-base-content/60 mb-6">{$_('home.welcomeSubtitle')}</p>
 			<div class="flex gap-3 justify-center flex-wrap">
 				<a href="{base}/search" class="btn btn-primary">
 					<Icon icon="solar:magnifer-bold" width="20" />
-					Search Music
+					{$_('home.searchMusic')}
 				</a>
 				<a href="{base}/curated" class="btn btn-outline">
 					<Icon icon="solar:star-bold" width="20" />
-					View Curated Playlists
+					{$_('home.viewCurated')}
 				</a>
 			</div>
 		</div>

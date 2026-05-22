@@ -10,6 +10,7 @@
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import Icon from '@iconify/svelte';
+	import { _ } from '$lib/i18n';
 
 	let results: Track[] = [];
 	let isLoading = false;
@@ -75,8 +76,8 @@
 <div class="p-4 md:p-8">
 	{#if !contentType}
 		<div class="text-center py-20">
-			<p class="text-lg text-base-content/50">Unknown content type</p>
-			<a href="{base}/browse/music" class="btn btn-primary mt-4">Browse Music</a>
+			<p class="text-lg text-base-content/50">{$_('browseType.unknown')}</p>
+			<a href="{base}/browse/music" class="btn btn-primary mt-4">{$_('browseType.browseMusic')}</a>
 		</div>
 	{:else}
 		<!-- Header -->
@@ -84,21 +85,21 @@
 			<div>
 				<div class="flex items-center gap-3">
 					<Icon icon={contentType.icon} width="28" class="text-primary" />
-					<h2 class="text-3xl font-bold">{contentType.name}</h2>
+					<h2 class="text-3xl font-bold">{$_(`browse.types.${contentType.id}`, { default: contentType.name })}</h2>
 				</div>
 				{#if activeTag}
 					<p class="text-sm text-base-content/60 mt-1">
-						Filtered by: <span class="font-medium text-primary">{activeTag}</span>
+						{$_('browseType.filteredBy')} <span class="font-medium text-primary">{activeTag}</span>
 					</p>
 				{/if}
 				{#if totalResults > 0}
-					<p class="text-sm text-base-content/50 mt-1">{totalResults.toLocaleString()} results</p>
+					<p class="text-sm text-base-content/50 mt-1">{$_('browseType.results', { values: { count: totalResults.toLocaleString() } })}</p>
 				{/if}
 			</div>
 			{#if results.length > 0}
 				<button on:click={playAll} class="btn btn-primary btn-sm">
 					<Icon icon="solar:play-bold" width="16" />
-					Play All
+					{$_('common.playAll')}
 				</button>
 			{/if}
 		</div>
@@ -113,7 +114,7 @@
 					class:btn-ghost={typeId !== ct.id}
 				>
 					<Icon icon={ct.icon} width="16" />
-					{ct.name}
+					{$_(`browse.types.${ct.id}`, { default: ct.name })}
 				</a>
 			{/each}
 		</div>
@@ -136,9 +137,9 @@
 		<div class="flex items-center justify-between mb-4">
 			<div class="text-sm text-base-content/50">
 				{#if isLoading}
-					Loading...
+					{$_('browseType.loading')}
 				{:else}
-					Showing {results.length} tracks
+					{$_('browseType.showingTracks', { values: { count: results.length } })}
 				{/if}
 			</div>
 			<div class="btn-group">
@@ -197,28 +198,29 @@
 						class="btn btn-sm"
 						disabled={currentPage <= 1}
 					>
-						Previous
+						{$_('search.previous')}
 					</button>
 					<span class="btn btn-sm btn-ghost no-animation">
-						Page {currentPage}
+						{$_('browseType.pageLabel', { values: { n: currentPage } })}
 					</span>
 					<button
 						on:click={() => { currentPage++; }}
 						class="btn btn-sm"
 						disabled={results.length < 50}
 					>
-						Next
+						{$_('search.next')}
 					</button>
 				</div>
 			{/if}
 		{:else}
+			{@const typeLabel = $_(`browse.types.${contentType.id}`, { default: contentType.name }).toLowerCase()}
 			<div class="text-center py-20 text-base-content/50">
 				<Icon icon={contentType.icon} width="48" class="mx-auto mb-4 opacity-30" />
-				<p class="text-lg">No {contentType.name.toLowerCase()} found</p>
+				<p class="text-lg">{$_('browseType.noFound', { values: { type: typeLabel } })}</p>
 				{#if activeTag}
-					<p class="text-sm mt-2">Try a different tag or browse all {contentType.name.toLowerCase()}</p>
+					<p class="text-sm mt-2">{$_('browseType.tryDifferent', { values: { type: typeLabel } })}</p>
 					<button on:click={() => selectTag(activeTag)} class="btn btn-sm btn-ghost mt-3">
-						Clear filter
+						{$_('browseType.clearFilter')}
 					</button>
 				{/if}
 			</div>

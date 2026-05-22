@@ -14,6 +14,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { browser } from '$app/environment';
+	import { _ } from '$lib/i18n';
 
 	let itemId = '';
 	let tracks: Track[] = [];
@@ -61,7 +62,7 @@
 				// FunkWhale track - fetch track and its album tracks
 				const track = await fwGetTrack(itemId);
 				if (!track) {
-					error = 'Track not found on FunkWhale.';
+					error = $_('item.trackNotFoundFW');
 					return;
 				}
 
@@ -95,7 +96,7 @@
 			}
 
 			if (tracks.length === 0) {
-				error = 'No playable audio files found.';
+				error = $_('item.noAudio');
 			} else {
 				// Check if URL has a track parameter and auto-play
 				const trackParam = $page.url.searchParams.get('track');
@@ -109,7 +110,7 @@
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
-			error = 'Failed to load item. Please try again.';
+			error = $_('item.loadError');
 		} finally {
 			isLoading = false;
 		}
@@ -152,7 +153,7 @@
 		});
 
 		// Show success message
-		shareMessage = `Added ${tracks.length} track${tracks.length !== 1 ? 's' : ''} to playlist`;
+		shareMessage = $_('item.addedToast', { values: { count: tracks.length } });
 		showShareToast = true;
 		setTimeout(() => {
 			showShareToast = false;
@@ -179,9 +180,9 @@
 		const hours = Math.floor(total / 3600);
 		const mins = Math.floor((total % 3600) / 60);
 		if (hours > 0) {
-			return `${hours}h ${mins}m`;
+			return $_('item.durationH', { values: { h: hours, m: mins } });
 		}
-		return `${mins}m`;
+		return $_('item.durationM', { values: { m: mins } });
 	}
 
 	async function downloadAll() {
@@ -195,7 +196,7 @@
 			}
 		} catch (e) {
 			console.error('Failed to download all tracks:', e);
-			error = 'Failed to download some tracks. Please try again.';
+			error = $_('item.downloadAllError');
 		} finally {
 			isDownloadingAll = false;
 		}
@@ -206,7 +207,7 @@
 	<!-- Back Button -->
 	<button on:click={goBack} class="btn btn-ghost btn-sm mb-6">
 		<Icon icon="solar:arrow-left-linear" width="20" />
-		<span>Back</span>
+		<span>{$_('common.back')}</span>
 	</button>
 
 	{#if error}
@@ -241,7 +242,7 @@
 
 			<!-- Info -->
 			<div class="md:col-span-2 flex flex-col justify-center">
-				<h1 class="text-3xl md:text-4xl font-bold mb-3">{itemMetadata.title || 'Untitled'}</h1>
+				<h1 class="text-3xl md:text-4xl font-bold mb-3">{itemMetadata.title || $_('common.untitled')}</h1>
 
 				{#if itemMetadata.creator}
 					<button
@@ -250,7 +251,7 @@
 							const creator = Array.isArray(itemMetadata.creator) ? itemMetadata.creator[0] : itemMetadata.creator;
 							goto(`${base}/search?q=creator:"${encodeURIComponent(creator)}"`);
 						}}
-						title="Search for more by this artist"
+						title={$_('item.searchMoreByArtist')}
 					>
 						{Array.isArray(itemMetadata.creator) ? itemMetadata.creator.join(', ') : itemMetadata.creator}
 					</button>
@@ -260,7 +261,7 @@
 				<div class="flex flex-wrap gap-4 mb-4 text-sm text-base-content/70">
 					<div class="flex items-center gap-2">
 						<Icon icon="solar:music-library-2-bold" width="16" />
-						<span>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</span>
+						<span>{$_('item.trackCount', { values: { count: tracks.length } })}</span>
 					</div>
 					<div class="flex items-center gap-2">
 						<Icon icon="solar:clock-circle-bold" width="16" />
@@ -284,34 +285,34 @@
 				<div class="flex flex-wrap items-center gap-2">
 					<button on:click={playAll} class="btn btn-primary gap-2">
 						<Icon icon="solar:play-bold" width="20" />
-						<span>Play All</span>
+						<span>{$_('common.playAll')}</span>
 					</button>
 					<button
 						on:click={downloadAll}
 						class="btn btn-outline gap-2"
 						disabled={isDownloadingAll}
-						title="Download all tracks for offline playback"
+						title={$_('item.downloadAllTitle')}
 					>
 						{#if isDownloadingAll}
 							<span class="loading loading-spinner loading-sm"></span>
-							<span>Downloading...</span>
+							<span>{$_('item.downloading')}</span>
 						{:else}
 							<Icon icon="solar:download-minimalistic-bold" width="20" />
-							<span>Download All</span>
+							<span>{$_('item.downloadAll')}</span>
 						{/if}
 					</button>
 					<button
 						on:click={openPlaylistSelector}
 						class="btn btn-outline gap-2"
-						title="Add all tracks to playlist"
+						title={$_('item.addAllToPlaylistTitle')}
 					>
 						<Icon icon="solar:list-heart-bold" width="20" />
-						<span>Add to Playlist</span>
+						<span>{$_('item.addAllToPlaylist')}</span>
 					</button>
 					<button
 						on:click={() => library.toggleFavorite(itemId, 'album')}
 						class="btn btn-ghost btn-circle"
-						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+						title={isFavorite ? $_('player.removeFavorite') : $_('player.addFavorite')}
 					>
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
@@ -322,7 +323,7 @@
 					<button
 						on:click={() => handleShare(tracks[0])}
 						class="btn btn-ghost btn-circle"
-						title="Share"
+						title={$_('item.share')}
 					>
 						<Icon icon="solar:share-linear" width="24" />
 					</button>
@@ -333,7 +334,7 @@
 						target="_blank"
 						rel="noopener noreferrer"
 						class="btn btn-ghost btn-circle"
-						title="View on {parts[1]}"
+						title={$_('item.viewOn', { values: { host: parts[1] } })}
 					>
 						<Icon icon="solar:link-circle-linear" width="24" />
 					</a>
@@ -343,7 +344,7 @@
 						target="_blank"
 						rel="noopener noreferrer"
 						class="btn btn-ghost btn-circle"
-						title="View on Internet Archive"
+						title={$_('item.viewOnIA')}
 					>
 						<Icon icon="solar:link-circle-linear" width="24" />
 					</a>
@@ -374,7 +375,7 @@
 							<button
 								class="badge badge-sm hover:bg-base-300 transition-colors cursor-pointer"
 								on:click={() => goto(`${base}/search?q=subject:"${encodeURIComponent(subject)}"`)}
-								title="Search for more in {subject}"
+								title={$_('item.searchMoreSubject', { values: { subject } })}
 							>
 								{subject}
 							</button>
@@ -386,7 +387,7 @@
 
 		<!-- Track List -->
 		<div>
-			<h2 class="text-xl font-bold mb-4">Tracks</h2>
+			<h2 class="text-xl font-bold mb-4">{$_('item.tracksHeader')}</h2>
 			<div class="space-y-2">
 				{#each tracks as track (track.identifier)}
 					<AudioCard
@@ -407,7 +408,7 @@
 			on:keydown={(e) => e.key === 'Escape' && (showPlaylistSelector = false)}
 			role="button"
 			tabindex="-1"
-			aria-label="Close playlist selector"
+			aria-label={$_('item.closePlaylistSelector')}
 		>
 			<div
 				class="bg-base-200 rounded-lg p-6 max-w-md w-full"
@@ -416,22 +417,22 @@
 				role="dialog"
 				tabindex="-1"
 			>
-				<h3 class="text-lg font-bold mb-4">Add {tracks.length} Track{tracks.length !== 1 ? 's' : ''} to Playlist</h3>
+				<h3 class="text-lg font-bold mb-4">{$_('item.dialogTitle', { values: { count: tracks.length } })}</h3>
 
 				<div class="space-y-4">
 					<!-- Playlist Selector -->
 					<div class="form-control">
 						<label class="label" for="playlist-select">
-							<span class="label-text">Select Playlist</span>
+							<span class="label-text">{$_('item.selectPlaylist')}</span>
 						</label>
 						<select
 							id="playlist-select"
 							bind:value={selectedPlaylistId}
 							class="select select-bordered w-full"
 						>
-							<option value="new">+ Create New Playlist</option>
+							<option value="new">{$_('item.createNew')}</option>
 							{#each playlists as playlist}
-								<option value={playlist.id}>{playlist.name} ({playlist.tracks.length} tracks)</option>
+								<option value={playlist.id}>{$_('item.existingTracks', { values: { name: playlist.name, count: playlist.tracks.length } })}</option>
 							{/each}
 						</select>
 					</div>
@@ -440,13 +441,13 @@
 						<!-- New Playlist Form -->
 						<div class="form-control">
 							<label class="label" for="playlist-name">
-								<span class="label-text">Playlist Name</span>
+								<span class="label-text">{$_('item.playlistName')}</span>
 							</label>
 							<input
 								id="playlist-name"
 								type="text"
 								bind:value={newPlaylistName}
-								placeholder="My Playlist"
+								placeholder={$_('item.playlistNamePlaceholder')}
 								class="input input-bordered"
 								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
 								autofocus
@@ -454,13 +455,13 @@
 						</div>
 						<div class="form-control">
 							<label class="label" for="playlist-description">
-								<span class="label-text">Description (optional)</span>
+								<span class="label-text">{$_('item.descriptionLabel')}</span>
 							</label>
 							<input
 								id="playlist-description"
 								type="text"
 								bind:value={newPlaylistDescription}
-								placeholder="Optional description"
+								placeholder={$_('item.descriptionPlaceholder')}
 								class="input input-bordered"
 								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
 							/>
@@ -473,7 +474,7 @@
 							on:click={() => showPlaylistSelector = false}
 							class="btn btn-ghost"
 						>
-							Cancel
+							{$_('common.cancel')}
 						</button>
 						<button
 							on:click={addAllToPlaylist}
@@ -481,9 +482,9 @@
 							class="btn btn-primary"
 						>
 							{#if selectedPlaylistId === 'new'}
-								Create & Add
+								{$_('item.createAndAdd')}
 							{:else}
-								Add to Playlist
+								{$_('item.addAllToPlaylist')}
 							{/if}
 						</button>
 					</div>

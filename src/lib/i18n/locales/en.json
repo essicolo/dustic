@@ -1,4 +1,83 @@
 {
+	"common": {
+		"close": "Close",
+		"cancel": "Cancel",
+		"save": "Save",
+		"clear": "Clear",
+		"dismiss": "Dismiss"
+	},
+	"nav": {
+		"home": "Home",
+		"library": "Library",
+		"search": "Search",
+		"curated": "Curated",
+		"magazine": "Magazine",
+		"browseHeader": "Browse",
+		"settings": "Settings",
+		"about": "About",
+		"openSidebar": "Open menu",
+		"closeSidebar": "Close sidebar"
+	},
+	"browse": {
+		"types": {
+			"music": "Music",
+			"podcasts": "Podcasts",
+			"audiobooks": "Audiobooks"
+		}
+	},
+	"player": {
+		"noTrack": "No track loaded",
+		"selectTrack": "Select a track to play",
+		"shuffle": "Shuffle",
+		"previous": "Previous",
+		"next": "Next",
+		"play": "Play",
+		"pause": "Pause",
+		"repeatOff": "Repeat Off",
+		"repeatOne": "Repeat One",
+		"repeatAll": "Repeat All",
+		"muteToggle": "Mute/Unmute",
+		"addFavorite": "Add to favorites",
+		"removeFavorite": "Remove from favorites",
+		"addToPlaylist": "Add to Playlist",
+		"addToPlaylistHeader": "Add to playlist",
+		"newPlaylist": "+ New Playlist",
+		"shareTrack": "Share track"
+	},
+	"queue": {
+		"title": "Queue",
+		"open": "Queue",
+		"close": "Close queue",
+		"saveAsPlaylist": "Save queue as playlist",
+		"clearConfirm": "Clear entire queue?",
+		"saveDialogTitle": "Save Queue to Playlist",
+		"selectPlaylist": "Select Playlist",
+		"createNew": "+ Create New Playlist",
+		"playlistName": "Playlist Name",
+		"playlistNamePlaceholder": "My Queue",
+		"descriptionLabel": "Description (optional)",
+		"descriptionPlaceholder": "From my queue",
+		"createAndAdd": "Create & Add ({count})",
+		"addCount": "Add ({count})",
+		"empty": "Queue is empty",
+		"emptyHint": "Add tracks to keep the music playing",
+		"trackCount": "{count, plural, one {# track in queue} other {# tracks in queue}}"
+	},
+	"sources": {
+		"title": "Sources",
+		"open": "View sources",
+		"ia": "Internet Archive",
+		"fw": "FunkWhale",
+		"folders": "Your folders",
+		"manage": "Manage sources",
+		"states": {
+			"online": "online",
+			"offline": "offline",
+			"disabled": "disabled",
+			"none": "none",
+			"unknown": "—"
+		}
+	},
 	"settings": {
 		"title": "Settings",
 		"tabs": {

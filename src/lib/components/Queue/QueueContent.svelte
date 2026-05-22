@@ -8,6 +8,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { _ } from '$lib/i18n';
 
 	const dispatch = createEventDispatcher<{ close: void }>();
 
@@ -31,7 +32,7 @@
 	}
 
 	function clearQueue() {
-		if (confirm('Clear entire queue?')) {
+		if (confirm($_('queue.clearConfirm'))) {
 			queue.clear();
 		}
 	}
@@ -118,20 +119,20 @@
 
 <!-- Header -->
 <div class="p-4 border-b border-base-content/10 flex items-center justify-between" style="padding-top: max(1rem, env(safe-area-inset-top));">
-	<h2 class="text-xl font-bold">Queue</h2>
+	<h2 class="text-xl font-bold">{$_('queue.title')}</h2>
 	<div class="flex items-center gap-2">
 		{#if $queue.tracks.length > 0}
 			<button
 				on:click={openSaveDialog}
 				class="btn btn-primary btn-sm"
-				title="Save queue as playlist"
-			 aria-label="Save queue as playlist">
+				title={$_('queue.saveAsPlaylist')}
+			 aria-label={$_('queue.saveAsPlaylist')}>
 				<Icon icon="solar:list-heart-bold" width="16" />
-				Save
+				{$_('common.save')}
 			</button>
-			<button on:click={clearQueue} class="btn btn-ghost btn-sm">Clear</button>
+			<button on:click={clearQueue} class="btn btn-ghost btn-sm">{$_('common.clear')}</button>
 		{/if}
-		<button on:click={() => dispatch('close')} class="btn btn-ghost btn-sm btn-circle">
+		<button on:click={() => dispatch('close')} class="btn btn-ghost btn-sm btn-circle" aria-label={$_('common.close')}>
 			<Icon icon="solar:close-circle-bold" width="18" />
 		</button>
 	</div>
@@ -140,18 +141,18 @@
 <!-- Save as Playlist Dialog -->
 {#if showSaveDialog}
 	<div class="p-4 bg-base-300/80 border-b border-base-content/10">
-		<h3 class="font-semibold mb-3">Save Queue to Playlist</h3>
+		<h3 class="font-semibold mb-3">{$_('queue.saveDialogTitle')}</h3>
 		<div class="space-y-3">
 			<div class="form-control">
 				<label class="label" for="queue-playlist-select">
-					<span class="label-text text-xs">Select Playlist</span>
+					<span class="label-text text-xs">{$_('queue.selectPlaylist')}</span>
 				</label>
 				<select
 					id="queue-playlist-select"
 					bind:value={selectedPlaylistId}
 					class="select select-sm select-bordered w-full"
 				>
-					<option value="new">+ Create New Playlist</option>
+					<option value="new">{$_('queue.createNew')}</option>
 					{#each playlists as playlist}
 						<option value={playlist.id}>{playlist.name} ({playlist.tracks.length})</option>
 					{/each}
@@ -161,13 +162,13 @@
 			{#if selectedPlaylistId === 'new'}
 				<div class="form-control">
 					<label class="label" for="queue-playlist-name">
-						<span class="label-text text-xs">Playlist Name</span>
+						<span class="label-text text-xs">{$_('queue.playlistName')}</span>
 					</label>
 					<input
 						id="queue-playlist-name"
 						type="text"
 						bind:value={playlistName}
-						placeholder="My Queue"
+						placeholder={$_('queue.playlistNamePlaceholder')}
 						class="input input-sm input-bordered"
 						on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
 						autofocus
@@ -175,13 +176,13 @@
 				</div>
 				<div class="form-control">
 					<label class="label" for="queue-playlist-description">
-						<span class="label-text text-xs">Description (optional)</span>
+						<span class="label-text text-xs">{$_('queue.descriptionLabel')}</span>
 					</label>
 					<input
 						id="queue-playlist-description"
 						type="text"
 						bind:value={playlistDescription}
-						placeholder="From my queue"
+						placeholder={$_('queue.descriptionPlaceholder')}
 						class="input input-sm input-bordered"
 						on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
 					/>
@@ -195,13 +196,13 @@
 					class="btn btn-primary btn-sm flex-1"
 				>
 					{#if selectedPlaylistId === 'new'}
-						Create & Add ({$queue.tracks.length})
+						{$_('queue.createAndAdd', { values: { count: $queue.tracks.length } })}
 					{:else}
-						Add ({$queue.tracks.length})
+						{$_('queue.addCount', { values: { count: $queue.tracks.length } })}
 					{/if}
 				</button>
 				<button on:click={cancelSave} class="btn btn-ghost btn-sm">
-					Cancel
+					{$_('common.cancel')}
 				</button>
 			</div>
 		</div>
@@ -212,8 +213,8 @@
 <div class="flex-1 overflow-y-auto">
 	{#if queueTracks.length === 0}
 		<div class="p-8 text-center text-base-content/50" style="padding-bottom: max(2rem, env(safe-area-inset-bottom));">
-			<p class="text-lg">Queue is empty</p>
-			<p class="text-sm mt-1">Add tracks to keep the music playing</p>
+			<p class="text-lg">{$_('queue.empty')}</p>
+			<p class="text-sm mt-1">{$_('queue.emptyHint')}</p>
 		</div>
 	{:else}
 		<div class="divide-y divide-base-content/10">
@@ -267,7 +268,7 @@
 <!-- Footer Info -->
 {#if $queue.tracks.length > 0}
 	<div class="p-3 border-t border-base-content/10 text-sm text-base-content/70" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
-		{$queue.tracks.length} track{$queue.tracks.length !== 1 ? 's' : ''} in queue
+		{$_('queue.trackCount', { values: { count: $queue.tracks.length } })}
 	</div>
 {/if}
 

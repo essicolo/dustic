@@ -1,4 +1,83 @@
 {
+	"common": {
+		"close": "Fermer",
+		"cancel": "Annuler",
+		"save": "Enregistrer",
+		"clear": "Vider",
+		"dismiss": "Ignorer"
+	},
+	"nav": {
+		"home": "Accueil",
+		"library": "Bibliothèque",
+		"search": "Recherche",
+		"curated": "Sélections",
+		"magazine": "Magazine",
+		"browseHeader": "Parcourir",
+		"settings": "Paramètres",
+		"about": "À propos",
+		"openSidebar": "Ouvrir le menu",
+		"closeSidebar": "Fermer le menu"
+	},
+	"browse": {
+		"types": {
+			"music": "Musique",
+			"podcasts": "Balados",
+			"audiobooks": "Livres audio"
+		}
+	},
+	"player": {
+		"noTrack": "Aucune piste",
+		"selectTrack": "Choisissez une piste à écouter",
+		"shuffle": "Lecture aléatoire",
+		"previous": "Précédent",
+		"next": "Suivant",
+		"play": "Lecture",
+		"pause": "Pause",
+		"repeatOff": "Répétition désactivée",
+		"repeatOne": "Répéter la piste",
+		"repeatAll": "Répéter tout",
+		"muteToggle": "Couper / activer le son",
+		"addFavorite": "Ajouter aux favoris",
+		"removeFavorite": "Retirer des favoris",
+		"addToPlaylist": "Ajouter à une playlist",
+		"addToPlaylistHeader": "Ajouter à une playlist",
+		"newPlaylist": "+ Nouvelle playlist",
+		"shareTrack": "Partager la piste"
+	},
+	"queue": {
+		"title": "File d'attente",
+		"open": "File d'attente",
+		"close": "Fermer la file d'attente",
+		"saveAsPlaylist": "Enregistrer la file comme playlist",
+		"clearConfirm": "Vider toute la file d'attente ?",
+		"saveDialogTitle": "Enregistrer la file dans une playlist",
+		"selectPlaylist": "Choisir une playlist",
+		"createNew": "+ Créer une nouvelle playlist",
+		"playlistName": "Nom de la playlist",
+		"playlistNamePlaceholder": "Ma file",
+		"descriptionLabel": "Description (facultatif)",
+		"descriptionPlaceholder": "Tirée de ma file",
+		"createAndAdd": "Créer et ajouter ({count})",
+		"addCount": "Ajouter ({count})",
+		"empty": "La file est vide",
+		"emptyHint": "Ajoutez des pistes pour garder la musique en route",
+		"trackCount": "{count, plural, one {# piste en file} other {# pistes en file}}"
+	},
+	"sources": {
+		"title": "Sources",
+		"open": "Voir les sources",
+		"ia": "Internet Archive",
+		"fw": "FunkWhale",
+		"folders": "Vos dossiers",
+		"manage": "Gérer les sources",
+		"states": {
+			"online": "en ligne",
+			"offline": "hors ligne",
+			"disabled": "désactivé",
+			"none": "aucune",
+			"unknown": "—"
+		}
+	},
 	"settings": {
 		"title": "Paramètres",
 		"tabs": {

@@ -3,12 +3,13 @@
 	import { queuePanelOpen } from '$lib/stores/queuePanel';
 	import Icon from '$lib/components/Icon.svelte';
 	import QueueContent from './QueueContent.svelte';
+	import { _ } from '$lib/i18n';
 
 	$: queueCount = $queue.tracks.length;
 </script>
 
 <!-- Queue Toggle Button -->
-<button on:click={() => queuePanelOpen.toggle()} class="btn btn-ghost btn-sm btn-circle relative" title="Queue">
+<button on:click={() => queuePanelOpen.toggle()} class="btn btn-ghost btn-sm btn-circle relative" title={$_('queue.open')}>
 	<Icon icon="mdi:playlist-music" width="20" />
 	{#if queueCount > 0}
 		<span class="badge badge-primary badge-sm absolute -top-1 -right-1">
@@ -27,7 +28,7 @@
 			on:keydown={(e) => e.key === 'Escape' && queuePanelOpen.close()}
 			role="button"
 			tabindex="-1"
-			aria-label="Close queue"
+			aria-label={$_('queue.close')}
 		></div>
 
 		<!-- Panel -->

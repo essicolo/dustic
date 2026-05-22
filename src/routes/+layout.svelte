@@ -21,7 +21,7 @@
 	import { history } from '$lib/stores/history';
 	import { theme } from '$lib/stores/theme';
 	import ThemePicker from '$lib/components/ThemePicker.svelte';
-	import { initI18n, setAppLocale, resolveLocale, SUPPORTED_LOCALES, type SupportedLocale } from '$lib/i18n';
+	import { initI18n, setAppLocale, resolveLocale, _ } from '$lib/i18n';
 
 	// Kick off i18n init synchronously at module load so the first render has
 	// a registered locale; settings.init() may refine the choice after.
@@ -166,7 +166,7 @@
 			class:-translate-y-full={!showHeader}
 			style="will-change: transform;"
 		>
-			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md flex-shrink-0">
+			<button on:click={toggleSidebar} class="btn btn-ghost btn-circle btn-md flex-shrink-0" aria-label={$_('nav.openSidebar')}>
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
 			<div class="flex items-center gap-2 flex-1 justify-center">
@@ -184,7 +184,7 @@
 				on:keydown={(e) => e.key === 'Escape' && closeSidebar()}
 				role="button"
 				tabindex="0"
-				aria-label="Close sidebar"
+				aria-label={$_('nav.closeSidebar')}
 			></div>
 		{/if}
 
@@ -203,7 +203,7 @@
 
 			<!-- Close button for mobile only -->
 			<div class="flex justify-end lg:hidden pt-1 pb-2">
-				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-circle">
+				<button on:click={closeSidebar} class="btn btn-ghost btn-sm btn-circle" aria-label={$_('common.close')}>
 					<Icon icon="solar:close-circle-bold" width="18" />
 				</button>
 			</div>
@@ -216,7 +216,7 @@
 					class:bg-primary={currentPath === `${base}/` || currentPath === base}
 					class:text-primary-content={currentPath === `${base}/` || currentPath === base}
 				>
-					Home
+					{$_('nav.home')}
 				</a>
 				<a
 					href="{base}/library"
@@ -225,7 +225,7 @@
 					class:bg-primary={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 					class:text-primary-content={currentPath.startsWith(`${base}/library`) || currentPath === `${base}/history`}
 				>
-					Library
+					{$_('nav.library')}
 				</a>
 				<a
 					href="{base}/search"
@@ -234,7 +234,7 @@
 					class:bg-primary={currentPath === `${base}/search`}
 					class:text-primary-content={currentPath === `${base}/search`}
 				>
-					Search
+					{$_('nav.search')}
 				</a>
 				<a
 					href="{base}/curated"
@@ -243,7 +243,7 @@
 					class:bg-primary={currentPath.startsWith(`${base}/curated`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/curated`)}
 				>
-					Curated
+					{$_('nav.curated')}
 				</a>
 				<a
 					href="https://dustic.bearblog.dev/"
@@ -252,14 +252,14 @@
 					on:click={closeSidebar}
 					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
 				>
-					Magazine
+					{$_('nav.magazine')}
 				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
 
 				<!-- Browse by content type -->
 				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
-					Browse
+					{$_('nav.browseHeader')}
 				</div>
 
 				{#each CONTENT_TYPES as ct}
@@ -270,7 +270,7 @@
 						class:bg-primary={currentPath.startsWith(`${base}/browse/${ct.id}`)}
 						class:text-primary-content={currentPath.startsWith(`${base}/browse/${ct.id}`)}
 					>
-						{ct.name}
+						{$_(`browse.types.${ct.id}`, { default: ct.name })}
 					</a>
 				{/each}
 
@@ -283,7 +283,7 @@
 					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
 					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
 				>
-					Settings
+					{$_('nav.settings')}
 				</a>
 
 				<div class="border-t border-base-300 my-3"></div>
@@ -295,7 +295,7 @@
 					class:bg-primary={currentPath === `${base}/about`}
 					class:text-primary-content={currentPath === `${base}/about`}
 				>
-					About
+					{$_('nav.about')}
 				</a>
 			</nav>
 

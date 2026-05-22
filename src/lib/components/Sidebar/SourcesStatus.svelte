@@ -4,6 +4,12 @@
 	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
+	import { _ } from '$lib/i18n';
+
+	function stateLabel(state: string | undefined, fallback = 'unknown'): string {
+		const key = state && ['online', 'offline'].includes(state) ? state : fallback;
+		return $_(`sources.states.${key}`);
+	}
 
 	let panelOpen = false;
 
@@ -40,14 +46,14 @@
 <button
 	class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
 	on:click={() => (panelOpen = true)}
-	aria-label="View sources"
+	aria-label={$_('sources.open')}
 >
 	<Icon icon="solar:database-bold-duotone" width="18" />
-	<span>Sources</span>
+	<span>{$_('sources.title')}</span>
 	<span class="ml-auto flex items-center gap-1">
-		<span class="w-2 h-2 rounded-full {dotClass(iaDot)}" title="Internet Archive"></span>
-		<span class="w-2 h-2 rounded-full {dotClass(fwDot)}" title="FunkWhale"></span>
-		<span class="w-2 h-2 rounded-full {dotClass(foldersDot)}" title="Your folders"></span>
+		<span class="w-2 h-2 rounded-full {dotClass(iaDot)}" title={$_('sources.ia')}></span>
+		<span class="w-2 h-2 rounded-full {dotClass(fwDot)}" title={$_('sources.fw')}></span>
+		<span class="w-2 h-2 rounded-full {dotClass(foldersDot)}" title={$_('sources.folders')}></span>
 	</span>
 </button>
 
@@ -61,11 +67,11 @@
 	>
 		<div class="modal-box max-w-sm">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-semibold">Sources</h3>
+				<h3 class="text-lg font-semibold">{$_('sources.title')}</h3>
 				<button
 					class="btn btn-ghost btn-sm btn-circle"
 					on:click={() => (panelOpen = false)}
-					aria-label="Close"
+					aria-label={$_('common.close')}
 				>
 					<Icon icon="solar:close-circle-bold" width="18" />
 				</button>
@@ -76,9 +82,9 @@
 				<div class="flex items-center gap-3">
 					<span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {dotClass(iaDot)}"></span>
 					<img src="{base}/internet-archive-icon.svg" alt="" class="w-4 h-4 opacity-70" />
-					<span class="flex-1">Internet Archive</span>
+					<span class="flex-1">{$_('sources.ia')}</span>
 					<span class="text-xs opacity-60">
-						{iaEnabled ? ($sourceStatus.ia === 'online' ? 'online' : $sourceStatus.ia === 'offline' ? 'offline' : '—') : 'disabled'}
+						{iaEnabled ? stateLabel($sourceStatus.ia, 'unknown') : $_('sources.states.disabled')}
 					</span>
 				</div>
 
@@ -87,8 +93,8 @@
 					<div class="flex items-center gap-3 opacity-60">
 						<span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {dotClass('off')}"></span>
 						<img src="{base}/funkwhale-icon.svg" alt="" class="w-4 h-4 opacity-70" />
-						<span class="flex-1">FunkWhale</span>
-						<span class="text-xs">none</span>
+						<span class="flex-1">{$_('sources.fw')}</span>
+						<span class="text-xs">{$_('sources.states.none')}</span>
 					</div>
 				{:else}
 					{#each fwInstances as instance}
@@ -97,7 +103,7 @@
 							<img src="{base}/funkwhale-icon.svg" alt="" class="w-4 h-4 opacity-70" />
 							<span class="flex-1 truncate" title={instance.url}>{instance.name}</span>
 							<span class="text-xs opacity-60">
-								{$sourceStatus.fw[instance.url] || '—'}
+								{stateLabel($sourceStatus.fw[instance.url], 'unknown')}
 							</span>
 						</div>
 					{/each}
@@ -108,8 +114,8 @@
 					<div class="flex items-center gap-3 opacity-60">
 						<span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {dotClass('off')}"></span>
 						<Icon icon="mdi:folder-music" width="16" />
-						<span class="flex-1">Your folders</span>
-						<span class="text-xs">none</span>
+						<span class="flex-1">{$_('sources.folders')}</span>
+						<span class="text-xs">{$_('sources.states.none')}</span>
 					</div>
 				{:else}
 					{#each folders as folder}
@@ -128,7 +134,7 @@
 					class="btn btn-sm"
 					on:click={() => (panelOpen = false)}
 				>
-					Manage sources
+					{$_('sources.manage')}
 				</a>
 			</div>
 		</div>

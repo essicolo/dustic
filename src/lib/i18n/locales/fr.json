@@ -1,0 +1,46 @@
+{
+	"settings": {
+		"title": "Paramètres",
+		"tabs": {
+			"preferences": "Préférences",
+			"profile": "Profil",
+			"libraries": "Sources audio"
+		},
+		"language": {
+			"title": "Langue",
+			"description": "Choisissez la langue de l'interface. Le changement est immédiat.",
+			"options": {
+				"en": "English",
+				"fr": "Français"
+			}
+		},
+		"appearance": {
+			"title": "Apparence",
+			"description": "Choisissez un thème. « Minimal » conserve l'aspect monochrome pur ; les autres ajoutent des coins arrondis, des surfaces plus chaudes et une couleur d'accent utilisée pour les favoris, le bouton lecture et la barre de progression."
+		},
+		"audio": {
+			"title": "Qualité audio",
+			"description": "Choisissez la qualité audio pour l'écoute en ligne et les téléchargements.",
+			"scopeNote": "S'applique uniquement à Internet Archive — FunkWhale et vos dossiers utilisent le format d'origine.",
+			"lowest": {
+				"label": "Qualité minimale",
+				"badge": "64-128 kbps",
+				"description": "Fichiers les plus légers. Idéal pour les données mobiles ou les connexions lentes. Formats : MP3 64 kbps, MP3 128 kbps, Ogg Vorbis."
+			},
+			"medium": {
+				"label": "Qualité moyenne (recommandée)",
+				"badge": "128-192 kbps",
+				"description": "Bon compromis entre qualité et taille. Formats : MP3 VBR, MP3 128 kbps, Ogg Vorbis."
+			},
+			"best": {
+				"label": "Qualité maximale",
+				"badge": "FLAC/320 kbps",
+				"description": "Meilleure qualité disponible. Fichiers plus volumineux. Formats : FLAC (sans perte), MP3 320 kbps, MP3 VBR."
+			},
+			"note": {
+				"strong": "Remarque :",
+				"body": "La qualité s'applique à l'écoute en ligne et aux téléchargements hors ligne. Tous les enregistrements ne proposent pas tous les formats — l'application choisira le plus proche disponible."
+			}
+		}
+	}
+}

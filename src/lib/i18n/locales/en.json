@@ -1,0 +1,46 @@
+{
+	"settings": {
+		"title": "Settings",
+		"tabs": {
+			"preferences": "Preferences",
+			"profile": "Profile",
+			"libraries": "Audio sources"
+		},
+		"language": {
+			"title": "Language",
+			"description": "Choose the interface language. The app will switch immediately.",
+			"options": {
+				"en": "English",
+				"fr": "Français"
+			}
+		},
+		"appearance": {
+			"title": "Appearance",
+			"description": "Pick a theme. \"Minimal\" keeps the pure monochrome look; the others apply soft corners, warmer surfaces, and an accent color used for likes, the play button, and the progress bar."
+		},
+		"audio": {
+			"title": "Audio Quality",
+			"description": "Choose the audio quality for streaming and downloads.",
+			"scopeNote": "Applies to Internet Archive only — FunkWhale and your folders use whatever the file provides.",
+			"lowest": {
+				"label": "Lowest Quality",
+				"badge": "64-128kbps",
+				"description": "Smallest file sizes. Best for mobile data or slow connections. Formats: 64kbps MP3, 128kbps MP3, Ogg Vorbis."
+			},
+			"medium": {
+				"label": "Medium Quality (Recommended)",
+				"badge": "128-192kbps",
+				"description": "Good balance of quality and size. Formats: VBR MP3, 128kbps MP3, Ogg Vorbis."
+			},
+			"best": {
+				"label": "Best Quality",
+				"badge": "FLAC/320kbps",
+				"description": "Highest quality available. Larger file sizes. Formats: FLAC (lossless), 320kbps MP3, VBR MP3."
+			},
+			"note": {
+				"strong": "Note:",
+				"body": "Quality applies to both streaming and offline downloads. Not all items have all formats available - the app will use the best match."
+			}
+		}
+	}
+}

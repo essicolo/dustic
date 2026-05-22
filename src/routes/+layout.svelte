@@ -21,6 +21,12 @@
 	import { history } from '$lib/stores/history';
 	import { theme } from '$lib/stores/theme';
 	import ThemePicker from '$lib/components/ThemePicker.svelte';
+	import { initI18n, setAppLocale, resolveLocale, SUPPORTED_LOCALES, type SupportedLocale } from '$lib/i18n';
+
+	// Kick off i18n init synchronously at module load so the first render has
+	// a registered locale; settings.init() may refine the choice after.
+	const initialLocale = resolveLocale(settings.get().language);
+	const i18nReady = initI18n(initialLocale);
 
 	let showThemePicker = false;
 
@@ -64,8 +70,16 @@
 		await Promise.all([
 			library.init(),
 			history.init(),
-			settings.init()
+			settings.init(),
+			i18nReady
 		]);
+
+		// Settings may have loaded a stored language from IndexedDB after the
+		// initial sync read; reconcile if it differs from what we booted with.
+		const persisted = resolveLocale(settings.get().language);
+		if (persisted !== initialLocale) {
+			await setAppLocale(persisted);
+		}
 
 		// Start source availability monitoring
 		sourceStatus.start();

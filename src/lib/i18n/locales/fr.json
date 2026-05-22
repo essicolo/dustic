@@ -541,6 +541,68 @@
 			"importantRest": " Les fichiers hors ligne ne peuvent pas être exportés ni synchronisés entre appareils en raison des restrictions de sécurité du navigateur. Les pistes téléchargées doivent l'être à nouveau sur chaque appareil souhaité."
 		}
 	},
+	"components": {
+		"errorAlert": {
+			"retry": "Réessayer",
+			"retryAria": "Réessayer l'opération",
+			"dismissAria": "Ignorer l'erreur"
+		},
+		"offline": {
+			"banner": "Vous êtes hors ligne. Seules les pistes téléchargées sont disponibles."
+		},
+		"update": {
+			"title": "Mise à jour disponible",
+			"body": "Une nouvelle version de Dustic est disponible",
+			"now": "Mettre à jour",
+			"later": "Plus tard"
+		},
+		"storageWarning": {
+			"title": "Stockage presque plein",
+			"body": "Vous utilisez {percent} % de l'espace disponible ({mb} Mo).",
+			"clearOldest": "Effacer la plus ancienne",
+			"clearOldestAria": "Effacer la piste téléchargée la plus ancienne"
+		},
+		"download": {
+			"preparing": "Préparation du téléchargement...",
+			"preparingLabel": "Préparation...",
+			"downloading": "Téléchargement... {percent} %",
+			"downloadingLabel": "Téléchargement... {percent} %",
+			"downloadedTitle": "Téléchargé — cliquez pour retélécharger",
+			"downloadedLabel": "Téléchargé",
+			"failedTitle": "Échec du téléchargement",
+			"errorLabel": "Erreur",
+			"forOffline": "Télécharger pour écoute hors ligne",
+			"downloadLabel": "Télécharger"
+		},
+		"themePicker": {
+			"welcome": "Bienvenue dans Dustic",
+			"pickStyle": "Choisissez un style — vous pourrez le changer dans les Paramètres.",
+			"noAccountHint": "Aucun compte, aucun suivi. Cliquez sur Continuer pour explorer.",
+			"continueWith": "Continuer avec {name}",
+			"useTheme": "Utiliser le thème {name}",
+			"playSwatch": "Lecture",
+			"artistSongSwatch": "Artiste · Titre"
+		},
+		"audioCard": {
+			"untitled": "Sans titre",
+			"unknownArtist": "Artiste inconnu",
+			"sourceFW": "FunkWhale",
+			"sourceWD": "WebDAV",
+			"sourceIA": "Internet Archive",
+			"playAria": "Lire {title}",
+			"playButtonAria": "Lecture",
+			"coverAlt": "Pochette de {title}",
+			"favoriteTitle": "Favori",
+			"moreActions": "Plus d'actions",
+			"searchByArtist": "Trouver plus de cet artiste",
+			"share": "Partager",
+			"addToPlaylist": "Ajouter à une playlist",
+			"addToPlaylistHeader": "Ajouter à une playlist",
+			"addToQueue": "Ajouter à la file",
+			"removeFromQueue": "Retirer de la file",
+			"newPlaylist": "+ Nouvelle playlist"
+		}
+	},
 	"profileMgr": {
 		"beforeUnload": "Vous avez des modifications non sauvegardées. Télécharger votre profil avant de quitter ?",
 		"copyFailed": "Échec de la copie dans le presse-papiers",

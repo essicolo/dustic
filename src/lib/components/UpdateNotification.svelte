@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { checkForUpdates, setCurrentVersion, reloadApp } from '$lib/utils/version';
 	import Icon from '$lib/components/Icon.svelte';
+	import { _ } from '$lib/i18n';
 
 	let showUpdatePrompt = false;
 	let checking = false;
@@ -91,16 +92,16 @@
 			<div class="flex items-center gap-2">
 				<Icon icon="solar:refresh-circle-bold" width="24" />
 				<div>
-					<h3 class="font-bold">Update Available</h3>
-					<p class="text-sm">A new version of Dustic is available</p>
+					<h3 class="font-bold">{$_('components.update.title')}</h3>
+					<p class="text-sm">{$_('components.update.body')}</p>
 				</div>
 			</div>
 			<div class="flex gap-2">
 				<button on:click={handleUpdate} class="btn btn-sm btn-primary">
-					Update Now
+					{$_('components.update.now')}
 				</button>
 				<button on:click={dismissUpdate} class="btn btn-sm btn-ghost">
-					Later
+					{$_('components.update.later')}
 				</button>
 			</div>
 		</div>

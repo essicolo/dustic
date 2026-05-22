@@ -541,6 +541,68 @@
 			"importantRest": " Offline files cannot be exported or synced across devices due to browser security restrictions. Downloaded tracks must be re-downloaded on each device where you want offline access."
 		}
 	},
+	"components": {
+		"errorAlert": {
+			"retry": "Retry",
+			"retryAria": "Retry failed operation",
+			"dismissAria": "Dismiss error"
+		},
+		"offline": {
+			"banner": "You are offline. Only downloaded tracks are available."
+		},
+		"update": {
+			"title": "Update Available",
+			"body": "A new version of Dustic is available",
+			"now": "Update Now",
+			"later": "Later"
+		},
+		"storageWarning": {
+			"title": "Storage Almost Full",
+			"body": "You're using {percent}% of available storage ({mb}MB).",
+			"clearOldest": "Clear Oldest",
+			"clearOldestAria": "Clear oldest downloaded track"
+		},
+		"download": {
+			"preparing": "Preparing download...",
+			"preparingLabel": "Preparing...",
+			"downloading": "Downloading... {percent}%",
+			"downloadingLabel": "Downloading... {percent}%",
+			"downloadedTitle": "Downloaded - Click to re-download",
+			"downloadedLabel": "Downloaded",
+			"failedTitle": "Download failed",
+			"errorLabel": "Error",
+			"forOffline": "Download for offline",
+			"downloadLabel": "Download"
+		},
+		"themePicker": {
+			"welcome": "Welcome to Dustic",
+			"pickStyle": "Pick a style — you can change it anytime in Settings.",
+			"noAccountHint": "No account, no tracking. Just press Continue to start browsing.",
+			"continueWith": "Continue with {name}",
+			"useTheme": "Use {name} theme",
+			"playSwatch": "Play",
+			"artistSongSwatch": "Artist · Song"
+		},
+		"audioCard": {
+			"untitled": "Untitled",
+			"unknownArtist": "Unknown Artist",
+			"sourceFW": "FunkWhale",
+			"sourceWD": "WebDAV",
+			"sourceIA": "Internet Archive",
+			"playAria": "Play {title}",
+			"playButtonAria": "Play",
+			"coverAlt": "Cover for {title}",
+			"favoriteTitle": "Favorite",
+			"moreActions": "More actions",
+			"searchByArtist": "Search for more by this artist",
+			"share": "Share",
+			"addToPlaylist": "Add to Playlist",
+			"addToPlaylistHeader": "Add to playlist",
+			"addToQueue": "Add to Queue",
+			"removeFromQueue": "Remove from Queue",
+			"newPlaylist": "+ New Playlist"
+		}
+	},
 	"profileMgr": {
 		"beforeUnload": "You have unsaved changes. Download your profile before leaving?",
 		"copyFailed": "Failed to copy to clipboard",

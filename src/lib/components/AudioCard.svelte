@@ -25,6 +25,7 @@
 	// Types
 	import type { ArchiveItem, Track } from '$lib/types';
 	import { isFunkwhaleTrack } from '$lib/services/funkwhale';
+	import { _ } from '$lib/i18n';
 
 	// AudioCard accepts either a full Track (FW / WebDAV / loaded IA track)
 	// or an ArchiveItem (IA album/listing). ArchiveItem already has an
@@ -153,12 +154,12 @@
 	let thumbLookupDone = false;
 	let lookedUpId: string | null = null;
 
-	$: displayTitle = (isWD && parsedMeta?.title) || item.title || 'Untitled';
+	$: displayTitle = (isWD && parsedMeta?.title) || item.title || $_('components.audioCard.untitled');
 	$: displayArtist =
 		(isWD && parsedMeta?.artist) ||
 		item.artist ||
 		(item as ArchiveItem).creator ||
-		'Unknown Artist';
+		$_('components.audioCard.unknownArtist');
 	$: displayAlbum = (isWD && parsedMeta?.album) || item.album || undefined;
 
 	$: thumb = isFW
@@ -167,10 +168,10 @@
 			? parsedMeta?.pictureUrl || fetchedThumb || ''
 			: getThumbnailUrl(item.identifier);
 	$: sourceName = isFW
-		? (item.identifier.split(':')[1] || 'FunkWhale')
+		? (item.identifier.split(':')[1] || $_('components.audioCard.sourceFW'))
 		: isWD
-			? (item.collection?.[0] || 'WebDAV')
-			: 'Internet Archive';
+			? (item.collection?.[0] || $_('components.audioCard.sourceWD'))
+			: $_('components.audioCard.sourceIA');
 
 	$: if (isWD && item.identifier !== lookedUpId) {
 		lookedUpId = item.identifier;
@@ -200,9 +201,9 @@
 		if (!meta?.pictureUrl) {
 			const enriched: Track = {
 				...(item as Track),
-				artist: meta?.artist || item.artist || 'Unknown Artist',
+				artist: meta?.artist || item.artist || $_('components.audioCard.unknownArtist'),
 				album: meta?.album || item.album,
-				title: meta?.title || item.title || 'Untitled'
+				title: meta?.title || item.title || $_('components.audioCard.untitled')
 			};
 			const url = await getThumbnailFor(enriched);
 			if (lookedUpId !== id) return;
@@ -383,7 +384,7 @@
 	on:keydown={handleKeyDown}
 	role="button"
 	tabindex="0"
-	aria-label="Play {item.title}"
+	aria-label={$_('components.audioCard.playAria', { values: { title: item.title } })}
 >
 	<figure
 		class="relative bg-neutral overflow-hidden"
@@ -410,7 +411,7 @@
 		{:else}
 			<LoadingImage
 				src={thumb}
-				alt="Cover for {item.title}"
+				alt={$_('components.audioCard.coverAlt', { values: { title: item.title } })}
 				className="w-full h-full object-cover"
 				aspectRatio="square"
 			/>
@@ -425,7 +426,7 @@
 					class="btn btn-primary btn-circle"
 					class:btn-sm={compact}
 					on:click={handlePlay}
-					aria-label="Play"
+					aria-label={$_('components.audioCard.playButtonAria')}
 				>
 					<Icon icon="solar:play-bold" width={compact ? '20' : '28'} />
 				</button>
@@ -453,7 +454,7 @@
 						goto(`${base}/search?artist=${encodeURIComponent(displayArtist)}`);
 					}
 				}}
-				title="Search for more by this artist"
+				title={$_('components.audioCard.searchByArtist')}
 			>
 				{displayArtist}
 			</button>
@@ -471,9 +472,9 @@
 
 			<button
 				class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
-				title="Favorite"
+				title={$_('components.audioCard.favoriteTitle')}
 				on:click={handleToggleFavorite}
-				aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+				aria-label={isFavorite ? $_('player.removeFavorite') : $_('player.addFavorite')}
 			>
 				<Icon
 					icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
@@ -487,8 +488,8 @@
 					bind:this={actionsButton}
 					on:click={toggleActions}
 					class="btn btn-ghost btn-circle {compact ? 'btn-xs' : 'btn-sm'}"
-					title="More actions"
-					aria-label="More actions"
+					title={$_('components.audioCard.moreActions')}
+					aria-label={$_('components.audioCard.moreActions')}
 				>
 					<Icon icon="solar:menu-dots-bold" width="20" />
 				</button>
@@ -517,39 +518,39 @@
 								<li>
 									<a role="button" tabindex="0" on:click={handleShare} on:keydown={handleShare} class="flex items-center">
 										<Icon icon="solar:share-linear" width="20" />
-										Share
+										{$_('components.audioCard.share')}
 									</a>
 								</li>
 								<li on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}>
 									<a role="button" tabindex="0" class="flex items-center">
 										<Icon icon="mdi:playlist-plus" width="20" />
-										Add to Playlist
+										{$_('components.audioCard.addToPlaylist')}
 									</a>
 								</li>
 								<li>
 									<a role="button" tabindex="0" on:click={handleAddToQueue} on:keydown={handleAddToQueue} class="flex items-center">
 										<Icon icon="mdi:playlist-music" width="20" />
-										Add to Queue
+										{$_('components.audioCard.addToQueue')}
 									</a>
 								</li>
 								{#if showRemoveFromQueue}
 									<li class="border-t border-base-content/10 mt-1 pt-1">
 										<a role="button" tabindex="0" on:click={handleRemoveFromQueue} on:keydown={handleRemoveFromQueue} class="flex items-center">
 											<Icon icon="solar:close-circle-bold" width="20" />
-											Remove from Queue
+											{$_('components.audioCard.removeFromQueue')}
 										</a>
 									</li>
 								{/if}
 							</ul>
 						</div>
 					{/if}
-					
+
 					{#if showPlaylistSelector}
 						<div
 							id="playlist-selector-{item.identifier}"
 							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
 						>
-							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+							<h3 class="text-xs font-bold p-2 text-base-content/70">{$_('components.audioCard.addToPlaylistHeader')}</h3>
 							{#each playlists as p}
 								<button
 									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
@@ -562,7 +563,7 @@
 								href="{base}/library/playlists"
 								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
 							>
-								+ New Playlist
+								{$_('components.audioCard.newPlaylist')}
 							</a>
 						</div>
 					{/if}

@@ -3,6 +3,7 @@
 	import type { Track, ArchiveItem } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
+	import { _ } from '$lib/i18n';
 
 	export let track: Track | ArchiveItem;
 	export let size: 'xs' | 'sm' | 'md' = 'sm';
@@ -50,42 +51,42 @@
 </script>
 
 {#if status === 'fetching'}
-	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title="Preparing download...">
+	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title={$_('components.download.preparing')}>
 		<span class="loading loading-spinner text-primary"></span>
-		{#if showLabel}<span>Preparing...</span>{/if}
+		{#if showLabel}<span>{$_('components.download.preparingLabel')}</span>{/if}
 	</button>
 {:else if status === 'downloading'}
 	<!-- Downloading state - subtle progress indicator -->
-	<button class="btn btn-{size} btn-ghost relative {showLabel ? '' : 'btn-circle'} {className}" disabled title="Downloading... {progress}%">
+	<button class="btn btn-{size} btn-ghost relative {showLabel ? '' : 'btn-circle'} {className}" disabled title={$_('components.download.downloading', { values: { percent: progress } })}>
 		<div class="radial-progress text-xs" style="--value:{progress}; --size:1.5rem; --thickness: 2px;">
 			<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
 		</div>
-		{#if showLabel}<span>Downloading... {Math.round(progress)}%</span>{/if}
+		{#if showLabel}<span>{$_('components.download.downloadingLabel', { values: { percent: Math.round(progress) } })}</span>{/if}
 	</button>
 {:else if status === 'completed'}
 	<!-- Downloaded state - subtle filled icon -->
 	<button
 		on:click|stopPropagation={handleDownload}
 		class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}"
-		title="Downloaded - Click to re-download"
+		title={$_('components.download.downloadedTitle')}
 	>
 		<Icon icon="solar:check-circle-bold" width={size === 'xs' ? 14 : 16} class="text-success" />
-		{#if showLabel}<span>Downloaded</span>{/if}
+		{#if showLabel}<span>{$_('components.download.downloadedLabel')}</span>{/if}
 	</button>
 {:else if status === 'error'}
-	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title="Download failed">
+	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title={$_('components.download.failedTitle')}>
 		<Icon icon="solar:danger-triangle-linear" width={size === 'xs' ? 14 : 16} class="text-error" />
-		{#if showLabel}<span>Error</span>{/if}
+		{#if showLabel}<span>{$_('components.download.errorLabel')}</span>{/if}
 	</button>
 {:else}
 	<!-- Not downloaded state - subtle outline icon -->
 	<button
 		on:click|stopPropagation={handleDownload}
 		class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}"
-		title="Download for offline"
+		title={$_('components.download.forOffline')}
 	>
 		<Icon icon="solar:download-minimalistic-linear" width={size === 'xs' ? 14 : 16} />
-		{#if showLabel}<span>Download</span>{/if}
+		{#if showLabel}<span>{$_('components.download.downloadLabel')}</span>{/if}
 	</button>
 {/if}
 

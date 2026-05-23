@@ -15,6 +15,12 @@
 	let status: 'idle' | 'downloading' | 'completed' | 'error' | 'fetching' = 'idle';
 	let fullTrack: Track | null = lazy ? null : (track as Track);
 
+	// Keep `fullTrack` in sync with the `track` prop for non-lazy mode.
+	// Without this, the DownloadButton in PlayerBar captures whatever track
+	// was current at first mount (e.g. the restored lastPlayedTrack) and
+	// downloads *that* on every click, regardless of what's actually playing.
+	$: if (!lazy) fullTrack = track as Track;
+
 	$: identifier = track.identifier;
 	$: isOffline = $isOfflineAvailable(identifier);
 	$: downloadProgress = $offline.downloadQueue.get(identifier);

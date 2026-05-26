@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
+	import { _ } from '$lib/i18n';
 
 	// Active tab is determined by the URL pathname. Each sub-page should
 	// render only its own content; the tab bar lives here so it stays
@@ -12,7 +13,7 @@
 </script>
 
 <div class="p-4 md:p-8 max-w-4xl mx-auto">
-	<h2 class="text-3xl font-bold mb-6">Settings</h2>
+	<h2 class="text-3xl font-bold mb-6">{$_('settings.title')}</h2>
 
 	<div class="tabs tabs-boxed mb-6 flex-wrap">
 		<a
@@ -20,21 +21,21 @@
 			class="tab tab-sm sm:tab-md"
 			class:tab-active={isPreferences}
 		>
-			Preferences
+			{$_('settings.tabs.preferences')}
 		</a>
 		<a
 			href="{base}/settings/profile"
 			class="tab tab-sm sm:tab-md"
 			class:tab-active={isProfile}
 		>
-			Profile
+			{$_('settings.tabs.profile')}
 		</a>
 		<a
 			href="{base}/settings/libraries"
 			class="tab tab-sm sm:tab-md"
 			class:tab-active={isLibraries}
 		>
-			Audio sources
+			{$_('settings.tabs.libraries')}
 		</a>
 	</div>
 

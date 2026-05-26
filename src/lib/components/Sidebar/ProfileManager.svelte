@@ -14,6 +14,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/Icon.svelte';
+	import { _ } from '$lib/i18n';
 
 	let fileInput: HTMLInputElement;
 	let isImporting = false;
@@ -58,7 +59,7 @@
 	function handleBeforeUnload(e: BeforeUnloadEvent) {
 		if (isDirty) {
 			e.preventDefault();
-			e.returnValue = 'You have unsaved changes. Download your profile before leaving?';
+			e.returnValue = $_('profileMgr.beforeUnload');
 		}
 	}
 
@@ -91,7 +92,7 @@
 			const imported = await importProfile(file);
 			pendingImport = imported;
 		} catch (error) {
-			importError = error instanceof Error ? error.message : 'Failed to import profile';
+			importError = error instanceof Error ? error.message : $_('profileMgr.importFailed');
 		} finally {
 			input.value = '';
 		}
@@ -135,7 +136,7 @@
 			library.markClean();
 			history.markClean();
 		} catch {
-			importError = 'Failed to copy to clipboard';
+			importError = $_('profileMgr.copyFailed');
 		}
 	}
 
@@ -164,9 +165,9 @@
 			pasteText = '';
 		} catch (error) {
 			if (error instanceof Error && error.message === 'Invalid profile format') {
-				importError = 'Clipboard does not contain a valid profile';
+				importError = $_('profileMgr.invalidProfile');
 			} else {
-				importError = 'Failed to parse profile JSON';
+				importError = $_('profileMgr.parseFailed');
 			}
 		}
 	}
@@ -194,7 +195,7 @@
 			setTimeout(() => (importSuccess = false), 3000);
 		} catch (error) {
 			console.error('[ProfileManager] Import failed:', error);
-			importError = 'Failed to save profile. Please try again.';
+			importError = $_('settings.profile.importFailedSave');
 		}
 	}
 
@@ -212,7 +213,7 @@
 			console.log('[ProfileManager] ✓ Profile saved to IndexedDB');
 		} catch (error) {
 			console.error('[ProfileManager] ✗ Failed to save profile:', error);
-			throw new Error('Failed to save profile to storage');
+			throw new Error($_('profileMgr.saveStoreFailed'));
 		}
 
 		// Now load into stores (these won't trigger auto-saves)
@@ -313,7 +314,7 @@
 		if (!config?.enabled || isSyncing) return;
 
 		if (!navigator.onLine) {
-			syncError = 'Offline — sync skipped';
+			syncError = $_('profileMgr.offlineSkip');
 			setTimeout(() => (syncError = ''), 3000);
 			return;
 		}
@@ -329,7 +330,7 @@
 			syncSuccess = true;
 			setTimeout(() => (syncSuccess = false), 3000);
 		} catch (error) {
-			syncError = error instanceof Error ? error.message : 'Sync failed';
+			syncError = error instanceof Error ? error.message : $_('profileMgr.syncFailed');
 			setTimeout(() => (syncError = ''), 5000);
 		} finally {
 			isSyncing = false;
@@ -368,10 +369,10 @@
 	<button
 		class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
 		on:click={() => (panelOpen = true)}
-		aria-label="Open profile panel"
+		aria-label={$_('profileMgr.openPanel')}
 	>
 		<Icon icon="solar:user-circle-bold-duotone" width="20" />
-		<span>Profile</span>
+		<span>{$_('profileMgr.profile')}</span>
 		{#if isDirty}
 			<Icon icon="solar:danger-triangle-bold" width="14" className="text-warning ml-auto" />
 		{/if}
@@ -388,11 +389,11 @@
 		>
 			<div class="modal-box max-w-sm">
 				<div class="flex items-center justify-between mb-4">
-					<h3 class="text-lg font-semibold">Profile</h3>
+					<h3 class="text-lg font-semibold">{$_('profileMgr.profile')}</h3>
 					<button
 						class="btn btn-ghost btn-sm btn-circle"
 						on:click={() => (panelOpen = false)}
-						aria-label="Close"
+						aria-label={$_('common.close')}
 					>
 						<Icon icon="solar:close-circle-bold" width="18" />
 					</button>
@@ -404,7 +405,7 @@
 						on:click={handleExport}
 					>
 						<Icon icon="solar:download-bold" width="20" />
-						Export
+						{$_('profileMgr.exportBtn')}
 					</button>
 
 					<button
@@ -417,7 +418,7 @@
 						{:else}
 							<Icon icon="solar:upload-bold" width="20" />
 						{/if}
-						Import
+						{$_('profileMgr.importBtn')}
 					</button>
 
 					<button
@@ -429,7 +430,7 @@
 						{:else}
 							<Icon icon="solar:copy-bold" width="20" />
 						{/if}
-						{copySuccess ? 'Copied!' : 'Copy to clipboard'}
+						{copySuccess ? $_('profileMgr.copied') : $_('profileMgr.copyToClipboard')}
 					</button>
 
 					<button
@@ -437,7 +438,7 @@
 						on:click={openPasteArea}
 					>
 						<Icon icon="solar:clipboard-bold" width="20" />
-						Paste from clipboard
+						{$_('profileMgr.pasteFromClipboard')}
 					</button>
 
 					{#if webdavEnabled}
@@ -454,7 +455,7 @@
 							{:else}
 								<Icon icon="solar:refresh-bold" width="20" />
 							{/if}
-							{syncSuccess ? 'Synced!' : 'Sync to cloud'}
+							{syncSuccess ? $_('profileMgr.synced') : $_('profileMgr.syncToCloud')}
 						</button>
 					{/if}
 				</div>
@@ -463,15 +464,15 @@
 	{#if showPasteArea}
 		<div class="mt-2 border border-base-content/10 rounded-lg p-2">
 			<div class="flex items-center justify-between mb-1.5">
-				<span class="text-xs font-medium">Paste profile JSON</span>
-				<button on:click={closePasteArea} class="btn btn-ghost btn-xs btn-circle" title="Cancel">
+				<span class="text-xs font-medium">{$_('profileMgr.pasteHeader')}</span>
+				<button on:click={closePasteArea} class="btn btn-ghost btn-xs btn-circle" title={$_('common.cancel')}>
 					<Icon icon="solar:close-circle-bold" width="14" />
 				</button>
 			</div>
 			<textarea
 				bind:this={pasteTextarea}
 				bind:value={pasteText}
-				placeholder="Paste your profile JSON here..."
+				placeholder={$_('profileMgr.pastePlaceholder')}
 				class="textarea textarea-bordered w-full text-xs h-24 font-mono leading-tight"
 			></textarea>
 			<button
@@ -479,7 +480,7 @@
 				class="btn btn-primary btn-xs w-full mt-1.5"
 				disabled={!pasteText.trim()}
 			>
-				Import
+				{$_('profileMgr.importBtn')}
 			</button>
 		</div>
 	{/if}
@@ -487,15 +488,15 @@
 	<!-- Merge or Replace choice -->
 	{#if pendingImport}
 		<div class="mt-2 border border-primary/30 rounded-lg p-2">
-			<p class="text-xs mb-2">Profile loaded. How do you want to import it?</p>
+			<p class="text-xs mb-2">{$_('profileMgr.mergeReplaceTitle')}</p>
 			<div class="flex gap-1.5">
 				<button on:click={() => applyImport('merge')} class="btn btn-primary btn-xs flex-1">
-					Merge
+					{$_('settings.profile.merge')}
 				</button>
 				<button on:click={() => applyImport('replace')} class="btn btn-outline btn-xs flex-1">
-					Replace
+					{$_('settings.profile.replace')}
 				</button>
-				<button on:click={cancelImport} class="btn btn-ghost btn-xs btn-circle" title="Cancel">
+				<button on:click={cancelImport} class="btn btn-ghost btn-xs btn-circle" title={$_('common.cancel')}>
 					<Icon icon="solar:close-circle-bold" width="14" />
 				</button>
 			</div>
@@ -506,7 +507,7 @@
 	{#if importSuccess}
 		<div class="alert alert-success mt-2 text-xs p-2 flex items-center gap-1">
 			<Icon icon="solar:check-circle-bold" width="16" />
-			<span>Profile imported successfully! Safe to close app.</span>
+			<span>{$_('profileMgr.importSuccessShort')}</span>
 		</div>
 	{/if}
 
@@ -531,8 +532,8 @@
 	{#if orphanedTracks.length > 0}
 		<div class="mt-2 border border-warning/30 rounded-lg p-2">
 			<div class="flex items-center justify-between mb-1.5">
-				<span class="text-xs font-medium text-warning">Unreferenced cached tracks</span>
-				<button on:click={dismissOrphans} class="btn btn-ghost btn-xs btn-circle" title="Dismiss">
+				<span class="text-xs font-medium text-warning">{$_('profileMgr.orphansHeader')}</span>
+				<button on:click={dismissOrphans} class="btn btn-ghost btn-xs btn-circle" title={$_('profileMgr.dismissOrphans')}>
 					<Icon icon="solar:close-circle-bold" width="14" />
 				</button>
 			</div>
@@ -545,7 +546,7 @@
 					checked={allSelected}
 					on:change={toggleAllOrphans}
 				/>
-				Select all ({orphanedTracks.length})
+				{$_('profileMgr.selectAllN', { values: { count: orphanedTracks.length } })}
 			</label>
 
 			<!-- Track list -->
@@ -572,7 +573,7 @@
 					on:click={removeSelectedOrphans}
 					class="btn btn-warning btn-xs w-full mt-1.5"
 				>
-					Remove {selectedOrphans.size} track{selectedOrphans.size > 1 ? 's' : ''} ({formatBytes(selectedSize)})
+					{$_('profileMgr.removeOrphans', { values: { count: selectedOrphans.size, size: formatBytes(selectedSize) } })}
 				</button>
 			{/if}
 		</div>

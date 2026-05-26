@@ -3,6 +3,7 @@
 	import { theme } from '$lib/stores/theme';
 	import { THEME_LIST, type ThemeId, type Theme } from '$lib/themes';
 	import Icon from '$lib/components/Icon.svelte';
+	import { _ } from '$lib/i18n';
 
 	export let mode: 'first-launch' | 'settings' = 'first-launch';
 
@@ -41,7 +42,7 @@
 		class="text-left p-4 transition-all border-2 hover:scale-[1.02]"
 		style="{mockCardStyle(t)};border-color:{selected === t.id ? t.preview.accent : 'transparent'};"
 		on:click={() => preview(t.id)}
-		aria-label="Use {t.name} theme"
+		aria-label={$_('components.themePicker.useTheme', { values: { name: t.name } })}
 		aria-pressed={selected === t.id}
 	>
 		<div class="flex items-center justify-between mb-3">
@@ -58,9 +59,9 @@
 				class="inline-block px-2 py-1 text-xs font-medium"
 				style="{mockAccentStyle(t)};border-radius:calc({t.meta['--card-radius']} / 2);"
 			>
-				Play
+				{$_('components.themePicker.playSwatch')}
 			</span>
-			<span style={mockMutedStyle(t)} class="text-xs">Artist · Song</span>
+			<span style={mockMutedStyle(t)} class="text-xs">{$_('components.themePicker.artistSongSwatch')}</span>
 		</div>
 	</button>
 {/snippet}
@@ -68,12 +69,12 @@
 {#if mode === 'first-launch'}
 	<div class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
 		<div class="bg-base-100 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
-			<h2 class="text-2xl font-bold mb-2">Welcome to Dustic</h2>
+			<h2 class="text-2xl font-bold mb-2">{$_('components.themePicker.welcome')}</h2>
 			<p class="text-base-content/70 mb-2">
-				Pick a style — you can change it anytime in Settings.
+				{$_('components.themePicker.pickStyle')}
 			</p>
 			<p class="text-sm text-base-content/50 mb-6">
-				No account, no tracking. Just press Continue to start browsing.
+				{$_('components.themePicker.noAccountHint')}
 			</p>
 
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
@@ -84,7 +85,7 @@
 
 			<div class="flex justify-end">
 				<button class="btn btn-primary" on:click={confirm}>
-					Continue with {THEME_LIST.find((t) => t.id === selected)?.name}
+					{$_('components.themePicker.continueWith', { values: { name: THEME_LIST.find((t) => t.id === selected)?.name ?? '' } })}
 				</button>
 			</div>
 		</div>

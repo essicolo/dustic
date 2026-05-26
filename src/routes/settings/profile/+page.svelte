@@ -15,6 +15,7 @@
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
 	import { onMount } from 'svelte';
+	import { _ } from '$lib/i18n';
 
 	let fileInput: HTMLInputElement;
 	let isImporting = false;
@@ -119,7 +120,7 @@
 			const imported = await importProfile(file);
 			pendingImport = imported;
 		} catch (error) {
-			importError = error instanceof Error ? error.message : 'Failed to import profile';
+			importError = error instanceof Error ? error.message : $_('settings.profile.importFailedFile');
 		} finally {
 			input.value = '';
 		}
@@ -151,7 +152,7 @@
 			setTimeout(() => { importSuccess = false; }, 3000);
 		} catch (error) {
 			console.error('[Settings] Import failed:', error);
-			importError = 'Failed to save profile. Please try again.';
+			importError = $_('settings.profile.importFailedSave');
 		}
 	}
 
@@ -248,14 +249,14 @@
 			const result = await testWebDAVConnection(webdavConfig);
 			if (result.success) {
 				webdavTestStatus = 'success';
-				webdavTestMessage = 'Connection successful!';
+				webdavTestMessage = $_('settings.profile.connSuccess');
 			} else {
 				webdavTestStatus = 'error';
-				webdavTestMessage = result.error || 'Connection failed. Check your credentials.';
+				webdavTestMessage = result.error || $_('settings.profile.connFailed');
 			}
 		} catch (error) {
 			webdavTestStatus = 'error';
-			webdavTestMessage = error instanceof Error ? error.message : 'Connection failed';
+			webdavTestMessage = error instanceof Error ? error.message : $_('settings.profile.connError');
 		}
 
 		setTimeout(() => {
@@ -282,7 +283,7 @@
 
 	async function uploadToWebdav() {
 		if (!webdavConfig.enabled || !webdavConfig.url) {
-			webdavSyncMessage = 'Please configure and enable WebDAV first';
+			webdavSyncMessage = $_('settings.profile.configFirst');
 			webdavSyncStatus = 'error';
 			setTimeout(() => { webdavSyncStatus = 'idle'; webdavSyncMessage = ''; }, 3000);
 			return;
@@ -314,13 +315,13 @@
 			webdavConfig.lastSync = Date.now();
 
 			webdavSyncStatus = 'success';
-			webdavSyncMessage = 'Profile uploaded successfully!';
+			webdavSyncMessage = $_('settings.profile.uploadOk');
 
 			library.markClean();
 			history.markClean();
 		} catch (error) {
 			webdavSyncStatus = 'error';
-			webdavSyncMessage = error instanceof Error ? error.message : 'Upload failed';
+			webdavSyncMessage = error instanceof Error ? error.message : $_('settings.profile.uploadFailed');
 		}
 
 		setTimeout(() => {
@@ -331,7 +332,7 @@
 
 	async function downloadFromWebdav() {
 		if (!webdavConfig.enabled || !webdavConfig.url) {
-			webdavSyncMessage = 'Please configure and enable WebDAV first';
+			webdavSyncMessage = $_('settings.profile.configFirst');
 			webdavSyncStatus = 'error';
 			setTimeout(() => { webdavSyncStatus = 'idle'; webdavSyncMessage = ''; }, 3000);
 			return;
@@ -347,10 +348,10 @@
 			webdavConfig.lastSync = Date.now();
 
 			webdavSyncStatus = 'success';
-			webdavSyncMessage = 'Profile downloaded and applied successfully!';
+			webdavSyncMessage = $_('settings.profile.downloadOk');
 		} catch (error) {
 			webdavSyncStatus = 'error';
-			webdavSyncMessage = error instanceof Error ? error.message : 'Download failed';
+			webdavSyncMessage = error instanceof Error ? error.message : $_('settings.profile.downloadFailed');
 		}
 
 		setTimeout(() => {
@@ -372,22 +373,22 @@
 <!-- Profile Statistics -->
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
-			<h3 class="text-xl font-semibold mb-4">Your Profile Statistics</h3>
+			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.statsTitle')}</h3>
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Favorites</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statFavorites')}</div>
 					<div class="stat-value text-2xl">{stats.favorites}</div>
 				</div>
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Playlists</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statPlaylists')}</div>
 					<div class="stat-value text-2xl">{stats.playlists}</div>
 				</div>
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Playlist Tracks</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statPlaylistTracks')}</div>
 					<div class="stat-value text-2xl">{stats.playlistTracks}</div>
 				</div>
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">History</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statHistory')}</div>
 					<div class="stat-value text-2xl">{stats.historyEntries}</div>
 				</div>
 			</div>
@@ -397,13 +398,13 @@
 	<!-- Profile Management -->
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
-			<h3 class="text-xl font-semibold mb-4">Backup & Restore</h3>
+			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.backupTitle')}</h3>
 
 			<!-- Dirty indicator -->
 			{#if isDirty}
 				<div class="alert alert-warning mb-4 flex items-center gap-2">
 					<Icon icon="solar:danger-triangle-bold" width="20" />
-					<span>You have unsaved changes</span>
+					<span>{$_('settings.profile.unsavedChanges')}</span>
 				</div>
 			{/if}
 
@@ -411,7 +412,7 @@
 			{#if importSuccess}
 				<div class="alert alert-success mb-4 flex items-center gap-2">
 					<Icon icon="solar:check-circle-bold" width="20" />
-					<span>Profile imported and saved successfully! Safe to close app.</span>
+					<span>{$_('settings.profile.importSuccess')}</span>
 				</div>
 			{/if}
 
@@ -426,16 +427,16 @@
 			{#if pendingImport}
 				<div class="alert mb-4">
 					<div class="w-full">
-						<p class="mb-3">Profile loaded. How do you want to import it?</p>
+						<p class="mb-3">{$_('settings.profile.pendingPrompt')}</p>
 						<div class="flex gap-2">
 							<button on:click={() => applyImport('merge')} class="btn btn-primary btn-sm flex-1">
-								Merge
+								{$_('settings.profile.merge')}
 							</button>
 							<button on:click={() => applyImport('replace')} class="btn btn-outline btn-sm flex-1">
-								Replace
+								{$_('settings.profile.replace')}
 							</button>
 							<button on:click={cancelImport} class="btn btn-ghost btn-sm">
-								Cancel
+								{$_('common.cancel')}
 							</button>
 						</div>
 					</div>
@@ -448,7 +449,7 @@
 					class="btn btn-primary w-full"
 				>
 					<Icon icon="solar:download-bold" width="20" />
-					<span>Download Profile</span>
+					<span>{$_('settings.profile.downloadProfile')}</span>
 				</button>
 
 				<button
@@ -461,22 +462,19 @@
 					{:else}
 						<Icon icon="solar:upload-bold" width="20" />
 					{/if}
-					<span>Upload Profile</span>
+					<span>{$_('settings.profile.uploadProfile')}</span>
 				</button>
 			</div>
 
 			<div class="text-sm text-base-content/70 mt-4 space-y-2">
 				<p>
-					<strong>Your data is stored locally</strong> in your browser's localStorage and never
-					leaves your device.
+					<strong>{$_('settings.profile.backupHelp1Strong')}</strong>{$_('settings.profile.backupHelp1Rest')}
 				</p>
 				<p>
-					Download your profile regularly to backup your favorites, playlists, and listening
-					history.
+					{$_('settings.profile.backupHelp2')}
 				</p>
 				<p>
-					When uploading a profile, you can choose to merge it with your current data or replace
-					everything.
+					{$_('settings.profile.backupHelp3')}
 				</p>
 			</div>
 		</div>
@@ -485,36 +483,36 @@
 	<!-- What's Stored -->
 	<div class="card bg-base-200 mb-6">
 		<div class="card-body">
-			<h3 class="text-xl font-semibold mb-4">What's Included in Your Profile</h3>
+			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.includedTitle')}</h3>
 			<ul class="space-y-2 text-base-content/80">
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:heart-bold" width="20" className="text-red-500 flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Favorites</strong> - All tracks you've marked as favorites
+						<strong>{$_('settings.profile.included.favoritesStrong')}</strong>{$_('settings.profile.included.favoritesRest')}
 					</div>
 				</li>
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:playlist-bold" width="20" className="text-primary flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Playlists</strong> - Your custom playlists and their tracks
+						<strong>{$_('settings.profile.included.playlistsStrong')}</strong>{$_('settings.profile.included.playlistsRest')}
 					</div>
 				</li>
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:history-bold" width="20" className="text-base-content/70 flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Listening History</strong> - Recently played tracks
+						<strong>{$_('settings.profile.included.historyStrong')}</strong>{$_('settings.profile.included.historyRest')}
 					</div>
 				</li>
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:widget-bold" width="20" className="text-base-content/70 flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Autoplay Rules</strong> - Your autoplay preferences and weights
+						<strong>{$_('settings.profile.included.autoplayStrong')}</strong>{$_('settings.profile.included.autoplayRest')}
 					</div>
 				</li>
 				<li class="flex items-start gap-2">
 					<Icon icon="solar:settings-bold" width="20" className="text-base-content/70 flex-shrink-0 mt-0.5" />
 					<div>
-						<strong>Settings</strong> - Volume, audio quality, and source configuration
+						<strong>{$_('settings.profile.included.settingsStrong')}</strong>{$_('settings.profile.included.settingsRest')}
 					</div>
 				</li>
 			</ul>
@@ -526,10 +524,10 @@
 		<div class="card-body">
 			<h3 class="text-xl font-semibold mb-4">
 				<Icon icon="solar:cloud-bold" width="24" className="inline mr-2" />
-				WebDAV Sync
+				{$_('settings.profile.webdavTitle')}
 			</h3>
 			<p class="text-sm text-base-content/70 mb-4">
-				Automatically sync your profile to a WebDAV server.
+				{$_('settings.profile.webdavSubtitle')}
 			</p>
 
 			<!-- Status messages -->
@@ -560,14 +558,14 @@
 						class="toggle toggle-primary"
 						bind:checked={webdavConfig.enabled}
 					/>
-					<span class="text-sm font-medium">Enable WebDAV Sync</span>
+					<span class="text-sm font-medium">{$_('settings.profile.webdavEnable')}</span>
 				</div>
 
 				{#if webdavConfig.enabled}
 					<div class="alert alert-warning text-xs">
 						<Icon icon="solar:lock-keyhole-bold" width="18" />
 						<div>
-							<p>Your password is encrypted on this device, but client-side encryption has limits. If your provider supports app-specific passwords or tokens, prefer those over your main password.</p>
+							<p>{$_('settings.profile.webdavWarn')}</p>
 						</div>
 					</div>
 				{/if}
@@ -575,29 +573,29 @@
 				<!-- Server URL -->
 				<div class="form-control">
 					<label class="label">
-						<span class="label-text">WebDAV Server URL</span>
+						<span class="label-text">{$_('settings.profile.webdavUrlLabel')}</span>
 					</label>
 					<input
 						type="url"
 						bind:value={webdavConfig.url}
-						placeholder="https://example.com/remote.php/dav/files/username/"
+						placeholder={$_('settings.profile.webdavUrlPlaceholder')}
 						class="input input-bordered"
 						disabled={!webdavConfig.enabled}
 					/>
 					<label class="label">
-						<span class="label-text-alt">Base WebDAV URL (without filename)</span>
+						<span class="label-text-alt">{$_('settings.profile.webdavUrlHelp')}</span>
 					</label>
 				</div>
 
 				<!-- Username -->
 				<div class="form-control">
 					<label class="label">
-						<span class="label-text">Username</span>
+						<span class="label-text">{$_('settings.profile.webdavUsernameLabel')}</span>
 					</label>
 					<input
 						type="text"
 						bind:value={webdavConfig.username}
-						placeholder="username"
+						placeholder={$_('settings.profile.webdavUsernamePlaceholder')}
 						class="input input-bordered"
 						disabled={!webdavConfig.enabled}
 					/>
@@ -606,13 +604,13 @@
 				<!-- Password -->
 				<div class="form-control">
 					<label class="label">
-						<span class="label-text">Password</span>
+						<span class="label-text">{$_('settings.profile.webdavPasswordLabel')}</span>
 					</label>
 					<div class="relative">
 						<input
 							type={showWebdavPassword ? 'text' : 'password'}
 							bind:value={webdavConfig.password}
-							placeholder="password or app token"
+							placeholder={$_('settings.profile.webdavPasswordPlaceholder')}
 							class="input input-bordered w-full pr-10"
 							disabled={!webdavConfig.enabled}
 						/>
@@ -626,14 +624,14 @@
 						</button>
 					</div>
 					<label class="label">
-						<span class="label-text-alt">Use an app-specific password if your server requires it</span>
+						<span class="label-text-alt">{$_('settings.profile.webdavPasswordHelp')}</span>
 					</label>
 				</div>
 
 				<!-- Auto-sync interval -->
 				<div class="form-control">
 					<label class="label">
-						<span class="label-text text-sm">Auto-sync interval (minutes)</span>
+						<span class="label-text text-sm">{$_('settings.profile.webdavIntervalLabel')}</span>
 					</label>
 					<input
 						type="number"
@@ -645,14 +643,14 @@
 						class="input input-bordered input-sm w-24"
 					/>
 					<label class="label">
-						<span class="label-text-alt">0 = off. Uses a small amount of bandwidth per sync.</span>
+						<span class="label-text-alt">{$_('settings.profile.webdavIntervalHelp')}</span>
 					</label>
 				</div>
 
 				<!-- Last sync timestamp -->
 				{#if webdavConfig.lastSync}
 					<div class="text-sm text-base-content/60">
-						Last synced: {new Date(webdavConfig.lastSync).toLocaleString()}
+						{$_('settings.profile.webdavLastSynced', { values: { date: new Date(webdavConfig.lastSync).toLocaleString() } })}
 					</div>
 				{/if}
 
@@ -668,7 +666,7 @@
 						{:else}
 							<Icon icon="solar:wifi-router-bold" width="16" />
 						{/if}
-						Test Connection
+						{$_('settings.profile.testConnection')}
 					</button>
 
 					<button
@@ -681,7 +679,7 @@
 						{:else}
 							<Icon icon="solar:upload-bold" width="16" />
 						{/if}
-						Upload to Server
+						{$_('settings.profile.uploadToServer')}
 					</button>
 
 					<button
@@ -694,7 +692,7 @@
 						{:else}
 							<Icon icon="solar:download-bold" width="16" />
 						{/if}
-						Download from Server
+						{$_('settings.profile.downloadFromServer')}
 					</button>
 				</div>
 			</div>
@@ -706,21 +704,21 @@
 		<div class="card-body">
 			<h3 class="text-xl font-semibold mb-4">
 				<Icon icon="solar:download-minimalistic-bold" width="24" className="inline mr-2" />
-				Offline Storage
+				{$_('settings.profile.offlineTitle')}
 			</h3>
 
 			<!-- Storage stats -->
 			<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Downloaded Tracks</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statDownloaded')}</div>
 					<div class="stat-value text-2xl">{offlineStats.tracks}</div>
 				</div>
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Storage Used</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statStorageUsed')}</div>
 					<div class="stat-value text-xl">{formatBytes(offlineStats.storageUsed)}</div>
 				</div>
 				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">Storage Quota</div>
+					<div class="stat-title text-xs">{$_('settings.profile.statStorageQuota')}</div>
 					<div class="stat-value text-xl">{formatBytes(offlineStats.storageQuota)}</div>
 				</div>
 			</div>
@@ -732,13 +730,13 @@
 					class="btn btn-outline btn-sm gap-2"
 				>
 					<Icon icon="solar:magnifer-bold" width="16" />
-					Find unreferenced cached tracks
+					{$_('settings.profile.findOrphans')}
 				</button>
 
 				{#if orphanScanDone && orphanedTracks.length === 0}
 					<div class="alert alert-success mt-3 text-sm">
 						<Icon icon="solar:check-circle-bold" width="18" />
-						<span>All cached tracks are referenced by your favorites or playlists.</span>
+						<span>{$_('settings.profile.allReferenced')}</span>
 					</div>
 				{/if}
 
@@ -746,7 +744,7 @@
 					<div class="border border-warning/30 rounded-lg p-3 mt-3">
 						<div class="flex items-center justify-between mb-2">
 							<span class="text-sm font-medium text-warning">
-								{orphanedTracks.length} unreferenced track{orphanedTracks.length > 1 ? 's' : ''} found
+								{$_('settings.profile.orphansFound', { values: { count: orphanedTracks.length } })}
 							</span>
 						</div>
 
@@ -758,7 +756,7 @@
 								checked={allOrphansSelected}
 								on:change={toggleAllOrphans}
 							/>
-							Select all
+							{$_('settings.profile.selectAll')}
 						</label>
 
 						<!-- Track list -->
@@ -785,7 +783,7 @@
 								on:click={removeSelectedOrphans}
 								class="btn btn-warning btn-sm w-full mt-3"
 							>
-								Remove {selectedOrphans.size} track{selectedOrphans.size > 1 ? 's' : ''} ({formatBytesShared(selectedOrphanSize)})
+								{$_('settings.profile.removeOrphans', { values: { count: selectedOrphans.size, size: formatBytesShared(selectedOrphanSize) } })}
 							</button>
 						{/if}
 					</div>
@@ -797,11 +795,11 @@
 					<Icon icon="solar:info-circle-bold" width="20" />
 					<div class="space-y-2">
 						<p>
-							<strong>Storage Location:</strong> Offline files are stored in your browser's storage:
+							<strong>{$_('settings.profile.storageInfoStrong')}</strong>{$_('settings.profile.storageInfoRest')}
 						</p>
 						<ul class="list-disc list-inside ml-4 space-y-1">
-							<li><strong>Audio files:</strong> Cache API (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-audio-cache</code>)</li>
-							<li><strong>Metadata:</strong> IndexedDB (<code class="text-xs bg-base-300 px-1 py-0.5 rounded">dustic-offline</code>)</li>
+							<li>{@html $_('settings.profile.storageInfoAudio')}</li>
+							<li>{@html $_('settings.profile.storageInfoMeta')}</li>
 						</ul>
 					</div>
 				</div>
@@ -809,7 +807,7 @@
 				<div class="alert alert-warning">
 					<Icon icon="solar:danger-triangle-bold" width="20" />
 					<div>
-						<p><strong>Important:</strong> Offline files cannot be exported or synced across devices due to browser security restrictions. Downloaded tracks must be re-downloaded on each device where you want offline access.</p>
+						<p><strong>{$_('settings.profile.importantStrong')}</strong>{$_('settings.profile.importantRest')}</p>
 					</div>
 				</div>
 			</div>

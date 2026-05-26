@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { settings } from '$lib/stores/settings';
+	import { _ } from '$lib/i18n';
+
+	function handleReset() {
+		if (confirm($_('autoplay.resetConfirm'))) {
+			autoplayStore.resetToDefaults();
+		}
+	}
 
 	let draggedIndex: number | null = null;
 
@@ -29,13 +36,13 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h3 class="text-lg font-bold">Autoplay Rules</h3>
+			<h3 class="text-lg font-bold">{$_('autoplay.title')}</h3>
 			<p class="text-sm text-base-content/70">
-				Configure how Dustic chooses the next track when the queue is empty
+				{$_('autoplay.subtitle')}
 			</p>
 		</div>
-		<button on:click={() => autoplayStore.resetToDefaults()} class="btn btn-ghost btn-sm">
-			Reset to Defaults
+		<button on:click={handleReset} class="btn btn-ghost btn-sm">
+			{$_('autoplay.reset')}
 		</button>
 	</div>
 
@@ -49,9 +56,9 @@
 				class="toggle toggle-primary"
 			/>
 			<div class="flex-1">
-				<div class="font-medium">Enable Autoplay</div>
+				<div class="font-medium">{$_('autoplay.enableTitle')}</div>
 				<div class="text-sm text-base-content/70">
-					Automatically play similar tracks when queue ends
+					{$_('autoplay.enableHint')}
 				</div>
 			</div>
 		</label>
@@ -67,9 +74,9 @@
 				class="toggle toggle-primary"
 			/>
 			<div class="flex-1">
-				<div class="font-medium">Use Favorites in Autoplay</div>
+				<div class="font-medium">{$_('autoplay.favoritesTitle')}</div>
 				<div class="text-sm text-base-content/70">
-					Let the "From Favorites" rule pick tracks from your favorites
+					{$_('autoplay.favoritesHint')}
 				</div>
 			</div>
 		</label>
@@ -117,12 +124,12 @@
 
 						<!-- Rule Info -->
 						<div class="flex-1">
-							<div class="font-medium">{rule.name}</div>
+							<div class="font-medium">{$_(`autoplay.rules.${rule.id}`, { default: rule.name })}</div>
 							<div class="text-xs text-base-content/50">
 								{#if totalWeight > 0 && rule.enabled}
-									{((rule.weight / totalWeight) * 100).toFixed(0)}% chance
+									{$_('autoplay.percentChance', { values: { n: ((rule.weight / totalWeight) * 100).toFixed(0) } })}
 								{:else}
-									Disabled
+									{$_('autoplay.disabled')}
 								{/if}
 							</div>
 						</div>
@@ -153,13 +160,13 @@
 
 	<!-- Info -->
 	<div class="text-xs text-base-content/50 space-y-1">
-		<p><strong>How it works:</strong></p>
+		<p><strong>{$_('autoplay.howItWorks')}</strong></p>
 		<ul class="list-disc list-inside space-y-1 ml-2">
-			<li>Drag rules to reorder priority</li>
-			<li>Higher weights = more likely to be used</li>
-			<li>Multiple rules can be enabled at once</li>
-			<li>Rules are tried in weighted random order</li>
-			<li>If a rule fails, the next one is tried</li>
+			<li>{$_('autoplay.how1')}</li>
+			<li>{$_('autoplay.how2')}</li>
+			<li>{$_('autoplay.how3')}</li>
+			<li>{$_('autoplay.how4')}</li>
+			<li>{$_('autoplay.how5')}</li>
 		</ul>
 	</div>
 </div>

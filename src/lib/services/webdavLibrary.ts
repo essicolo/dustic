@@ -446,8 +446,16 @@ export function parseFilenameHeuristics(name: string): {
 	album?: string;
 } {
 	const stem = name.replace(/\.[^.]+$/, '');
+	// Strip leading disc indicator: "Disc 1 - ", "CD2 - ", "Vol. 3 - ", etc.
+	// Without this, files like "Disc 1 - 01 - In the Flesh.ogg" parse as
+	// artist="Disc 1" because the dash-split heuristic below treats the
+	// first segment as the artist.
+	const noDisc = stem.replace(
+		/^(?:cd|disc|disk|disque|vol(?:\.|ume)?)\s*-?\s*\d+\s*[-_.)\s]\s*/i,
+		''
+	);
 	// Strip leading track number: "01 - " or "01. " or "1 "
-	const noNum = stem.replace(/^\s*\d{1,3}\s*[-_.)\s]\s*/, '');
+	const noNum = noDisc.replace(/^\s*\d{1,3}\s*[-_.)\s]\s*/, '');
 	const parts = noNum.split(/\s+-\s+/);
 	if (parts.length >= 2) {
 		return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() };

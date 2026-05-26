@@ -13,6 +13,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { _ } from '$lib/i18n';
 
 	let tracks: (Track | null)[] = [];
 	let albums: (ArchiveItem | null)[] = [];
@@ -73,7 +74,7 @@
 				if (!meta) return null;
 				return {
 					identifier: meta.metadata.identifier,
-					title: meta.metadata.title || 'Untitled',
+					title: meta.metadata.title || $_('common.untitled'),
 					creator: Array.isArray(meta.metadata.creator) ? meta.metadata.creator[0] : meta.metadata.creator
 				} as ArchiveItem;
 			} catch {
@@ -119,11 +120,11 @@
 
 <div class="p-4 md:p-8">
 	<div class="flex items-center justify-between mb-6">
-		<h2 class="text-2xl md:text-3xl font-bold">Favorites</h2>
+		<h2 class="text-2xl md:text-3xl font-bold">{$_('favorites.title')}</h2>
 		<div class="flex items-center gap-2 md:gap-3">
 			<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm">
 				<Icon icon="solar:arrow-left-linear" width="18" />
-				Back
+				{$_('common.back')}
 			</button>
 			{#if validTracks.length > 0 || validAlbums.length > 0}
 				<!-- View Mode Toggle -->
@@ -132,7 +133,7 @@
 						on:click={() => setViewMode('grid')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'grid'}
-						title="Grid view"
+						title={$_('viewMode.grid')}
 					>
 						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
@@ -140,7 +141,7 @@
 						on:click={() => setViewMode('list')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'list'}
-						title="List view"
+						title={$_('viewMode.list')}
 					>
 						<Icon icon="solar:list-bold" width="18" />
 					</button>
@@ -149,13 +150,13 @@
 				{#if filterType !== 'albums'}
 					<label class="label cursor-pointer gap-2 hidden md:flex">
 						<Icon icon="solar:download-minimalistic-bold" width="20" />
-						<span class="label-text">Offline only</span>
+						<span class="label-text">{$_('favorites.offlineOnly')}</span>
 						<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 					</label>
 				{/if}
 				{#if filterType !== 'albums' && filteredTracks.length > 0}
 					<button on:click={playAll} class="btn btn-primary btn-sm md:btn-md">
-						<span class="hidden md:inline">Play All</span>
+						<span class="hidden md:inline">{$_('common.playAll')}</span>
 						<Icon icon="solar:play-bold" width="18" class="md:hidden" />
 					</button>
 				{/if}
@@ -167,13 +168,13 @@
 	{#if trackCount > 0 && albumCount > 0}
 		<div class="tabs tabs-boxed mb-4 w-fit">
 			<button class="tab" class:tab-active={filterType === 'all'} on:click={() => (filterType = 'all')}>
-				All ({trackCount + albumCount})
+				{$_('favorites.filterAll', { values: { count: trackCount + albumCount } })}
 			</button>
 			<button class="tab" class:tab-active={filterType === 'tracks'} on:click={() => (filterType = 'tracks')}>
-				Tracks ({trackCount})
+				{$_('favorites.filterTracks', { values: { count: trackCount } })}
 			</button>
 			<button class="tab" class:tab-active={filterType === 'albums'} on:click={() => (filterType = 'albums')}>
-				Albums ({albumCount})
+				{$_('favorites.filterAlbums', { values: { count: albumCount } })}
 			</button>
 		</div>
 	{/if}
@@ -184,7 +185,7 @@
 			<label class="label cursor-pointer gap-2 justify-start">
 				<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 				<Icon icon="solar:download-minimalistic-bold" width="20" />
-				<span class="label-text">Offline only</span>
+				<span class="label-text">{$_('favorites.offlineOnly')}</span>
 			</label>
 		</div>
 	{/if}
@@ -206,14 +207,14 @@
 		{/if}
 	{:else if !isLoading && validTracks.length === 0 && validAlbums.length === 0}
 		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No favorites yet</p>
-			<p class="text-sm mt-2">Add tracks or albums to your favorites to see them here</p>
+			<p class="text-lg">{$_('favorites.empty')}</p>
+			<p class="text-sm mt-2">{$_('favorites.emptyHint')}</p>
 		</div>
 	{:else}
 		<!-- Albums Section -->
 		{#if (filterType === 'all' || filterType === 'albums') && validAlbums.length > 0}
 			{#if filterType === 'all'}
-				<h3 class="text-lg font-semibold mb-3">Albums</h3>
+				<h3 class="text-lg font-semibold mb-3">{$_('favorites.albumsHeader')}</h3>
 			{/if}
 			{#if viewMode === 'grid'}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
@@ -233,12 +234,12 @@
 		<!-- Tracks Section -->
 		{#if (filterType === 'all' || filterType === 'tracks')}
 			{#if filterType === 'all' && validTracks.length > 0 && validAlbums.length > 0}
-				<h3 class="text-lg font-semibold mb-3">Tracks</h3>
+				<h3 class="text-lg font-semibold mb-3">{$_('favorites.tracksHeader')}</h3>
 			{/if}
 			{#if filteredTracks.length === 0 && showOfflineOnly}
 				<div class="text-center py-20 text-base-content/50">
-					<p class="text-lg">No offline favorites</p>
-					<p class="text-sm mt-2">Download some favorites to see them here</p>
+					<p class="text-lg">{$_('favorites.emptyOffline')}</p>
+					<p class="text-sm mt-2">{$_('favorites.emptyOfflineHint')}</p>
 				</div>
 			{:else if viewMode === 'grid'}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

@@ -21,6 +21,15 @@ const STORE = 'meta';
 const TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year — file rarely changes
 const HEAD_BYTES = 256 * 1024;
 
+// Cache entries written before this timestamp are treated as misses.
+// Bump on any change that should invalidate previously-cached metadata.
+//   2026-05-26 — invalidates the empty tombstones written when every
+//                parseBuffer() call crashed with "Buffer is not defined"
+//                (music-metadata-browser uses Node's Buffer global,
+//                we didn't polyfill it). With 1-year TTL those tombstones
+//                would have blocked artist/album/cover for everything.
+const SCHEMA_EPOCH = 1779820988594; // 2026-05-26T18:43:08Z
+
 export interface AudioMetadata {
 	artist?: string;
 	album?: string;
@@ -67,7 +76,14 @@ async function readCache(key: string): Promise<CacheRow | null> {
 	return new Promise((resolve) => {
 		const tx = db.transaction(STORE, 'readonly');
 		const req = tx.objectStore(STORE).get(key);
-		req.onsuccess = () => resolve((req.result as CacheRow | undefined) ?? null);
+		req.onsuccess = () => {
+			const row = (req.result as CacheRow | undefined) ?? null;
+			if (row && row.fetchedAt < SCHEMA_EPOCH) {
+				resolve(null);
+				return;
+			}
+			resolve(row);
+		};
 		req.onerror = () => resolve(null);
 	});
 }
@@ -89,6 +105,31 @@ const inflight = new Map<string, Promise<AudioMetadata | null>>();
 // but the registry exists for future cleanup if we add a "clear cache"
 // settings action.
 const livePictureUrls = new Set<string>();
+
+// Bound how many audio files we hit through /api/webdav-proxy at once.
+// A folder of 26 tracks fires 26 concurrent PROPFIND-then-GET sequences,
+// which routinely overwhelms small WebDAV backends (Koofr returned
+// NetworkError / aborted requests in the user's logs). 4 is a polite
+// default — enough to keep the UI feeling parallel, low enough that the
+// upstream rarely shed requests.
+const MAX_CONCURRENT_FETCHES = 4;
+let activeFetches = 0;
+const fetchWaiters: Array<() => void> = [];
+
+async function acquireFetchSlot(): Promise<void> {
+	if (activeFetches < MAX_CONCURRENT_FETCHES) {
+		activeFetches++;
+		return;
+	}
+	await new Promise<void>((resolve) => fetchWaiters.push(resolve));
+	activeFetches++;
+}
+
+function releaseFetchSlot(): void {
+	activeFetches--;
+	const next = fetchWaiters.shift();
+	if (next) next();
+}
 
 /**
  * Read embedded audio metadata for a WebDAV track. Returns null if the
@@ -135,41 +176,68 @@ async function doFetch(
 	library: WebDAVLibrary,
 	path: string
 ): Promise<AudioMetadata | null> {
+	let buffer: ArrayBuffer | null;
+	await acquireFetchSlot();
 	try {
-		const buffer = await fetchHead(library, path);
-		if (!buffer || buffer.byteLength < 32) return null;
+		buffer = await fetchHead(library, path);
+	} catch (err) {
+		// Network glitch — don't cache, let the next render retry.
+		console.warn('[audioMeta] fetchHead failed for', path, err);
+		return null;
+	} finally {
+		releaseFetchSlot();
+	}
+	if (!buffer || buffer.byteLength < 32) return null;
 
-		// music-metadata-browser is large; dynamic-import so the bundle only
-		// pays the cost on pages that actually browse WebDAV folders.
+	// music-metadata-browser internally uses Node's Buffer global
+	// (notably in ID3v1Parser.hasID3v1Header → Buffer.alloc(3)). Without
+	// a polyfill, every parseBuffer() call throws "Buffer is not
+	// defined" before reading any tags. Install the polyfill once on
+	// first use — the buffer package is already a transitive dep.
+	if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
+		const { Buffer } = await import('buffer');
+		(globalThis as { Buffer?: unknown }).Buffer = Buffer;
+	}
+
+	// music-metadata-browser is large; dynamic-import so the bundle only
+	// pays the cost on pages that actually browse WebDAV folders.
+	let parsed;
+	try {
 		const { parseBuffer } = await import('music-metadata-browser');
-		const parsed = await parseBuffer(new Uint8Array(buffer), undefined, {
+		parsed = await parseBuffer(new Uint8Array(buffer), undefined, {
 			skipCovers: false,
 			duration: false
 		});
-		const c = parsed.common ?? {};
-
-		const picture = Array.isArray(c.picture) && c.picture.length > 0 ? c.picture[0] : undefined;
-		const meta: CacheRow['meta'] = {
-			artist: nonEmpty(c.artist),
-			album: nonEmpty(c.album),
-			title: nonEmpty(c.title),
-			albumArtist: nonEmpty(c.albumartist),
-			year: typeof c.year === 'number' ? c.year : undefined,
-			trackNumber: typeof c.track?.no === 'number' ? c.track.no : undefined
-		};
-		if (picture && picture.data && picture.format) {
-			meta.pictureBytes = new Uint8Array(picture.data);
-			meta.pictureMime = picture.format;
-		}
-
-		await writeCache({ key: trackId, meta, fetchedAt: Date.now() });
-		return hydrate({ key: trackId, meta, fetchedAt: Date.now() });
 	} catch (err) {
-		// Cache a tombstone so we don't keep retrying broken / un-tagged files.
-		await writeCache({ key: trackId, meta: {}, fetchedAt: Date.now() });
-		console.warn('[audioMeta] fetch failed for', path, err);
+		// Parse failures are almost always code/library bugs (e.g. missing
+		// Buffer polyfill, library regression). We INTENTIONALLY do not
+		// cache them: a year-long tombstone over a transient bug means
+		// users can't recover without manually clearing IndexedDB. The
+		// next render will retry; if the bug persists we burn a few extra
+		// PROPFINDs, which is the right trade-off.
+		console.warn('[audioMeta] parse failed for', path, err);
 		return null;
 	}
+	const c = parsed.common ?? {};
+
+	const picture = Array.isArray(c.picture) && c.picture.length > 0 ? c.picture[0] : undefined;
+	const meta: CacheRow['meta'] = {
+		artist: nonEmpty(c.artist),
+		album: nonEmpty(c.album),
+		title: nonEmpty(c.title),
+		albumArtist: nonEmpty(c.albumartist),
+		year: typeof c.year === 'number' ? c.year : undefined,
+		trackNumber: typeof c.track?.no === 'number' ? c.track.no : undefined
+	};
+	if (picture && picture.data && picture.format) {
+		meta.pictureBytes = new Uint8Array(picture.data);
+		meta.pictureMime = picture.format;
+	}
+
+	// Cache success (including "no tags" — meta is just empty). Future
+	// renders read this row directly without re-fetching.
+	await writeCache({ key: trackId, meta, fetchedAt: Date.now() });
+	return hydrate({ key: trackId, meta, fetchedAt: Date.now() });
 }
 
 function nonEmpty(s: string | undefined): string | undefined {

@@ -14,6 +14,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { _ } from '$lib/i18n';
 
 	let tracks: (Track | null)[] = [];
 	let isLoading = false;
@@ -76,7 +77,7 @@
 	}
 
 	function clearHistory() {
-		if (confirm('Clear all history?')) {
+		if (confirm($_('history.clearConfirm'))) {
 			history.clear();
 			tracks = [];
 		}
@@ -104,10 +105,10 @@
 		const hours = Math.floor(diff / 3600000);
 		const days = Math.floor(diff / 86400000);
 
-		if (minutes < 1) return 'Just now';
-		if (minutes < 60) return `${minutes}m ago`;
-		if (hours < 24) return `${hours}h ago`;
-		if (days < 7) return `${days}d ago`;
+		if (minutes < 1) return $_('history.justNow');
+		if (minutes < 60) return $_('history.minutesAgo', { values: { n: minutes } });
+		if (hours < 24) return $_('history.hoursAgo', { values: { n: hours } });
+		if (days < 7) return $_('history.daysAgo', { values: { n: days } });
 
 		return date.toLocaleDateString();
 	}
@@ -127,11 +128,11 @@
 
 <div class="p-4 md:p-8">
 	<div class="flex items-center justify-between mb-6">
-		<h2 class="text-2xl md:text-3xl font-bold">Recently Played</h2>
+		<h2 class="text-2xl md:text-3xl font-bold">{$_('history.title')}</h2>
 		<div class="flex items-center gap-2 md:gap-3">
 			<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm">
 				<Icon icon="solar:arrow-left-linear" width="18" />
-				Back
+				{$_('common.back')}
 			</button>
 			{#if validTracks.length > 0}
 				<!-- View Mode Toggle -->
@@ -140,7 +141,7 @@
 						on:click={() => setViewMode('grid')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'grid'}
-						title="Grid view"
+						title={$_('viewMode.grid')}
 					>
 						<Icon icon="solar:widget-5-bold" width="18" />
 					</button>
@@ -148,7 +149,7 @@
 						on:click={() => setViewMode('list')}
 						class="btn btn-sm"
 						class:btn-active={viewMode === 'list'}
-						title="List view"
+						title={$_('viewMode.list')}
 					>
 						<Icon icon="solar:list-bold" width="18" />
 					</button>
@@ -156,11 +157,11 @@
 
 				<label class="label cursor-pointer gap-2 hidden md:flex">
 					<Icon icon="solar:download-minimalistic-bold" width="20" />
-					<span class="label-text">Offline only</span>
+					<span class="label-text">{$_('history.offlineOnly')}</span>
 					<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 				</label>
 				<button on:click={clearHistory} class="btn btn-ghost btn-sm">
-					<span class="hidden md:inline">Clear History</span>
+					<span class="hidden md:inline">{$_('history.clear')}</span>
 					<Icon icon="solar:trash-bin-minimalistic-bold" width="18" class="md:hidden" />
 				</button>
 			{/if}
@@ -173,7 +174,7 @@
 			<label class="label cursor-pointer gap-2 justify-start">
 				<input type="checkbox" bind:checked={showOfflineOnly} class="toggle toggle-primary" />
 				<Icon icon="solar:download-minimalistic-bold" width="20" />
-				<span class="label-text">Offline only</span>
+				<span class="label-text">{$_('history.offlineOnly')}</span>
 			</label>
 		</div>
 	{/if}
@@ -195,13 +196,13 @@
 		{/if}
 	{:else if validTracks.length === 0}
 		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No history yet</p>
-			<p class="text-sm mt-2">Tracks you play will appear here</p>
+			<p class="text-lg">{$_('history.empty')}</p>
+			<p class="text-sm mt-2">{$_('history.emptyHint')}</p>
 		</div>
 	{:else if filteredTracks.length === 0}
 		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No offline tracks in history</p>
-			<p class="text-sm mt-2">Download some tracks to see them here</p>
+			<p class="text-lg">{$_('history.emptyOffline')}</p>
+			<p class="text-sm mt-2">{$_('history.emptyOfflineHint')}</p>
 		</div>
 	{:else if viewMode === 'grid'}
 		<!-- Grid View -->
@@ -218,7 +219,7 @@
 						<button
 							on:click={() => removeFromHistory(track.identifier)}
 							class="btn btn-ghost btn-sm btn-circle"
-							title="Remove from history"
+							title={$_('history.removeFromHistory')}
 						>
 							<Icon icon="solar:trash-bin-minimalistic-linear" width="16" />
 						</button>
@@ -258,7 +259,7 @@
 							<button
 								on:click={() => removeFromHistory(track.identifier)}
 								class="btn btn-ghost btn-sm"
-								title="Remove from history"
+								title={$_('history.removeFromHistory')}
 							>
 								<Icon icon="solar:trash-bin-minimalistic-linear" width="16" />
 							</button>

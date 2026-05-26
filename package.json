@@ -20,6 +20,7 @@
   "dependencies": {
     "eruda": "^3.4.3",
     "music-metadata-browser": "^2.5.11",
+    "svelte-i18n": "^4.0.1",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.16",
     "daisyui": "^4.12.0",
+    "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.0.11",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.32",

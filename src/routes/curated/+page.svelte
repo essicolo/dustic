@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import Icon from '@iconify/svelte';
 	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
+	import { _ } from '$lib/i18n';
 
 	interface CuratedPlaylist {
 		id: string;
@@ -21,16 +22,16 @@
 
 <div class="p-4 md:p-8">
 	<div class="max-w-4xl mx-auto">
-		<h2 class="text-2xl md:text-3xl font-bold mb-2">Curated Playlists</h2>
+		<h2 class="text-2xl md:text-3xl font-bold mb-2">{$_('curated.title')}</h2>
 		<p class="text-base-content/70 mb-8">
-			Hand-picked collections from the Dustic team. These are curated playlists created by humans to showcase the best audio from the Internet Archive.
+			{$_('curated.subtitle')}
 		</p>
 
 		{#if curatedPlaylists.length === 0}
 			<div class="text-center py-20 text-base-content/50">
 				<Icon icon="solar:playlist-minimalistic-linear" width="64" class="mx-auto mb-4 opacity-30" />
-				<p class="text-lg">No curated playlists available yet</p>
-				<p class="text-sm mt-2">Check back soon for hand-picked collections</p>
+				<p class="text-lg">{$_('curated.empty')}</p>
+				<p class="text-sm mt-2">{$_('curated.emptyHint')}</p>
 			</div>
 		{:else}
 			<div class="grid gap-6 md:grid-cols-2">
@@ -47,7 +48,7 @@
 								<div class="flex-1 min-w-0">
 									<h3 class="card-title text-lg mb-1">{playlist.name}</h3>
 									<p class="text-xs text-base-content/50 mb-2">
-										Curated by {playlist.curator}
+										{$_('curated.curatedBy', { values: { curator: playlist.curator } })}
 									</p>
 									<p class="text-sm text-base-content/70 line-clamp-2">
 										{playlist.description}
@@ -56,7 +57,7 @@
 							</div>
 							<div class="card-actions justify-between items-center mt-4 pt-4 border-t border-base-300">
 								<div class="text-xs text-base-content/50">
-									{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}
+									{$_('curated.trackCount', { values: { count: playlist.tracks.length } })}
 								</div>
 								<div class="flex gap-2">
 									<Icon icon="solar:arrow-right-linear" width="20" class="text-base-content/40" />
@@ -74,14 +75,12 @@
 					<Icon icon="solar:info-circle-bold" width="24" class="text-info" />
 				</div>
 				<div>
-					<h3 class="font-semibold mb-2">About Curated Playlists</h3>
+					<h3 class="font-semibold mb-2">{$_('curated.aboutTitle')}</h3>
 					<p class="text-sm text-base-content/70 mb-3">
-						Unlike algorithmic recommendations, these playlists are carefully crafted by human curators from the Dustic team.
-						Each selection is chosen to represent the best of its genre and provide a meaningful listening experience.
+						{$_('curated.aboutBody1')}
 					</p>
 					<p class="text-sm text-base-content/70">
-						All audio is sourced from the <a href="https://archive.org" target="_blank" rel="noopener noreferrer" class="link link-primary">Internet Archive</a>,
-						a non-profit library of millions of free books, movies, music, and more.
+						{$_('curated.aboutBody2Before')}<a href="https://archive.org" target="_blank" rel="noopener noreferrer" class="link link-primary">{$_('curated.aboutBody2Link')}</a>{$_('curated.aboutBody2After')}
 					</p>
 				</div>
 			</div>

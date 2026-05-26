@@ -35,6 +35,7 @@
 	import { shareTrack } from '$lib/utils/share';
 	import { debounce } from '$lib/utils/throttle';
 	import { browser } from '$app/environment';
+	import { _ } from '$lib/i18n';
 
 	let searchQuery = '';
 	let searchCreator = ''; // Artist/creator filter (from artist click)
@@ -145,7 +146,7 @@
 		} catch (e: any) {
 			console.warn('[Search] Failed:', e.message || e);
 			if (e.message?.includes('Network error') || e.message?.includes('network')) {
-				error = 'Network error. Please check your internet connection.';
+				error = $_('search.networkError');
 			}
 		} finally {
 			isSearching = false;
@@ -215,7 +216,7 @@
 			}
 		} catch (e) {
 			console.error('Failed to play track:', e);
-			error = 'Failed to load track. Please try another.';
+			error = $_('search.loadTrackError');
 		} finally {
 			loadingTrack = null;
 		}
@@ -287,7 +288,7 @@
 </script>
 
 <div class="p-4 md:p-8">
-	<h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Search</h2>
+	<h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">{$_('search.title')}</h2>
 
 	<!-- Search Bar -->
 	<div class="mb-4">
@@ -299,7 +300,7 @@
 				on:focus={() => { userIsEditing = true; }}
 				on:blur={() => { userIsEditing = false; }}
 				on:keydown={(e) => e.key === 'Enter' && handleSearch()}
-				placeholder="Search for artists, albums, tracks..."
+				placeholder={$_('search.placeholder')}
 				class="input input-bordered w-full pr-12"
 				autocomplete="off"
 				enterkeyhint="search"
@@ -327,7 +328,7 @@
 			class:btn-primary={selectedContentType === ''}
 			class:btn-ghost={selectedContentType !== ''}
 		>
-			All
+			{$_('search.all')}
 		</button>
 		{#each CONTENT_TYPES as ct}
 			<button
@@ -337,7 +338,7 @@
 				class:btn-ghost={selectedContentType !== ct.id}
 			>
 				<Icon icon={ct.icon} width="16" />
-				{ct.name}
+				{$_(`browse.types.${ct.id}`, { default: ct.name })}
 			</button>
 		{/each}
 	</div>
@@ -361,14 +362,14 @@
 		<div class="flex items-center gap-2 flex-wrap min-w-0">
 			{#if searchQuery.trim() && totalResults > 0 && !isSearching}
 				<span class="text-sm text-base-content/60">
-					{totalResults.toLocaleString()} results
+					{$_('search.resultsCount', { values: { count: totalResults.toLocaleString() } })}
 				</span>
 			{/if}
 			{#if selectedContentType}
 				{@const ct = CONTENT_TYPES.find(t => t.id === selectedContentType)}
 				{#if ct}
 					<span class="badge badge-sm badge-primary gap-1">
-						{ct.name}
+						{$_(`browse.types.${ct.id}`, { default: ct.name })}
 						<button on:click={() => selectContentType('')} class="hover:text-primary-content/80">x</button>
 					</span>
 				{/if}
@@ -381,7 +382,7 @@
 			{/if}
 			{#if hasActiveFilters}
 				<button on:click={clearFilters} class="text-xs text-base-content/50 hover:text-base-content/80">
-					Clear all
+					{$_('search.clearAll')}
 				</button>
 			{/if}
 		</div>
@@ -394,13 +395,13 @@
 				class:btn-active={showFilters}
 			>
 				<Icon icon="solar:filter-bold" width="16" />
-				<span class="hidden sm:inline">Filters</span>
+				<span class="hidden sm:inline">{$_('search.filters')}</span>
 			</button>
 
 			{#if results.length > 0}
 				<button on:click={playAll} class="btn btn-primary btn-sm gap-1">
 					<Icon icon="solar:play-bold" width="16" />
-					Play All
+					{$_('common.playAll')}
 				</button>
 			{/if}
 		</div>
@@ -412,7 +413,7 @@
 			<div class="flex flex-wrap gap-6">
 				<!-- Source Toggles -->
 				<div>
-					<h4 class="text-xs font-semibold text-base-content/50 uppercase mb-2">Sources</h4>
+					<h4 class="text-xs font-semibold text-base-content/50 uppercase mb-2">{$_('search.sourcesHeader')}</h4>
 					<div class="flex gap-3">
 						<label class="flex items-center gap-2 cursor-pointer">
 							<input
@@ -439,19 +440,19 @@
 
 				<!-- Sort -->
 				<div>
-					<h4 class="text-xs font-semibold text-base-content/50 uppercase mb-2">Sort By</h4>
+					<h4 class="text-xs font-semibold text-base-content/50 uppercase mb-2">{$_('search.sortHeader')}</h4>
 					<div class="flex gap-3">
 						<label class="flex items-center gap-1.5 cursor-pointer">
 							<input type="radio" bind:group={sortBy} value="relevance" on:change={() => { if (searchQuery.trim()) { currentPage = 1; handleSearch(); } }} class="radio radio-sm radio-primary" />
-							<span class="text-sm">Relevance</span>
+							<span class="text-sm">{$_('search.sortRelevance')}</span>
 						</label>
 						<label class="flex items-center gap-1.5 cursor-pointer">
 							<input type="radio" bind:group={sortBy} value="downloads" on:change={() => { if (searchQuery.trim()) { currentPage = 1; handleSearch(); } }} class="radio radio-sm radio-primary" />
-							<span class="text-sm">Popular</span>
+							<span class="text-sm">{$_('search.sortPopular')}</span>
 						</label>
 						<label class="flex items-center gap-1.5 cursor-pointer">
 							<input type="radio" bind:group={sortBy} value="date" on:change={() => { if (searchQuery.trim()) { currentPage = 1; handleSearch(); } }} class="radio radio-sm radio-primary" />
-							<span class="text-sm">Newest</span>
+							<span class="text-sm">{$_('search.sortNewest')}</span>
 						</label>
 					</div>
 				</div>
@@ -485,31 +486,31 @@
 					disabled={currentPage === 1 || isSearching}
 					class="btn btn-sm"
 				>
-					Previous
+					{$_('search.previous')}
 				</button>
 				<span class="text-sm">
-					Page {currentPage} of {totalPages}
+					{$_('search.pageOf', { values: { current: currentPage, total: totalPages } })}
 				</span>
 				<button
 					on:click={nextPage}
 					disabled={currentPage >= totalPages || isSearching}
 					class="btn btn-sm"
 				>
-					Next
+					{$_('search.next')}
 				</button>
 			</div>
 		{/if}
 	{:else if searchQuery.trim()}
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
-			<p class="text-lg">No results for "{searchQuery}"</p>
-			<p class="text-sm mt-2">Try different keywords, tags, or content types</p>
+			<p class="text-lg">{$_('search.noResults', { values: { query: searchQuery } })}</p>
+			<p class="text-sm mt-2">{$_('search.noResultsHint')}</p>
 		</div>
 	{:else}
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
-			<p class="text-lg">Search for music, podcasts, audiobooks, and more</p>
-			<p class="text-sm mt-2">from the Internet Archive and FunkWhale</p>
+			<p class="text-lg">{$_('search.emptyPrompt')}</p>
+			<p class="text-sm mt-2">{$_('search.emptyPromptSub')}</p>
 		</div>
 	{/if}
 

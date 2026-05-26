@@ -10,6 +10,7 @@
 	import { browser } from '$app/environment';
 	import { shareTrack } from '$lib/utils/share';
 	import { base } from '$app/paths';
+	import { _ } from '$lib/i18n';
 
 	let audioElement: HTMLAudioElement;
 	let showPlaylistSelector = false;
@@ -243,8 +244,8 @@
 						<Icon icon="solar:music-note-bold" width="20" className="text-base-content/30" />
 					</div>
 					<div class="flex-1 min-w-0">
-						<div class="text-xs md:text-sm font-medium truncate">No track loaded</div>
-						<div class="text-xs text-base-content/70 truncate">Select a track to play</div>
+						<div class="text-xs md:text-sm font-medium truncate">{$_('player.noTrack')}</div>
+						<div class="text-xs text-base-content/70 truncate">{$_('player.selectTrack')}</div>
 					</div>
 				</div>
 			{/if}
@@ -257,12 +258,12 @@
 				on:click={() => player.toggleShuffle()}
 				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
 				class:bg-base-200={$player.shuffle}
-				title="Shuffle"
+				title={$_('player.shuffle')}
 			>
 				<Icon icon="solar:shuffle-bold" width="16" />
 			</button>
 
-			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm btn-circle" title="Previous">
+			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm btn-circle" title={$_('player.previous')}>
 				<Icon icon="solar:skip-previous-bold" width="16" />
 			</button>
 
@@ -270,7 +271,7 @@
 				on:click={handlePlayButtonClick}
 				class="btn btn-circle btn-primary btn-md"
 				disabled={!$player.currentTrack}
-				aria-label={$player.isPlaying ? 'Pause' : 'Play'}
+				aria-label={$player.isPlaying ? $_('player.pause') : $_('player.play')}
 			>
 				{#if $player.isLoading}
 					<span class="loading loading-spinner loading-sm"></span>
@@ -281,7 +282,7 @@
 				{/if}
 			</button>
 
-			<button on:click={() => player.next()} class="btn btn-ghost btn-sm btn-circle" title="Next">
+			<button on:click={() => player.next()} class="btn btn-ghost btn-sm btn-circle" title={$_('player.next')}>
 				<Icon icon="solar:skip-next-bold" width="16" />
 			</button>
 
@@ -290,7 +291,7 @@
 				on:click={() => player.toggleRepeat()}
 				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
 				class:bg-base-200={$player.repeat !== 'off'}
-				title={$player.repeat === 'one' ? 'Repeat One' : $player.repeat === 'all' ? 'Repeat All' : 'Repeat Off'}
+				title={$player.repeat === 'one' ? $_('player.repeatOne') : $player.repeat === 'all' ? $_('player.repeatAll') : $_('player.repeatOff')}
 			>
 				<Icon icon={$player.repeat === 'one' ? 'solar:repeat-one-bold' : 'solar:repeat-bold'} width="16" />
 			</button>
@@ -305,7 +306,7 @@
 					<button
 						on:click={toggleFavorite}
 						class="btn btn-ghost btn-sm btn-circle"
-						title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+						title={isFavorite ? $_('player.removeFavorite') : $_('player.addFavorite')}
 					>
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
@@ -338,8 +339,8 @@
 					<button
 						id="desktop-player-playlist-btn"
 						class="btn btn-ghost btn-sm btn-circle"
-						title="Add to Playlist"
-						aria-label="Add to Playlist"
+						title={$_('player.addToPlaylist')}
+						aria-label={$_('player.addToPlaylist')}
 						on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}
 					>
 						<Icon icon="mdi:playlist-plus" width="18" />
@@ -349,7 +350,7 @@
 							id="desktop-player-playlist-selector"
 							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
 						>
-							<h3 class="text-xs font-bold p-2 text-base-content/70">Add to playlist</h3>
+							<h3 class="text-xs font-bold p-2 text-base-content/70">{$_('player.addToPlaylistHeader')}</h3>
 							{#each playlists as p}
 								<button
 									class="w-full text-left px-3 py-2 hover:bg-base-300 text-sm truncate border-b border-base-content/5"
@@ -363,7 +364,7 @@
 								class="block px-3 py-2 text-sm text-primary hover:bg-base-300 font-bold"
 								on:click={() => (showPlaylistSelector = false)}
 							>
-								+ New Playlist
+								{$_('player.newPlaylist')}
 							</a>
 						</div>
 					{/if}
@@ -372,8 +373,8 @@
 				<button
 					on:click={handleShare}
 					class="btn btn-ghost btn-sm btn-circle"
-					title="Share track"
-				 aria-label="Share track">
+					title={$_('player.shareTrack')}
+				 aria-label={$_('player.shareTrack')}>
 					<Icon icon="solar:share-linear" width="18" />
 				</button>
 			</div>
@@ -383,7 +384,7 @@
 				<button
 					on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
 					class="btn btn-ghost btn-sm btn-circle"
-					title="Mute/Unmute"
+					title={$_('player.muteToggle')}
 				>
 					{#if $player.volume === 0}
 						<Icon icon="solar:volume-cross-bold" width="20" />

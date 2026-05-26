@@ -17,6 +17,7 @@ export interface Settings {
 	webdavLibraries?: WebDAVLibrary[];
 	theme?: string;
 	iaEnabled?: boolean; // Internet Archive search/browse toggle (defaults true)
+	language?: string; // UI language code (e.g. 'en', 'fr'); undefined = auto-detect
 }
 
 // Load from storage or use defaults (sync version for initial load)
@@ -232,6 +233,14 @@ function createSettingsStore() {
 					...state,
 					webdavLibraries: current.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
 				};
+				saveSettings(newState);
+				return newState;
+			});
+		},
+
+		setLanguage(language: string | undefined) {
+			update((state) => {
+				const newState = { ...state, language };
 				saveSettings(newState);
 				return newState;
 			});

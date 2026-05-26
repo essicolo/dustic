@@ -7,6 +7,7 @@
 	import AudioCard from '$lib/components/AudioCard.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import Icon from '@iconify/svelte';
+	import { _ } from '$lib/i18n';
 
 	let results: Track[] = [];
 	let isLoading = false;
@@ -17,7 +18,7 @@
 	$: host = $page.params.host || '';
 	$: category = $page.url.searchParams.get('q') || '';
 	$: instanceUrl = `https://${host}`;
-	$: pageTitle = category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Recent tracks';
+	$: pageTitle = category ? category.charAt(0).toUpperCase() + category.slice(1) : $_('fw.recent');
 
 	// Reactive load: re-fetch when host OR category changes
 	$: loadKey = `${host}:${category}`;
@@ -41,7 +42,7 @@
 				results = await getRandomTracks(instanceUrl, 50);
 			}
 		} catch (e: any) {
-			error = `Failed to load tracks from ${host}`;
+			error = $_('fw.loadError', { values: { host } });
 			console.error(e);
 		} finally {
 			isLoading = false;
@@ -70,13 +71,13 @@
 				<img src="/funkwhale-icon.svg" alt="FunkWhale" class="w-4 h-4 opacity-60" />
 				{host}
 				{#if results.length > 0}
-					&mdash; {results.length} tracks
+					&mdash; {$_('fw.trackSuffix', { values: { count: results.length } })}
 				{/if}
 			</p>
 		</div>
 		{#if results.length > 0}
 			<button on:click={playAll} class="btn btn-primary">
-				Play All
+				{$_('common.playAll')}
 			</button>
 		{/if}
 	</div>
@@ -87,14 +88,14 @@
 			<button
 				on:click={() => setViewMode('tiles')}
 				class="btn btn-sm btn-ghost {viewMode === 'tiles' ? 'btn-active' : ''}"
-				title="Tiles view"
+				title={$_('viewMode.tiles')}
 			>
 				<Icon icon="solar:widget-5-bold" width="18" />
 			</button>
 			<button
 				on:click={() => setViewMode('list')}
 				class="btn btn-sm btn-ghost {viewMode === 'list' ? 'btn-active' : ''}"
-				title="List view"
+				title={$_('viewMode.list')}
 			>
 				<Icon icon="solar:list-bold" width="18" />
 			</button>
@@ -137,8 +138,8 @@
 		{/if}
 	{:else if !isLoading}
 		<div class="text-center py-20 text-base-content/50">
-			<p class="text-lg">No tracks found</p>
-			<p class="text-sm mt-2">Try a different category or check if {host} is online</p>
+			<p class="text-lg">{$_('fw.empty')}</p>
+			<p class="text-sm mt-2">{$_('fw.emptyHint', { values: { host } })}</p>
 		</div>
 	{/if}
 </div>

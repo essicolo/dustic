@@ -2,79 +2,73 @@
 	import { base } from '$app/paths';
 	import { APP_VERSION } from '$lib/version';
 	import Icon from '$lib/components/Icon.svelte';
+	import { _ } from '$lib/i18n';
 </script>
 
 <div class="p-4 md:p-8 max-w-3xl mx-auto">
-	<h1 class="text-3xl font-bold mb-6">About Dustic</h1>
+	<h1 class="text-3xl font-bold mb-6">{$_('about.title')}</h1>
 
 	<div class="space-y-6">
 		<!-- What is Dustic -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">What is Dustic?</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.what.title')}</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				Dustic is a minimalist audio player that streams music, audiobooks, podcasts, and other audio
-				content from the Internet Archive and FunkWhale. Browse millions of free audio recordings,
-				from live concerts to historical radio programs, all in a clean, modern interface.
+				{$_('about.what.body')}
 			</p>
 		</section>
 
 		<!-- Progressive Web App -->
 		<section class="card bg-base-200 p-6 border-l-4 border-primary">
-			<h2 class="text-xl font-semibold mb-3">Install as an App</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.pwa.title')}</h2>
 			<div class="space-y-3 text-base-content/80 leading-relaxed">
 				<p>
-					Dustic is a <strong>Progressive Web App (PWA)</strong>, which means you can install it
-					on your device and use it like a native app. Once installed, it works offline for your
-					saved content and provides a full-screen experience without browser UI.
+					{$_('about.pwa.introBefore')}<strong>{$_('about.pwa.introStrong')}</strong>{$_('about.pwa.introAfter')}
 				</p>
 
 				<div class="space-y-4 mt-4">
 					<div>
-						<h3 class="font-semibold text-base-content mb-2">On iPhone/iPad:</h3>
+						<h3 class="font-semibold text-base-content mb-2">{$_('about.pwa.iosTitle')}</h3>
 						<ol class="list-decimal list-inside ml-4 space-y-1">
-							<li>Open Dustic in Safari (not Chrome or other browsers)</li>
-							<li>Tap the Share button (square with arrow pointing up)</li>
-							<li>Scroll down and tap "Add to Home Screen"</li>
-							<li>Tap "Add" to confirm</li>
+							<li>{$_('about.pwa.ios1')}</li>
+							<li>{$_('about.pwa.ios2')}</li>
+							<li>{$_('about.pwa.ios3')}</li>
+							<li>{$_('about.pwa.ios4')}</li>
 						</ol>
 					</div>
 
 					<div>
-						<h3 class="font-semibold text-base-content mb-2">On Android:</h3>
+						<h3 class="font-semibold text-base-content mb-2">{$_('about.pwa.androidTitle')}</h3>
 						<ol class="list-decimal list-inside ml-4 space-y-1">
-							<li>Open Dustic in Chrome</li>
-							<li>Tap the menu (three dots) in the top-right corner</li>
-							<li>Tap "Add to Home screen" or "Install app"</li>
-							<li>Tap "Install" to confirm</li>
+							<li>{$_('about.pwa.android1')}</li>
+							<li>{$_('about.pwa.android2')}</li>
+							<li>{$_('about.pwa.android3')}</li>
+							<li>{$_('about.pwa.android4')}</li>
 						</ol>
 					</div>
 				</div>
 
 				<p class="mt-4">
-					After installation, Dustic will appear on your home screen with its icon and can be
-					launched like any other app on your device.
+					{$_('about.pwa.outro')}
 				</p>
 			</div>
 		</section>
 
 		<!-- Author -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Creator</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.creator.title')}</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				Dustic is developed by <strong>Essi Parent</strong>.
+				{$_('about.creator.bodyBefore')}<strong>{$_('about.creator.bodyName')}</strong>{$_('about.creator.bodyAfter')}
 			</p>
 		</section>
 
 		<!-- Data Source -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Audio Sources</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.sources.title')}</h2>
 			<div class="space-y-4 text-base-content/80 leading-relaxed">
 				<div>
-					<h3 class="font-semibold text-base-content mb-1">Internet Archive</h3>
+					<h3 class="font-semibold text-base-content mb-1">{$_('about.sources.iaTitle')}</h3>
 					<p class="mb-2">
-						The <strong>Internet Archive</strong> (archive.org) is a non-profit digital library offering
-						free access to millions of historical and cultural artifacts, including live concerts,
-						audiobooks, podcasts, and radio programs.
+						{$_('about.sources.iaBodyBefore')}<strong>{$_('about.sources.iaBodyStrong')}</strong>{$_('about.sources.iaBodyAfter')}
 					</p>
 					<a
 						href="https://archive.org"
@@ -82,15 +76,13 @@
 						rel="noopener noreferrer"
 						class="link link-primary text-sm"
 					>
-						Visit archive.org
+						{$_('about.sources.iaLink')}
 					</a>
 				</div>
 				<div>
-					<h3 class="font-semibold text-base-content mb-1">FunkWhale</h3>
+					<h3 class="font-semibold text-base-content mb-1">{$_('about.sources.fwTitle')}</h3>
 					<p class="mb-2">
-						<strong>FunkWhale</strong> is a decentralized, community-driven music platform.
-						You can connect to public FunkWhale instances in Settings to search and stream
-						their music libraries alongside Internet Archive content.
+						<strong>{$_('about.sources.fwBodyStrong')}</strong>{$_('about.sources.fwBodyAfter')}
 					</p>
 					<a
 						href="https://funkwhale.audio"
@@ -98,47 +90,41 @@
 						rel="noopener noreferrer"
 						class="link link-primary text-sm"
 					>
-						Visit funkwhale.audio
+						{$_('about.sources.fwLink')}
 					</a>
 				</div>
 				<p class="text-sm text-base-content/60">
-					Dustic does not host any audio files. It provides a unified interface to discover
-					and play content from these sources.
+					{$_('about.sources.footer')}
 				</p>
 			</div>
 		</section>
 
 		<!-- Content Disclaimer -->
 		<section class="card bg-base-200 p-6 border-l-4 border-info">
-			<h2 class="text-xl font-semibold mb-3">Content Disclaimer</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.disclaimer.title')}</h2>
 			<p class="text-base-content/80 leading-relaxed">
-				All content available through Dustic is served directly from the Internet Archive
-				and connected FunkWhale instances. The creator of Dustic is not responsible for the
-				content, accuracy, or availability of any audio files or metadata provided by these
-				sources.
+				{$_('about.disclaimer.body')}
 			</p>
 		</section>
 
 		<!-- Privacy & Data -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Privacy & Data Collection</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.privacy.title')}</h2>
 			<div class="space-y-3 text-base-content/80 leading-relaxed">
 				<p>
-					<strong>No data collection.</strong> Dustic does not collect, transmit, or store any personal
-					information on external servers. Your listening activity is completely private.
+					<strong>{$_('about.privacy.introStrong')}</strong>{$_('about.privacy.introRest')}
 				</p>
 				<p>
-					All your data (favorites, playlists, listening history, and settings) is stored locally
-					in your browser's cache using localStorage. This means:
+					{$_('about.privacy.storage')}
 				</p>
 				<ul class="list-disc list-inside ml-4 space-y-1">
-					<li>Your data never leaves your device</li>
-					<li>No account or login required</li>
-					<li>Your privacy is fully protected</li>
-					<li>Data persists across browser sessions</li>
+					<li>{$_('about.privacy.point1')}</li>
+					<li>{$_('about.privacy.point2')}</li>
+					<li>{$_('about.privacy.point3')}</li>
+					<li>{$_('about.privacy.point4')}</li>
 				</ul>
 				<p class="mt-3">
-					<strong>Account-free design:</strong> To keep the app simple and privacy-focused, there is no cloud infrastructure or account system to sync profiles between devices. However, you can export and import your profile using the buttons in Settings → Profile Data to transfer your data between devices.
+					<strong>{$_('about.privacy.outroStrong')}</strong>{$_('about.privacy.outroRest')}
 				</p>
 			</div>
 		</section>
@@ -146,35 +132,32 @@
 		<!-- Backup Warning -->
 		<section class="card bg-base-200 p-6 border-l-4 border-warning">
 			<h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
-				<span>Important: Backup Your Profile</span>
+				<span>{$_('about.backup.title')}</span>
 			</h2>
 			<div class="space-y-3 text-base-content/80 leading-relaxed">
 				<p>
-					While your data is automatically saved in your browser's cache, it can be lost if you:
+					{$_('about.backup.intro')}
 				</p>
 				<ul class="list-disc list-inside ml-4 space-y-1">
-					<li>Clear your browser's cache or data</li>
-					<li>Use private/incognito mode</li>
-					<li>Uninstall or reset your browser</li>
-					<li>Switch browsers or devices</li>
+					<li>{$_('about.backup.point1')}</li>
+					<li>{$_('about.backup.point2')}</li>
+					<li>{$_('about.backup.point3')}</li>
+					<li>{$_('about.backup.point4')}</li>
 				</ul>
 				<p class="font-semibold">
-					We strongly recommend downloading your profile regularly to avoid losing your favorites,
-					playlists, and listening history.
+					{$_('about.backup.strong')}
 				</p>
 				<p>
-					You can download and upload your profile using the buttons in the sidebar's Profile
-					Manager section.
+					{$_('about.backup.outro')}
 				</p>
 			</div>
 		</section>
 
 		<!-- Open Source -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Open Source</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.openSource.title')}</h2>
 			<p class="text-base-content/80 leading-relaxed mb-3">
-				Dustic is open source software. You can view the source code, report issues, or contribute
-				to the project on GitHub.
+				{$_('about.openSource.body')}
 			</p>
 			<a
 				href="https://github.com/essicolo/dustic"
@@ -182,32 +165,32 @@
 				rel="noopener noreferrer"
 				class="link link-primary"
 			>
-				View on GitHub
+				{$_('about.openSource.link')}
 			</a>
 		</section>
 
 		<!-- Technology -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Built With</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.tech.title')}</h2>
 			<ul class="list-disc list-inside ml-4 space-y-1 text-base-content/80">
-				<li>SvelteKit - Application framework</li>
-				<li>TypeScript - Type-safe development</li>
-				<li>TailwindCSS & DaisyUI - Styling</li>
-				<li>Iconify (Solar Icons) - Icon system</li>
+				<li>{$_('about.tech.item1')}</li>
+				<li>{$_('about.tech.item2')}</li>
+				<li>{$_('about.tech.item3')}</li>
+				<li>{$_('about.tech.item4')}</li>
 			</ul>
 		</section>
 
 		<!-- Version -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-3">Version</h2>
+			<h2 class="text-xl font-semibold mb-3">{$_('about.version.title')}</h2>
 			<p class="text-base-content/80">
-				Current version: <strong>{APP_VERSION}</strong>
+				{$_('about.version.current')} <strong>{APP_VERSION}</strong>
 			</p>
 		</section>
 
 		<!-- Support & Feedback -->
 		<section class="card bg-base-200 p-6">
-			<h2 class="text-xl font-semibold mb-4">Support & Feedback</h2>
+			<h2 class="text-xl font-semibold mb-4">{$_('about.support.title')}</h2>
 			<div class="space-y-3">
 				<a
 					href="https://github.com/sponsors/essicolo"
@@ -216,7 +199,7 @@
 					class="btn btn-primary w-full flex items-center gap-2"
 				>
 					<Icon icon="solar:heart-bold" width="20" />
-					<span>Sponsor this project</span>
+					<span>{$_('about.support.sponsor')}</span>
 				</a>
 				<a
 					href="https://github.com/essicolo/dustic/issues/new"
@@ -225,18 +208,18 @@
 					class="btn btn-outline w-full flex items-center gap-2"
 				>
 					<Icon icon="solar:chat-round-dots-bold" width="20" />
-					<span>Send Feedback</span>
+					<span>{$_('about.support.feedback')}</span>
 				</a>
 			</div>
 			<p class="text-sm text-base-content/70 mt-4">
-				If you enjoy Dustic, consider sponsoring the project. Report bugs or suggest features via GitHub issues.
+				{$_('about.support.footer')}
 			</p>
 		</section>
 
 		<!-- Back to Home -->
 		<div class="flex justify-center pt-4">
 			<a href="{base}/" class="btn btn-primary">
-				Back to Home
+				{$_('nav.backToHome')}
 			</a>
 		</div>
 	</div>

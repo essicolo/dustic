@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import Icon from '@iconify/svelte';
+	import { _ } from '$lib/i18n';
 
 	let newPlaylistName = '';
 
@@ -15,7 +16,7 @@
 	}
 
 	function deletePlaylist(playlistId: string, playlistName: string) {
-		if (confirm(`Are you sure you want to delete the playlist "${playlistName}"?`)) {
+		if (confirm($_('playlists.deleteConfirm', { values: { name: playlistName } }))) {
 			library.deletePlaylist(playlistId);
 		}
 	}
@@ -25,23 +26,23 @@
 	<!-- Back Button -->
 	<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm mb-6">
 		<Icon icon="solar:arrow-left-linear" width="20" />
-		<span>Back to Library</span>
+		<span>{$_('nav.backToLibrary')}</span>
 	</button>
 
-	<h2 class="text-2xl md:text-3xl font-bold mb-6">Your Playlists</h2>
+	<h2 class="text-2xl md:text-3xl font-bold mb-6">{$_('playlists.title')}</h2>
 
 	<!-- Create New Playlist -->
 	<div class="mb-8 p-4 bg-base-200 rounded-lg shadow-md flex items-center gap-4">
 		<input
 			type="text"
-			placeholder="New Playlist Name"
+			placeholder={$_('playlists.newPlaylistPlaceholder')}
 			class="input input-bordered w-full"
 			bind:value={newPlaylistName}
 			on:keydown={(e) => e.key === 'Enter' && createNewPlaylist()}
 		/>
 		<button on:click={createNewPlaylist} class="btn btn-primary" disabled={!newPlaylistName.trim()}>
 			<Icon icon="solar:add-circle-bold" width="20" />
-			Create
+			{$_('playlists.create')}
 		</button>
 	</div>
 
@@ -54,9 +55,9 @@
 						<div class="flex-grow">
 							<h3 class="card-title text-lg">{playlist.name}</h3>
 							<p class="text-sm text-base-content/70">
-								{playlist.tracks.length} track{playlist.tracks.length !== 1 ? 's' : ''}
+								{$_('home.trackCount', { values: { count: playlist.tracks.length } })}
 								<span class="ml-2 text-xs opacity-50">
-									Last updated: {new Date(playlist.updated).toLocaleDateString()}
+									{$_('playlists.lastUpdated', { values: { date: new Date(playlist.updated).toLocaleDateString() } })}
 								</span>
 							</p>
 						</div>
@@ -64,7 +65,7 @@
 							<button
 								on:click|stopPropagation={() => deletePlaylist(playlist.id, playlist.name)}
 								class="btn btn-ghost btn-sm btn-circle text-error"
-								title="Delete playlist"
+								title={$_('playlists.deletePlaylist')}
 							>
 								<Icon icon="solar:trash-bin-minimalistic-linear" width="20" />
 							</button>
@@ -77,8 +78,8 @@
 	{:else}
 		<div class="text-center py-12 text-base-content/50">
 			<Icon icon="solar:playlist-minimalistic-bold" width="48" class="mx-auto mb-4 opacity-50" />
-			<p>You haven't created any playlists yet.</p>
-			<p>Use the input above to create your first one!</p>
+			<p>{$_('playlists.empty')}</p>
+			<p>{$_('playlists.emptyHint')}</p>
 		</div>
 	{/if}
 </div>

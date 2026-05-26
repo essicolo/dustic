@@ -30,9 +30,18 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
+		// Some WebDAV servers reject requests with the default Workers fetch
+		// User-Agent (or an empty one). Send a realistic UA unless the caller
+		// already provided one. Native clients (Obsidian, etc.) always send one.
+		const outboundHeaders: Record<string, string> = { ...(payload.headers || {}) };
+		const hasUA = Object.keys(outboundHeaders).some((h) => h.toLowerCase() === 'user-agent');
+		if (!hasUA) {
+			outboundHeaders['User-Agent'] = 'Dustic/1.0 (WebDAV client)';
+		}
+
 		const response = await fetch(payload.url, {
 			method: payload.method,
-			headers: payload.headers || {},
+			headers: outboundHeaders,
 			body: payload.body || undefined
 		});
 

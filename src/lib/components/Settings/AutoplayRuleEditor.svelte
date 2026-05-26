@@ -1,7 +1,36 @@
 <script lang="ts">
 	import { autoplayStore } from '$lib/stores/autoplay';
-	import { settings } from '$lib/stores/settings';
+	import {
+		settings,
+		resolveAutoplayContentTypes,
+		resolveAutoplaySources,
+		type AutoplayContentType,
+		type AutoplaySource
+	} from '$lib/stores/settings';
 	import { _ } from '$lib/i18n';
+
+	$: contentTypes = resolveAutoplayContentTypes($settings);
+	$: enabledTypeCount = Object.values(contentTypes).filter(Boolean).length;
+	$: sources = resolveAutoplaySources($settings);
+	$: enabledSourceCount = Object.values(sources).filter(Boolean).length;
+
+	function toggleContentType(type: AutoplayContentType, e: Event) {
+		const input = e.target as HTMLInputElement;
+		const desired = input.checked;
+		const ok = settings.setAutoplayContentType(type, desired);
+		if (!ok) {
+			// Block the last-remaining-enabled toggle from being turned off
+			// — autoplay needs at least one source. Re-check the box and
+			// surface a hint via the visible "at least one" caption below.
+			input.checked = true;
+		}
+	}
+
+	function toggleSource(src: AutoplaySource, e: Event) {
+		const input = e.target as HTMLInputElement;
+		const ok = settings.setAutoplaySource(src, input.checked);
+		if (!ok) input.checked = true;
+	}
 
 	function handleReset() {
 		if (confirm($_('autoplay.resetConfirm'))) {
@@ -80,6 +109,74 @@
 				</div>
 			</div>
 		</label>
+	</div>
+
+	<!-- Content Type Filters: cap what autoplay can pull in. Defaults to
+	     music-only to avoid the IA "popular = podcasts" pit. -->
+	<div class="alert flex-col items-stretch gap-2">
+		<div>
+			<div class="font-medium">{$_('autoplay.contentTypesTitle')}</div>
+			<div class="text-sm text-base-content/70">
+				{$_('autoplay.contentTypesHint')}
+			</div>
+		</div>
+		<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+			{#each ['music', 'podcasts', 'audiobooks'] as type (type)}
+				{@const isOn = contentTypes[type as AutoplayContentType]}
+				{@const isLastOn = isOn && enabledTypeCount === 1}
+				<label
+					class="flex items-center gap-2 cursor-pointer rounded-lg p-2 hover:bg-base-300/40"
+					class:opacity-50={isLastOn}
+				>
+					<input
+						type="checkbox"
+						checked={isOn}
+						disabled={isLastOn}
+						on:change={(e) => toggleContentType(type as AutoplayContentType, e)}
+						class="checkbox checkbox-primary checkbox-sm"
+					/>
+					<span class="text-sm">{$_(`autoplay.contentType.${type}`)}</span>
+				</label>
+			{/each}
+		</div>
+		<div class="text-xs text-base-content/50">
+			{$_('autoplay.contentTypesMinOne')}
+		</div>
+	</div>
+
+	<!-- Source Filters: where autoplay is allowed to pull tracks from.
+	     Toggles are no-ops when the source isn't configured (no FW
+	     instances, no WebDAV libraries) — they only gate sources you've
+	     actually set up. -->
+	<div class="alert flex-col items-stretch gap-2">
+		<div>
+			<div class="font-medium">{$_('autoplay.sourcesTitle')}</div>
+			<div class="text-sm text-base-content/70">
+				{$_('autoplay.sourcesHint')}
+			</div>
+		</div>
+		<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+			{#each ['ia', 'funkwhale', 'webdav'] as src (src)}
+				{@const isOn = sources[src as AutoplaySource]}
+				{@const isLastOn = isOn && enabledSourceCount === 1}
+				<label
+					class="flex items-center gap-2 cursor-pointer rounded-lg p-2 hover:bg-base-300/40"
+					class:opacity-50={isLastOn}
+				>
+					<input
+						type="checkbox"
+						checked={isOn}
+						disabled={isLastOn}
+						on:change={(e) => toggleSource(src as AutoplaySource, e)}
+						class="checkbox checkbox-primary checkbox-sm"
+					/>
+					<span class="text-sm">{$_(`autoplay.source.${src}`)}</span>
+				</label>
+			{/each}
+		</div>
+		<div class="text-xs text-base-content/50">
+			{$_('autoplay.sourcesMinOne')}
+		</div>
 	</div>
 
 	<!-- Rules List -->

@@ -615,7 +615,7 @@
 		"copyToClipboard": "Copier",
 		"pasteFromClipboard": "Coller",
 		"synced": "Synchronisé !",
-		"syncToCloud": "Synchroniser dans le nuage",
+		"syncToCloud": "Synchroniser",
 		"selectAllN": "Tout sélectionner ({count})",
 		"removeOrphans": "{count, plural, one {Retirer # piste ({size})} other {Retirer # pistes ({size})}}",
 		"importSuccessShort": "Profil importé avec succès ! Vous pouvez fermer l'application.",
@@ -659,6 +659,22 @@
 		"enableHint": "Joue automatiquement des pistes similaires à la fin de la file",
 		"favoritesTitle": "Utiliser les favoris dans la lecture auto",
 		"favoritesHint": "Laisse la règle « Depuis les favoris » choisir des pistes parmi vos favoris",
+		"contentTypesTitle": "Types de contenu",
+		"contentTypesHint": "Quels types d'audio la lecture auto peut piocher. Musique seulement par défaut pour éviter les podcasts qui dominent les charts d'Internet Archive.",
+		"contentTypesMinOne": "Au moins un type doit rester activé.",
+		"contentType": {
+			"music": "Musique",
+			"podcasts": "Podcasts",
+			"audiobooks": "Livres audio"
+		},
+		"sourcesTitle": "Sources",
+		"sourcesHint": "Où l'autoplay peut piocher ses tracks aléatoires. Les toggles pour des sources non configurées (aucune instance FunkWhale, aucune librairie WebDAV) n'ont aucun effet.",
+		"sourcesMinOne": "Au moins une source doit rester activée.",
+		"source": {
+			"ia": "Internet Archive",
+			"funkwhale": "FunkWhale",
+			"webdav": "Librairies WebDAV"
+		},
 		"percentChance": "{n} % de chance",
 		"disabled": "Désactivée",
 		"howItWorks": "Comment ça marche :",

@@ -149,3 +149,4 @@ blob-report/
 # Auto-generated version files (created by scripts/generate-version.js during build)
 static/version.json
 src/lib/version.ts
+.claude/settings.local.json

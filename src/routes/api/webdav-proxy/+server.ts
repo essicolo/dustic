@@ -49,7 +49,16 @@ export const POST: RequestHandler = async ({ request }) => {
 			'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream'
 		};
 		// Forward headers needed for range requests and progress reporting.
-		for (const name of ['Content-Length', 'Content-Range', 'Accept-Ranges', 'Last-Modified', 'ETag']) {
+		// Content-Length is INTENTIONALLY skipped: Cloudflare Workers
+		// transparently decompresses gzip/brotli upstream responses, but
+		// the original Content-Length describes the COMPRESSED length. If
+		// we forward it the browser sees more body bytes than the header
+		// promises and aborts with "Content-Length header of network
+		// response exceeds response Body" — visible to the user as failed
+		// audio playback and missing tag reads. Content-Range still works
+		// because it includes a total but the browser doesn't validate it
+		// against the streamed length the same way.
+		for (const name of ['Content-Range', 'Accept-Ranges', 'Last-Modified', 'ETag']) {
 			const value = response.headers.get(name);
 			if (value) forwardedHeaders[name] = value;
 		}

@@ -615,7 +615,7 @@
 		"copyToClipboard": "Copy",
 		"pasteFromClipboard": "Paste",
 		"synced": "Synced!",
-		"syncToCloud": "Sync to cloud",
+		"syncToCloud": "Sync",
 		"selectAllN": "Select all ({count})",
 		"removeOrphans": "{count, plural, one {Remove # track ({size})} other {Remove # tracks ({size})}}",
 		"importSuccessShort": "Profile imported successfully! Safe to close app.",
@@ -659,6 +659,22 @@
 		"enableHint": "Automatically play similar tracks when queue ends",
 		"favoritesTitle": "Use Favorites in Autoplay",
 		"favoritesHint": "Let the \"From Favorites\" rule pick tracks from your favorites",
+		"contentTypesTitle": "Content types",
+		"contentTypesHint": "Which kinds of audio autoplay is allowed to pull in. Music-only by default to avoid Internet Archive's podcast-heavy popularity charts.",
+		"contentTypesMinOne": "At least one type must stay enabled.",
+		"contentType": {
+			"music": "Music",
+			"podcasts": "Podcasts",
+			"audiobooks": "Audiobooks"
+		},
+		"sourcesTitle": "Sources",
+		"sourcesHint": "Where autoplay is allowed to pull random tracks from. Toggles for sources you haven't configured (no FunkWhale instances, no WebDAV libraries) have no effect.",
+		"sourcesMinOne": "At least one source must stay enabled.",
+		"source": {
+			"ia": "Internet Archive",
+			"funkwhale": "FunkWhale",
+			"webdav": "WebDAV libraries"
+		},
 		"percentChance": "{n}% chance",
 		"disabled": "Disabled",
 		"howItWorks": "How it works:",

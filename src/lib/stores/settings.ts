@@ -6,6 +6,32 @@ import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSav
 import { createDefaultProfile } from '$lib/services/storage';
 import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 
+export type AutoplayContentType = 'music' | 'podcasts' | 'audiobooks';
+export type AutoplayContentTypes = Record<AutoplayContentType, boolean>;
+
+// Default: music-only. The user explicitly asked for this after autoplay
+// kept looping into Internet Archive's most-downloaded podcasts (heavily
+// conservative/conspiracy-skewed). Users who want podcasts/audiobooks in
+// autoplay can re-enable them in Settings → Autoplay.
+export const DEFAULT_AUTOPLAY_CONTENT_TYPES: AutoplayContentTypes = {
+	music: true,
+	podcasts: false,
+	audiobooks: false
+};
+
+export type AutoplaySource = 'ia' | 'funkwhale' | 'webdav';
+export type AutoplaySources = Record<AutoplaySource, boolean>;
+
+// Default: all sources active. The toggles only have teeth when the
+// corresponding source is actually configured (e.g. webdav: true is a
+// no-op until the user adds a library), so leaving them on doesn't
+// surprise users with extra requests.
+export const DEFAULT_AUTOPLAY_SOURCES: AutoplaySources = {
+	ia: true,
+	funkwhale: true,
+	webdav: true
+};
+
 export interface Settings {
 	audioQuality: AudioQuality;
 	volume: number;
@@ -13,11 +39,26 @@ export interface Settings {
 	defaultCollection?: string;
 	funkwhaleInstances?: FunkwhaleInstance[];
 	favoriteInfluencedAutoplay?: boolean;
+	autoplayContentTypes?: AutoplayContentTypes;
+	autoplaySources?: AutoplaySources;
 	webdav?: WebDAVConfig;
 	webdavLibraries?: WebDAVLibrary[];
 	theme?: string;
 	iaEnabled?: boolean; // Internet Archive search/browse toggle (defaults true)
 	language?: string; // UI language code (e.g. 'en', 'fr'); undefined = auto-detect
+}
+
+/**
+ * Resolve the effective content-type toggles. Always returns a fully
+ * populated object so callers don't have to check for undefined.
+ */
+export function resolveAutoplayContentTypes(s: Settings): AutoplayContentTypes {
+	return { ...DEFAULT_AUTOPLAY_CONTENT_TYPES, ...(s.autoplayContentTypes ?? {}) };
+}
+
+/** Same shape, for the source toggles (IA / FunkWhale / WebDAV). */
+export function resolveAutoplaySources(s: Settings): AutoplaySources {
+	return { ...DEFAULT_AUTOPLAY_SOURCES, ...(s.autoplaySources ?? {}) };
 }
 
 // Load from storage or use defaults (sync version for initial load)
@@ -163,6 +204,45 @@ function createSettingsStore() {
 				saveSettings(newState);
 				return newState;
 			});
+		},
+
+		/**
+		 * Toggle one of the autoplay content-type filters (music / podcasts /
+		 * audiobooks). Refuses the change if it would leave zero categories
+		 * enabled — autoplay needs at least one source to draw from.
+		 *
+		 * Returns true if the change was applied, false if it was blocked
+		 * (so callers can keep the UI in sync).
+		 */
+		setAutoplayContentType(type: AutoplayContentType, enabled: boolean): boolean {
+			const current = resolveAutoplayContentTypes(get({ subscribe }));
+			const next: AutoplayContentTypes = { ...current, [type]: enabled };
+			const anyEnabled = Object.values(next).some(Boolean);
+			if (!anyEnabled) return false;
+			update((state) => {
+				const newState = { ...state, autoplayContentTypes: next };
+				saveSettings(newState);
+				return newState;
+			});
+			return true;
+		},
+
+		/**
+		 * Toggle one of the autoplay SOURCE filters (IA / FunkWhale / WebDAV).
+		 * Same at-least-one constraint as setAutoplayContentType: refusing
+		 * the change keeps the UI honest about why nothing happened.
+		 */
+		setAutoplaySource(source: AutoplaySource, enabled: boolean): boolean {
+			const current = resolveAutoplaySources(get({ subscribe }));
+			const next: AutoplaySources = { ...current, [source]: enabled };
+			const anyEnabled = Object.values(next).some(Boolean);
+			if (!anyEnabled) return false;
+			update((state) => {
+				const newState = { ...state, autoplaySources: next };
+				saveSettings(newState);
+				return newState;
+			});
+			return true;
 		},
 
 		/**

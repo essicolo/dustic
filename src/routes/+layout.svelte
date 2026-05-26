@@ -26,7 +26,7 @@
 	// Kick off i18n init synchronously at module load so the first render has
 	// a registered locale; settings.init() may refine the choice after.
 	const initialLocale = resolveLocale(settings.get().language);
-	const i18nReady = initI18n(initialLocale);
+	initI18n(initialLocale);
 
 	let showThemePicker = false;
 
@@ -70,8 +70,7 @@
 		await Promise.all([
 			library.init(),
 			history.init(),
-			settings.init(),
-			i18nReady
+			settings.init()
 		]);
 
 		// Settings may have loaded a stored language from IndexedDB after the

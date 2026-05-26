@@ -96,14 +96,14 @@
 	"home": {
 		"continueListening": "Reprendre l'écoute",
 		"curatedPlaylists": "Sélections",
-		"curatedSubtitle": "Choisies par l'équipe Dustic",
+		"curatedSubtitle": "Choisies par l'équipe dustic",
 		"yourLibrary": "Votre bibliothèque",
 		"favorites": "Favoris",
 		"playlists": "Playlists",
 		"itemCount": "{count, plural, one {# élément} other {# éléments}}",
 		"trackCount": "{count, plural, one {# piste} other {# pistes}}",
 		"viewAllPlaylists": "Voir les {count} playlists",
-		"welcome": "Bienvenue dans Dustic",
+		"welcome": "Bienvenue dans dustic",
 		"welcomeSubtitle": "Commencez à explorer la musique d'Internet Archive et de FunkWhale",
 		"searchMusic": "Rechercher de la musique",
 		"viewCurated": "Voir les sélections"
@@ -174,32 +174,32 @@
 		"libraryFallback": "Bibliothèque"
 	},
 	"about": {
-		"title": "À propos de Dustic",
+		"title": "À propos de dustic",
 		"what": {
-			"title": "Qu'est-ce que Dustic ?",
-			"body": "Dustic est un lecteur audio minimaliste qui diffuse musique, livres audio, balados et autres contenus audio depuis Internet Archive et FunkWhale. Parcourez des millions d'enregistrements gratuits, des concerts live aux émissions de radio historiques, dans une interface épurée et moderne."
+			"title": "Qu'est-ce que dustic ?",
+			"body": "dustic est un lecteur audio minimaliste qui diffuse musique, livres audio, balados et autres contenus audio de vos propres sources, de Internet Archive et de FunkWhale. Parcourez des millions d'enregistrements gratuits, des concerts live aux émissions de radio historiques, dans une interface épurée et moderne."
 		},
 		"pwa": {
 			"title": "Installer comme application",
-			"intro": "Dustic est une **Progressive Web App (PWA)**, ce qui signifie que vous pouvez l'installer sur votre appareil et l'utiliser comme une application native. Une fois installée, elle fonctionne hors ligne pour vos contenus enregistrés et offre une expérience plein écran sans l'interface du navigateur.",
+			"intro": "dustic est une **Progressive Web App (PWA)**, ce qui signifie que vous pouvez l'installer sur votre appareil et l'utiliser comme une application native. Une fois installée, elle fonctionne hors ligne pour vos contenus enregistrés et offre une expérience plein écran sans l'interface du navigateur.",
 			"introStrong": "Progressive Web App (PWA)",
-			"introBefore": "Dustic est une ",
+			"introBefore": "dustic est une ",
 			"introAfter": ", ce qui signifie que vous pouvez l'installer sur votre appareil et l'utiliser comme une application native. Une fois installée, elle fonctionne hors ligne pour vos contenus enregistrés et offre une expérience plein écran sans l'interface du navigateur.",
 			"iosTitle": "Sur iPhone/iPad :",
-			"ios1": "Ouvrez Dustic dans Safari (pas Chrome ni un autre navigateur)",
+			"ios1": "Ouvrez dustic dans Safari (pas Chrome ni un autre navigateur)",
 			"ios2": "Touchez le bouton Partager (carré avec flèche vers le haut)",
 			"ios3": "Faites défiler et touchez « Sur l'écran d'accueil »",
 			"ios4": "Touchez « Ajouter » pour confirmer",
 			"androidTitle": "Sur Android :",
-			"android1": "Ouvrez Dustic dans Chrome",
+			"android1": "Ouvrez dustic dans Chrome",
 			"android2": "Touchez le menu (trois points) en haut à droite",
 			"android3": "Touchez « Ajouter à l'écran d'accueil » ou « Installer l'application »",
 			"android4": "Touchez « Installer » pour confirmer",
-			"outro": "Après l'installation, Dustic apparaîtra sur votre écran d'accueil avec son icône et pourra être lancée comme toute autre application."
+			"outro": "Après l'installation, dustic apparaîtra sur votre écran d'accueil avec son icône et pourra être lancée comme toute autre application."
 		},
 		"creator": {
 			"title": "Créateur",
-			"bodyBefore": "Dustic est développé par ",
+			"bodyBefore": "dustic est développé par ",
 			"bodyName": "Essi Parent",
 			"bodyAfter": "."
 		},
@@ -214,17 +214,17 @@
 			"fwBodyStrong": "FunkWhale",
 			"fwBodyAfter": " est une plateforme musicale décentralisée et communautaire. Vous pouvez vous connecter à des instances FunkWhale publiques dans les Paramètres pour rechercher et écouter leurs bibliothèques en parallèle d'Internet Archive.",
 			"fwLink": "Visiter funkwhale.audio",
-			"footer": "Dustic n'héberge aucun fichier audio. L'application offre une interface unifiée pour découvrir et écouter du contenu provenant de ces sources."
+			"footer": "dustic n'héberge aucun fichier audio. L'application offre une interface unifiée pour découvrir et écouter du contenu provenant de ces sources."
 		},
 		"disclaimer": {
 			"title": "Avertissement",
-			"body": "Tout le contenu accessible via Dustic est servi directement depuis Internet Archive et les instances FunkWhale connectées. Le créateur de Dustic n'est pas responsable du contenu, de l'exactitude ou de la disponibilité des fichiers audio ou métadonnées fournies par ces sources."
+			"body": "Tout le contenu accessible via dustic est servi directement depuis Internet Archive et les instances FunkWhale connectées. Le créateur de dustic n'est pas responsable du contenu, de l'exactitude ou de la disponibilité des fichiers audio ou métadonnées fournies par ces sources."
 		},
 		"privacy": {
 			"title": "Confidentialité et données",
-			"intro": "**Aucune collecte de données.** Dustic ne collecte, ne transmet ni ne stocke aucune information personnelle sur des serveurs externes. Votre activité d'écoute est entièrement privée.",
+			"intro": "**Aucune collecte de données.** dustic ne collecte, ne transmet ni ne stocke aucune information personnelle sur des serveurs externes. Votre activité d'écoute est entièrement privée.",
 			"introStrong": "Aucune collecte de données.",
-			"introRest": " Dustic ne collecte, ne transmet ni ne stocke aucune information personnelle sur des serveurs externes. Votre activité d'écoute est entièrement privée.",
+			"introRest": " dustic ne collecte, ne transmet ni ne stocke aucune information personnelle sur des serveurs externes. Votre activité d'écoute est entièrement privée.",
 			"storage": "Toutes vos données (favoris, playlists, historique d'écoute et paramètres) sont stockées localement dans le cache de votre navigateur via localStorage. Concrètement :",
 			"point1": "Vos données ne quittent jamais votre appareil",
 			"point2": "Aucun compte ni connexion requis",
@@ -245,7 +245,7 @@
 		},
 		"openSource": {
 			"title": "Code libre",
-			"body": "Dustic est un logiciel libre. Vous pouvez consulter le code source, signaler des problèmes ou contribuer au projet sur GitHub.",
+			"body": "dustic est un logiciel libre. Vous pouvez consulter le code source, signaler des problèmes ou contribuer au projet sur GitHub.",
 			"link": "Voir sur GitHub"
 		},
 		"tech": {
@@ -263,7 +263,7 @@
 			"title": "Soutien et commentaires",
 			"sponsor": "Parrainer ce projet",
 			"feedback": "Envoyer des commentaires",
-			"footer": "Si Dustic vous plaît, pensez à parrainer le projet. Signalez les bogues ou proposez des fonctionnalités via les issues GitHub."
+			"footer": "Si dustic vous plaît, pensez à parrainer le projet. Signalez les bogues ou proposez des fonctionnalités via les issues GitHub."
 		}
 	},
 	"search": {
@@ -302,12 +302,12 @@
 	},
 	"curated": {
 		"title": "Sélections",
-		"subtitle": "Collections choisies par l'équipe Dustic. Ce sont des sélections créées par des humains pour mettre en valeur les meilleurs contenus d'Internet Archive.",
+		"subtitle": "Collections choisies par l'équipe dustic. Ce sont des sélections créées par des humains pour mettre en valeur les meilleurs contenus d'Internet Archive.",
 		"empty": "Aucune sélection disponible pour l'instant",
 		"emptyHint": "Revenez bientôt pour de nouvelles collections",
 		"curatedBy": "Sélection de {curator}",
 		"aboutTitle": "À propos des sélections",
-		"aboutBody1": "Contrairement aux recommandations algorithmiques, ces sélections sont façonnées avec soin par des curateurs humains de l'équipe Dustic. Chaque choix est fait pour représenter le meilleur de son genre et offrir une expérience d'écoute pertinente.",
+		"aboutBody1": "Contrairement aux recommandations algorithmiques, ces sélections sont façonnées avec soin par des curateurs humains de l'équipe dustic. Chaque choix est fait pour représenter le meilleur de son genre et offrir une expérience d'écoute pertinente.",
 		"aboutBody2Before": "Tout l'audio provient d'",
 		"aboutBody2Link": "Internet Archive",
 		"aboutBody2After": ", une bibliothèque sans but lucratif comptant des millions de livres, films, musiques et plus, gratuits.",
@@ -416,7 +416,7 @@
 			}
 		},
 		"libraries": {
-			"pageTitle": "Sources audio — Dustic",
+			"pageTitle": "Sources audio — dustic",
 			"intro": "Choisissez d'où vient votre audio : le catalogue public d'Internet Archive, un ou plusieurs serveurs FunkWhale et/ou vos propres dossiers infonuagiques.",
 			"iaTitle": "Internet Archive",
 			"iaSubtitle": "Des millions d'enregistrements gratuits : concerts live, vinyles, vieilles radios, livres audio…",
@@ -552,7 +552,7 @@
 		},
 		"update": {
 			"title": "Mise à jour disponible",
-			"body": "Une nouvelle version de Dustic est disponible",
+			"body": "Une nouvelle version de dustic est disponible",
 			"now": "Mettre à jour",
 			"later": "Plus tard"
 		},
@@ -575,7 +575,7 @@
 			"downloadLabel": "Télécharger"
 		},
 		"themePicker": {
-			"welcome": "Bienvenue dans Dustic",
+			"welcome": "Bienvenue dans dustic",
 			"pickStyle": "Choisissez un style — vous pourrez le changer dans les Paramètres.",
 			"noAccountHint": "Aucun compte, aucun suivi. Cliquez sur Continuer pour explorer.",
 			"continueWith": "Continuer avec {name}",
@@ -612,8 +612,8 @@
 		"offlineSkip": "Hors ligne — synchronisation ignorée",
 		"syncFailed": "Échec de la synchronisation",
 		"copied": "Copié !",
-		"copyToClipboard": "Copier dans le presse-papiers",
-		"pasteFromClipboard": "Coller depuis le presse-papiers",
+		"copyToClipboard": "Copier",
+		"pasteFromClipboard": "Coller",
 		"synced": "Synchronisé !",
 		"syncToCloud": "Synchroniser dans le nuage",
 		"selectAllN": "Tout sélectionner ({count})",
@@ -652,7 +652,7 @@
 			"random": "Découverte aléatoire"
 		},
 		"title": "Règles de lecture auto",
-		"subtitle": "Configurez comment Dustic choisit la piste suivante quand la file est vide",
+		"subtitle": "Configurez comment dustic choisit la piste suivante quand la file est vide",
 		"reset": "Réinitialiser",
 		"resetConfirm": "Réinitialiser les règles d'autoplay ? Vos pondérations et l'ordre des règles seront perdus.",
 		"enableTitle": "Activer la lecture auto",

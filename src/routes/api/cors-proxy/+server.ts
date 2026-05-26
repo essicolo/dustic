@@ -5,6 +5,7 @@ const ALLOWED_DOMAINS = [
 	'*.archive.org',
 	'open.audio',
 	'*.funkwhale.audio',
+	'api.deezer.com',
 	'ia600000.us.archive.org',
 	'ia600001.us.archive.org',
 	'ia600002.us.archive.org',
@@ -78,6 +79,14 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		const responseHeaders = new Headers(response.headers);
 		responseHeaders.set('Access-Control-Allow-Origin', '*');
 		responseHeaders.set('Cache-Control', `public, max-age=${maxAge}`);
+		// Node fetch (and Cloudflare's runtime) already decompresses upstream
+		// content-encoded responses, but forwards the original encoding
+		// header as-is. If we pass it through, the browser re-attempts to
+		// decompress plain JSON and silently discards the body — the visible
+		// symptom is "no thumbnails" because the JSON.parse rejects. Drop
+		// both the encoding header and the now-wrong length.
+		responseHeaders.delete('content-encoding');
+		responseHeaders.delete('content-length');
 
 		return new Response(response.body, {
 			status: response.status,

@@ -397,10 +397,13 @@
 		on:touchmove={cancelLongPress}
 		on:touchcancel={cancelLongPress}
 	>
-		{#if isWD && !fetchedThumb}
+		{#if isWD && !thumb}
 			<!-- WebDAV tracks: show music-note placeholder during lookup; if
-			     iTunes returns nothing we keep the placeholder permanently
-			     instead of an ugly gray pulse. -->
+			     neither the embedded tag nor Deezer returns a cover we keep
+			     it permanently instead of an ugly gray pulse. Gated on
+			     `thumb` (not just `fetchedThumb`) so embedded covers from
+			     parsedMeta.pictureUrl actually render — gating on
+			     fetchedThumb hid them whenever Deezer was skipped. -->
 			<div class="w-full h-full bg-base-300 flex items-center justify-center">
 				<Icon
 					icon="solar:music-note-bold-duotone"

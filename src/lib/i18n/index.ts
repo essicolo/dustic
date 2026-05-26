@@ -1,12 +1,19 @@
 import { browser } from '$app/environment';
-import { init, register, locale, getLocaleFromNavigator, waitLocale } from 'svelte-i18n';
+import { init, addMessages, locale, getLocaleFromNavigator } from 'svelte-i18n';
+import en from './locales/en.json';
+import fr from './locales/fr.json';
 
 export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 
-register('en', () => import('./locales/en.json'));
-register('fr', () => import('./locales/fr.json'));
+// Static imports (not `register` + lazy `import()`) so messages are present
+// before the first render. `register` defers `locale.set` until the dynamic
+// import resolves, which leaves `$locale` null mid-hydration and makes
+// `$_(...)` throw "Cannot format a message without first setting the
+// initial locale". Each dictionary is ~30 KB — negligible at this scale.
+addMessages('en', en);
+addMessages('fr', fr);
 
 export function resolveLocale(preferred: string | undefined): SupportedLocale {
 	if (preferred && (SUPPORTED_LOCALES as readonly string[]).includes(preferred)) {
@@ -22,13 +29,12 @@ export function resolveLocale(preferred: string | undefined): SupportedLocale {
 	return DEFAULT_LOCALE;
 }
 
-export async function initI18n(preferred?: string) {
+export function initI18n(preferred?: string) {
 	const initial = resolveLocale(preferred);
 	init({
 		fallbackLocale: DEFAULT_LOCALE,
 		initialLocale: initial
 	});
-	await waitLocale(initial);
 	if (browser) {
 		document.documentElement.lang = initial;
 	}
@@ -36,7 +42,6 @@ export async function initI18n(preferred?: string) {
 
 export async function setAppLocale(next: SupportedLocale) {
 	await locale.set(next);
-	await waitLocale(next);
 	if (browser) {
 		document.documentElement.lang = next;
 	}

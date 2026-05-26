@@ -58,6 +58,27 @@ describe('parseFilenameHeuristics', () => {
 			title: 'untagged_recording'
 		});
 	});
+
+	it('strips a leading disc indicator before parsing artist/title', () => {
+		// Regression: real-world Pink Floyd rip named files like
+		// "Disc 1 - 01 - In the Flesh.ogg". Without the disc-prefix strip,
+		// the dash-split heuristic took "Disc 1" as the artist, which then
+		// flowed into the Deezer cover lookup and matched nothing.
+		expect(parseFilenameHeuristics('Disc 1 - 01 - In the Flesh.ogg')).toEqual({
+			title: 'In the Flesh'
+		});
+		expect(parseFilenameHeuristics('CD2 - 03 - Comfortably Numb.flac')).toEqual({
+			title: 'Comfortably Numb'
+		});
+		expect(parseFilenameHeuristics('Disque 1 - 05 - Another Brick in the Wall.mp3')).toEqual({
+			title: 'Another Brick in the Wall'
+		});
+		// Still works when an artist is encoded after the disc prefix.
+		expect(parseFilenameHeuristics('Disc 1 - 01 - Mogwai - Helicon 1.mp3')).toEqual({
+			artist: 'Mogwai',
+			title: 'Helicon 1'
+		});
+	});
 });
 
 describe('parsePropfind', () => {

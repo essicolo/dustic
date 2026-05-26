@@ -96,14 +96,14 @@
 	"home": {
 		"continueListening": "Continue Listening",
 		"curatedPlaylists": "Curated Playlists",
-		"curatedSubtitle": "Hand-picked by the Dustic team",
+		"curatedSubtitle": "Hand-picked by the dustic team",
 		"yourLibrary": "Your Library",
 		"favorites": "Favorites",
 		"playlists": "Playlists",
 		"itemCount": "{count, plural, one {# item} other {# items}}",
 		"trackCount": "{count, plural, one {# track} other {# tracks}}",
 		"viewAllPlaylists": "View all {count} playlists",
-		"welcome": "Welcome to Dustic",
+		"welcome": "Welcome to dustic",
 		"welcomeSubtitle": "Start exploring music from the Internet Archive and FunkWhale",
 		"searchMusic": "Search Music",
 		"viewCurated": "View Curated Playlists"
@@ -174,32 +174,32 @@
 		"libraryFallback": "Library"
 	},
 	"about": {
-		"title": "About Dustic",
+		"title": "About dustic",
 		"what": {
-			"title": "What is Dustic?",
-			"body": "Dustic is a minimalist audio player that streams music, audiobooks, podcasts, and other audio content from the Internet Archive and FunkWhale. Browse millions of free audio recordings, from live concerts to historical radio programs, all in a clean, modern interface."
+			"title": "What is dustic?",
+			"body": "dustic is a minimalist audio player that streams music, audiobooks, podcasts, and other audio content from your own sources, the Internet Archive and FunkWhale. Browse millions of free audio recordings, from live concerts to historical radio programs, all in a clean, modern interface."
 		},
 		"pwa": {
 			"title": "Install as an App",
-			"intro": "Dustic is a **Progressive Web App (PWA)**, which means you can install it on your device and use it like a native app. Once installed, it works offline for your saved content and provides a full-screen experience without browser UI.",
+			"intro": "dustic is a **Progressive Web App (PWA)**, which means you can install it on your device and use it like a native app. Once installed, it works offline for your saved content and provides a full-screen experience without browser UI.",
 			"introStrong": "Progressive Web App (PWA)",
-			"introBefore": "Dustic is a ",
+			"introBefore": "dustic is a ",
 			"introAfter": ", which means you can install it on your device and use it like a native app. Once installed, it works offline for your saved content and provides a full-screen experience without browser UI.",
 			"iosTitle": "On iPhone/iPad:",
-			"ios1": "Open Dustic in Safari (not Chrome or other browsers)",
+			"ios1": "Open dustic in Safari (not Chrome or other browsers)",
 			"ios2": "Tap the Share button (square with arrow pointing up)",
 			"ios3": "Scroll down and tap \"Add to Home Screen\"",
 			"ios4": "Tap \"Add\" to confirm",
 			"androidTitle": "On Android:",
-			"android1": "Open Dustic in Chrome",
+			"android1": "Open dustic in Chrome",
 			"android2": "Tap the menu (three dots) in the top-right corner",
 			"android3": "Tap \"Add to Home screen\" or \"Install app\"",
 			"android4": "Tap \"Install\" to confirm",
-			"outro": "After installation, Dustic will appear on your home screen with its icon and can be launched like any other app on your device."
+			"outro": "After installation, dustic will appear on your home screen with its icon and can be launched like any other app on your device."
 		},
 		"creator": {
 			"title": "Creator",
-			"bodyBefore": "Dustic is developed by ",
+			"bodyBefore": "dustic is developed by ",
 			"bodyName": "Essi Parent",
 			"bodyAfter": "."
 		},
@@ -214,17 +214,17 @@
 			"fwBodyStrong": "FunkWhale",
 			"fwBodyAfter": " is a decentralized, community-driven music platform. You can connect to public FunkWhale instances in Settings to search and stream their music libraries alongside Internet Archive content.",
 			"fwLink": "Visit funkwhale.audio",
-			"footer": "Dustic does not host any audio files. It provides a unified interface to discover and play content from these sources."
+			"footer": "dustic does not host any audio files. It provides a unified interface to discover and play content from these sources."
 		},
 		"disclaimer": {
 			"title": "Content Disclaimer",
-			"body": "All content available through Dustic is served directly from the Internet Archive and connected FunkWhale instances. The creator of Dustic is not responsible for the content, accuracy, or availability of any audio files or metadata provided by these sources."
+			"body": "All content available through dustic is served directly from the Internet Archive and connected FunkWhale instances. The creator of dustic is not responsible for the content, accuracy, or availability of any audio files or metadata provided by these sources."
 		},
 		"privacy": {
 			"title": "Privacy & Data Collection",
-			"intro": "**No data collection.** Dustic does not collect, transmit, or store any personal information on external servers. Your listening activity is completely private.",
+			"intro": "**No data collection.** dustic does not collect, transmit, or store any personal information on external servers. Your listening activity is completely private.",
 			"introStrong": "No data collection.",
-			"introRest": " Dustic does not collect, transmit, or store any personal information on external servers. Your listening activity is completely private.",
+			"introRest": " dustic does not collect, transmit, or store any personal information on external servers. Your listening activity is completely private.",
 			"storage": "All your data (favorites, playlists, listening history, and settings) is stored locally in your browser's cache using localStorage. This means:",
 			"point1": "Your data never leaves your device",
 			"point2": "No account or login required",
@@ -245,7 +245,7 @@
 		},
 		"openSource": {
 			"title": "Open Source",
-			"body": "Dustic is open source software. You can view the source code, report issues, or contribute to the project on GitHub.",
+			"body": "dustic is open source software. You can view the source code, report issues, or contribute to the project on GitHub.",
 			"link": "View on GitHub"
 		},
 		"tech": {
@@ -263,7 +263,7 @@
 			"title": "Support & Feedback",
 			"sponsor": "Sponsor this project",
 			"feedback": "Send Feedback",
-			"footer": "If you enjoy Dustic, consider sponsoring the project. Report bugs or suggest features via GitHub issues."
+			"footer": "If you enjoy dustic, consider sponsoring the project. Report bugs or suggest features via GitHub issues."
 		}
 	},
 	"search": {
@@ -302,12 +302,12 @@
 	},
 	"curated": {
 		"title": "Curated Playlists",
-		"subtitle": "Hand-picked collections from the Dustic team. These are curated playlists created by humans to showcase the best audio from the Internet Archive.",
+		"subtitle": "Hand-picked collections from the dustic team. These are curated playlists created by humans to showcase the best audio from the Internet Archive.",
 		"empty": "No curated playlists available yet",
 		"emptyHint": "Check back soon for hand-picked collections",
 		"curatedBy": "Curated by {curator}",
 		"aboutTitle": "About Curated Playlists",
-		"aboutBody1": "Unlike algorithmic recommendations, these playlists are carefully crafted by human curators from the Dustic team. Each selection is chosen to represent the best of its genre and provide a meaningful listening experience.",
+		"aboutBody1": "Unlike algorithmic recommendations, these playlists are carefully crafted by human curators from the dustic team. Each selection is chosen to represent the best of its genre and provide a meaningful listening experience.",
 		"aboutBody2Before": "All audio is sourced from the ",
 		"aboutBody2Link": "Internet Archive",
 		"aboutBody2After": ", a non-profit library of millions of free books, movies, music, and more.",
@@ -416,7 +416,7 @@
 			}
 		},
 		"libraries": {
-			"pageTitle": "Audio sources — Dustic",
+			"pageTitle": "Audio sources — dustic",
 			"intro": "Choose where your audio comes from: the Internet Archive's public catalogue, one or more FunkWhale servers, and/or your own cloud folders.",
 			"iaTitle": "Internet Archive",
 			"iaSubtitle": "Millions of free recordings: live concerts, vinyl rips, old radio, audiobooks…",
@@ -552,7 +552,7 @@
 		},
 		"update": {
 			"title": "Update Available",
-			"body": "A new version of Dustic is available",
+			"body": "A new version of dustic is available",
 			"now": "Update Now",
 			"later": "Later"
 		},
@@ -575,7 +575,7 @@
 			"downloadLabel": "Download"
 		},
 		"themePicker": {
-			"welcome": "Welcome to Dustic",
+			"welcome": "Welcome to dustic",
 			"pickStyle": "Pick a style — you can change it anytime in Settings.",
 			"noAccountHint": "No account, no tracking. Just press Continue to start browsing.",
 			"continueWith": "Continue with {name}",
@@ -612,8 +612,8 @@
 		"offlineSkip": "Offline — sync skipped",
 		"syncFailed": "Sync failed",
 		"copied": "Copied!",
-		"copyToClipboard": "Copy to clipboard",
-		"pasteFromClipboard": "Paste from clipboard",
+		"copyToClipboard": "Copy",
+		"pasteFromClipboard": "Paste",
 		"synced": "Synced!",
 		"syncToCloud": "Sync to cloud",
 		"selectAllN": "Select all ({count})",
@@ -652,7 +652,7 @@
 			"random": "Random Discovery"
 		},
 		"title": "Autoplay Rules",
-		"subtitle": "Configure how Dustic chooses the next track when the queue is empty",
+		"subtitle": "Configure how dustic chooses the next track when the queue is empty",
 		"reset": "Reset to Defaults",
 		"resetConfirm": "Reset autoplay rules to defaults? Your weights and rule order will be lost.",
 		"enableTitle": "Enable Autoplay",

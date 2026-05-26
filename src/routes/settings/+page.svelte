@@ -4,7 +4,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import type { AudioQuality } from '$lib/types';
 	import ThemePicker from '$lib/components/ThemePicker.svelte';
-	import { _, setAppLocale, SUPPORTED_LOCALES, type SupportedLocale } from '$lib/i18n';
+	import { _, setAppLocale, resolveLocale, SUPPORTED_LOCALES, type SupportedLocale } from '$lib/i18n';
 
 	function handleQualityChange(quality: AudioQuality) {
 		settings.setAudioQuality(quality);
@@ -16,7 +16,7 @@
 		await setAppLocale(value);
 	}
 
-	$: currentLang = ($settings.language ?? 'en') as SupportedLocale;
+	$: currentLang = resolveLocale($settings.language);
 </script>
 
 <!-- Language -->

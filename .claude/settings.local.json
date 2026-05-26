@@ -32,6 +32,7 @@
       "Bash(npx playwright *)",
       "Bash(curl -sL \"https://api.deezer.com/search/album?q=artist:%22Pink+Floyd%22+album:%22The+Wall%22&limit=1\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('cover:', d.get\\('data',[{}]\\)[0].get\\('cover_xl','NONE'\\)\\)\")"
+      "Bash(git checkout *)"
     ]
   }
 }

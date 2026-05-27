@@ -1,6 +1,6 @@
 {
   "name": "dustic",
-  "version": "0.0.128",
+  "version": "0.0.129",
   "private": true,
   "scripts": {
     "dev": "node scripts/generate-version.js && vite dev",

@@ -361,10 +361,10 @@ async function findRandomAcrossSources(): Promise<Track | null> {
 // ---- From Favorites strategy (source-agnostic) ----
 
 async function findFromFavorites(): Promise<Track | null> {
-	const settingsState = get(settings);
-	// Opt-out: if user disabled favorites-influenced autoplay, skip
-	if (settingsState.favoriteInfluencedAutoplay === false) return null;
-
+	// "Opt-out" used to be a separate toggle in settings; it's now
+	// covered by the per-rule weight slider in the autoplay editor —
+	// setting "From Favorites" to weight 0 (or disabling the rule)
+	// already short-circuits this strategy through `enabledRules`.
 	const libraryState = get(library);
 	const favorites = libraryState.favorites;
 	if (favorites.length === 0) return null;

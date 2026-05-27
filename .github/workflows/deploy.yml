@@ -3,15 +3,40 @@ name: Version Bump
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    # Manual retrigger from the Actions tab when a push didn't fire the
+    # job (e.g. a [skip ci] tag, a merge race) and you want to bump the
+    # version anyway. No inputs needed.
+
+# Only one bump can run at a time on main. Without this, two pushes
+# landing within seconds of each other can both clone the same SHA, both
+# bump to N+1, and the second one fails to push (non-fast-forward) — or
+# worse, succeeds and silently overwrites work.
+concurrency:
+  group: version-bump-main
+  cancel-in-progress: false
 
 jobs:
   bump_version:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    # Skip the loop the bot itself creates. Manual workflow_dispatch
+    # bypasses the skip check entirely so you can always re-run.
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Log trigger context
+        # Surfaces why the job ran (push vs manual) and the commit
+        # message it saw. Saves a debugging round-trip the next time
+        # "the workflow didn't fire" turns out to be "the workflow fired
+        # but skipped because of [skip ci] in some commit body".
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Head SHA: ${{ github.sha }}"
+          echo "Head message: ${{ github.event.head_commit.message }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -33,12 +58,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version
+        id: bump
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
           NEW_PATCH=$((${VERSION_PARTS[2]} + 1))
           NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH"
           npm version $NEW_VERSION --no-git-tag-version
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate SvelteKit types
         run: npx svelte-kit sync
@@ -47,8 +74,35 @@ jobs:
         run: npm test
 
       - name: Commit version bump
+        # Distinguish "nothing to commit" (legitimate when only docs
+        # changed and version was already bumped in a prior step) from
+        # actual git errors. The previous `git commit ... || true` ate
+        # both cases.
         run: |
-          NEW_VERSION=$(node -p "require('./package.json').version")
           git add package.json package-lock.json
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || true
-          git push || true
+          if git diff --cached --quiet; then
+            echo "No version-affecting changes staged; skipping commit."
+            exit 0
+          fi
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+
+      - name: Push version bump
+        # Was previously `git push || true` — that's why a workflow run
+        # could "succeed" while the bump never reached origin. Push must
+        # fail loudly. The pre-step skip-on-no-change above handles the
+        # case where there was nothing to push in the first place.
+        run: |
+          if git diff origin/main..HEAD --quiet; then
+            echo "Local HEAD matches origin/main; nothing to push."
+            exit 0
+          fi
+          git push origin HEAD:main
+
+      - name: Summary
+        # Visible on the Actions run page, useful when scrolling through
+        # history.
+        run: |
+          echo "### Version bump" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Trigger: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- New version: \`${{ steps.bump.outputs.new_version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pushed to: \`main\`" >> "$GITHUB_STEP_SUMMARY"

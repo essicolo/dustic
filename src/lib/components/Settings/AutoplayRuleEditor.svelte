@@ -93,24 +93,6 @@
 		</label>
 	</div>
 
-	<!-- Favorites Influence Toggle -->
-	<div class="alert">
-		<label class="flex items-center gap-3 cursor-pointer w-full">
-			<input
-				type="checkbox"
-				checked={$settings.favoriteInfluencedAutoplay !== false}
-				on:change={() => settings.setFavoriteInfluencedAutoplay($settings.favoriteInfluencedAutoplay === false)}
-				class="toggle toggle-primary"
-			/>
-			<div class="flex-1">
-				<div class="font-medium">{$_('autoplay.favoritesTitle')}</div>
-				<div class="text-sm text-base-content/70">
-					{$_('autoplay.favoritesHint')}
-				</div>
-			</div>
-		</label>
-	</div>
-
 	<!-- Content Type Filters: cap what autoplay can pull in. Defaults to
 	     music-only to avoid the IA "popular = podcasts" pit.
 	     DaisyUI `.alert` is `display: grid` with auto / 1fr columns, so

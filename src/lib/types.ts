@@ -100,7 +100,6 @@ export interface UserProfile {
 		audioQuality: AudioQuality; // Audio quality preference for streaming and downloads
 		defaultCollection?: string;
 		funkwhaleInstances?: FunkwhaleInstance[];
-		favoriteInfluencedAutoplay?: boolean; // opt-out: true by default
 		webdav?: WebDAVConfig;
 		webdavLibraries?: WebDAVLibrary[];
 		theme?: string; // ThemeId — sync'd via WebDAV profile

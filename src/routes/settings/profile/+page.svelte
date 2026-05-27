@@ -91,8 +91,7 @@
 				volume: $player.volume,
 				repeat: $player.repeat,
 				audioQuality: $settings.audioQuality || 'medium',
-				funkwhaleInstances: $settings.funkwhaleInstances,
-				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay
+				funkwhaleInstances: $settings.funkwhaleInstances
 			}
 		};
 
@@ -227,9 +226,9 @@
 			if (profile.settings.funkwhaleInstances) {
 				settings.setFunkwhaleInstances(profile.settings.funkwhaleInstances);
 			}
-			if (profile.settings.favoriteInfluencedAutoplay !== undefined) {
-				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
-			}
+			// (legacy `favoriteInfluencedAutoplay` from older exports is
+			// silently dropped — that toggle was replaced by the
+			// per-rule weight slider in the autoplay editor.)
 		}
 
 		// Persist the imported profile to both localStorage and IndexedDB immediately
@@ -305,7 +304,6 @@
 					repeat: $player.repeat,
 					audioQuality: $settings.audioQuality || 'medium',
 					funkwhaleInstances: $settings.funkwhaleInstances,
-					favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay,
 					webdav: webdavConfig
 				}
 			};

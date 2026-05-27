@@ -10,6 +10,7 @@
 	$: isPreferences = pathname === `${base}/settings` || pathname === `${base}/settings/`;
 	$: isProfile = pathname.startsWith(`${base}/settings/profile`);
 	$: isLibraries = pathname.startsWith(`${base}/settings/libraries`);
+	$: isAbout = pathname.startsWith(`${base}/settings/about`);
 </script>
 
 <div class="p-4 md:p-8 max-w-4xl mx-auto">
@@ -36,6 +37,13 @@
 			class:tab-active={isLibraries}
 		>
 			{$_('settings.tabs.libraries')}
+		</a>
+		<a
+			href="{base}/settings/about"
+			class="tab tab-sm sm:tab-md"
+			class:tab-active={isAbout}
+		>
+			{$_('settings.tabs.about')}
 		</a>
 	</div>
 

@@ -6,7 +6,7 @@
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
 	import QueueContent from '$lib/components/Queue/QueueContent.svelte';
 	import { queuePanelOpen } from '$lib/stores/queuePanel';
-	import { POPULAR_COLLECTIONS, DEFAULT_FUNKWHALE_INSTANCES, FUNKWHALE_CATEGORIES, CONTENT_TYPES } from '$lib/utils/constants';
+	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 	import { settings } from '$lib/stores/settings';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
@@ -253,58 +253,32 @@
 				>
 					{$_('nav.magazine')}
 				</a>
+				<!-- The PARCOURIR (Browse by content type) sub-list and the
+				     About link were removed here: Search already lets users
+				     filter by content type, and About moved into the
+				     Settings tab strip. Dropping both shortens the nav and
+				     gets rid of the extra dividers that made the bottom
+				     spacing look uneven. -->
+			</nav>
 
-				<div class="border-t border-base-300 my-3"></div>
-
-				<!-- Browse by content type -->
-				<div class="px-4 py-1.5 text-xs font-semibold text-base-content/40 uppercase tracking-wider">
-					{$_('nav.browseHeader')}
-				</div>
-
-				{#each CONTENT_TYPES as ct}
-					<a
-						href="{base}/browse/{ct.id}"
-						on:click={closeSidebar}
-						class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-						class:bg-primary={currentPath.startsWith(`${base}/browse/${ct.id}`)}
-						class:text-primary-content={currentPath.startsWith(`${base}/browse/${ct.id}`)}
-					>
-						{$_(`browse.types.${ct.id}`, { default: ct.name })}
-					</a>
-				{/each}
-
-				<div class="border-t border-base-300 my-3"></div>
-
+			<!-- Bottom cluster: Sources / Profile / Settings.
+			     Same `space-y-1 px-2` rhythm as the top nav so the gaps
+			     between buttons match what's above. A single border-t
+			     marks the boundary with the main nav. -->
+			<div class="border-t border-base-300 my-3 mx-2"></div>
+			<nav class="space-y-1 px-2 mb-4">
+				<SourcesStatus />
+				<ProfileManager />
 				<a
 					href="{base}/settings"
 					on:click={closeSidebar}
-					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
-					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
+					class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
+					class:btn-active={currentPath.startsWith(`${base}/settings`)}
 				>
-					{$_('nav.settings')}
-				</a>
-
-				<div class="border-t border-base-300 my-3"></div>
-
-				<a
-					href="{base}/about"
-					on:click={closeSidebar}
-					class="block px-4 py-2 rounded-lg hover:bg-base-300 transition-all text-sm font-medium"
-					class:bg-primary={currentPath === `${base}/about`}
-					class:text-primary-content={currentPath === `${base}/about`}
-				>
-					{$_('nav.about')}
+					<Icon icon="solar:settings-bold" width="18" />
+					<span>{$_('nav.settings')}</span>
 				</a>
 			</nav>
-
-			<!-- Sources status (compact) -->
-			<div class="px-4 py-1">
-				<SourcesStatus />
-			</div>
-
-			<!-- Compact Profile Manager -->
-			<ProfileManager />
 		</aside>
 
 		<!-- Main content -->

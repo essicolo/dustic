@@ -377,7 +377,8 @@
 		"tabs": {
 			"preferences": "Préférences",
 			"profile": "Profil",
-			"libraries": "Sources audio"
+			"libraries": "Sources audio",
+			"about": "À propos"
 		},
 		"language": {
 			"title": "Langue",
@@ -657,8 +658,6 @@
 		"resetConfirm": "Réinitialiser les règles d'autoplay ? Vos pondérations et l'ordre des règles seront perdus.",
 		"enableTitle": "Activer la lecture auto",
 		"enableHint": "Joue automatiquement des pistes similaires à la fin de la file",
-		"favoritesTitle": "Utiliser les favoris dans la lecture auto",
-		"favoritesHint": "Laisse la règle « Depuis les favoris » choisir des pistes parmi vos favoris",
 		"contentTypesTitle": "Types de contenu",
 		"contentTypesHint": "Quels types d'audio la lecture auto peut piocher. Musique seulement par défaut pour éviter les podcasts qui dominent les charts d'Internet Archive.",
 		"contentTypesMinOne": "Au moins un type doit rester activé.",

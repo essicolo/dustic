@@ -54,8 +54,7 @@ export const UserProfileSchema = z.object({
 			url: z.string(),
 			name: z.string(),
 			enabled: z.boolean()
-		})).optional(),
-		favoriteInfluencedAutoplay: z.boolean().optional()
+		})).optional()
 	}).passthrough(),
 	favorites: z.array(FavoriteEntrySchema),
 	playlists: z.record(z.any()),

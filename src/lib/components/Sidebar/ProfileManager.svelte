@@ -111,7 +111,6 @@
 				repeat: $player.repeat,
 				audioQuality: $settings.audioQuality || 'medium',
 				funkwhaleInstances: $settings.funkwhaleInstances,
-				favoriteInfluencedAutoplay: $settings.favoriteInfluencedAutoplay,
 				webdav: $settings.webdav
 			},
 			lastPlayedTrack: $player.currentTrack || undefined,
@@ -242,9 +241,9 @@
 			if (profile.settings.funkwhaleInstances) {
 				settings.setFunkwhaleInstances(profile.settings.funkwhaleInstances);
 			}
-			if (profile.settings.favoriteInfluencedAutoplay !== undefined) {
-				settings.setFavoriteInfluencedAutoplay(profile.settings.favoriteInfluencedAutoplay);
-			}
+			// (legacy `favoriteInfluencedAutoplay` from older exports is
+			// silently dropped — that toggle was replaced by the
+			// per-rule weight slider in the autoplay editor.)
 		}
 
 		// Restore last played track and position
@@ -355,7 +354,10 @@
 
 </script>
 
-<div class="px-4 pb-4 border-t border-base-content/10 pt-3">
+<!-- Root padding/border intentionally removed: the parent sidebar lays
+     this out alongside SourcesStatus and the Settings link in a uniform
+     compact rhythm. Don't add `px-*` / `border-*` here. -->
+<div>
 	<!-- Hidden file input -->
 	<input
 		type="file"

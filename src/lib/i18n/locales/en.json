@@ -377,7 +377,8 @@
 		"tabs": {
 			"preferences": "Preferences",
 			"profile": "Profile",
-			"libraries": "Audio sources"
+			"libraries": "Audio sources",
+			"about": "About"
 		},
 		"language": {
 			"title": "Language",
@@ -657,8 +658,6 @@
 		"resetConfirm": "Reset autoplay rules to defaults? Your weights and rule order will be lost.",
 		"enableTitle": "Enable Autoplay",
 		"enableHint": "Automatically play similar tracks when queue ends",
-		"favoritesTitle": "Use Favorites in Autoplay",
-		"favoritesHint": "Let the \"From Favorites\" rule pick tracks from your favorites",
 		"contentTypesTitle": "Content types",
 		"contentTypesHint": "Which kinds of audio autoplay is allowed to pull in. Music-only by default to avoid Internet Archive's podcast-heavy popularity charts.",
 		"contentTypesMinOne": "At least one type must stay enabled.",

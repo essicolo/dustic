@@ -5,12 +5,7 @@
 // 3-column inner grid collapsed to a single column. The fix wraps the
 // section content in a single child div so the alert treats us as one
 // cell. This test guards the layout by measuring checkbox X positions.
-import { test, expect } from '@playwright/test';
-
-async function ensureNoModal(page: import('@playwright/test').Page) {
-	const close = page.getByText(/Continue with/i);
-	if (await close.count()) await close.first().click();
-}
+import { test, expect } from './fixtures';
 
 function diff(xs: number[]): number {
 	const sorted = [...xs].sort((a, b) => a - b);
@@ -31,7 +26,6 @@ async function checkboxXs(card: import('@playwright/test').Locator): Promise<num
 test('content-type checkboxes lay out horizontally without overlap', async ({ page }) => {
 	await page.goto('/settings');
 	await page.waitForLoadState('networkidle');
-	await ensureNoModal(page);
 
 	const card = page
 		.locator('.alert')
@@ -45,7 +39,6 @@ test('content-type checkboxes lay out horizontally without overlap', async ({ pa
 test('source checkboxes lay out horizontally without overlap', async ({ page }) => {
 	await page.goto('/settings');
 	await page.waitForLoadState('networkidle');
-	await ensureNoModal(page);
 
 	const card = page
 		.locator('.alert')

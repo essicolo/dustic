@@ -77,7 +77,7 @@
 		</div>
 	{:else}
 		<div class="text-center py-12 text-base-content/50">
-			<Icon icon="solar:playlist-minimalistic-bold" width="48" class="mx-auto mb-4 opacity-50" />
+			<Icon icon="solar:playlist-minimalistic-2-bold" width="48" class="mx-auto mb-4 opacity-50" />
 			<p>{$_('playlists.empty')}</p>
 			<p>{$_('playlists.emptyHint')}</p>
 		</div>

@@ -24,7 +24,7 @@
 {#if !isOnline}
 	<div class="toast toast-bottom toast-center z-50" role="status" aria-live="polite">
 		<div class="alert alert-warning shadow-lg">
-			<Icon icon="solar:wifi-off-bold" width="24" />
+			<Icon icon="mdi:wifi-off" width="24" />
 			<span>{$_('components.offline.banner')}</span>
 		</div>
 	</div>

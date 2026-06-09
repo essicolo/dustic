@@ -22,7 +22,7 @@
 			{/if}
 			{#if onDismiss}
 				<button on:click={onDismiss} class="btn btn-sm btn-ghost" aria-label={$_('components.errorAlert.dismissAria')}>
-					<Icon icon="solar:close-bold" width="16" />
+					<Icon icon="solar:close-circle-bold" width="16" />
 				</button>
 			{/if}
 		</div>

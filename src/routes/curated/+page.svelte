@@ -29,7 +29,7 @@
 
 		{#if curatedPlaylists.length === 0}
 			<div class="text-center py-20 text-base-content/50">
-				<Icon icon="solar:playlist-minimalistic-linear" width="64" class="mx-auto mb-4 opacity-30" />
+				<Icon icon="solar:playlist-minimalistic-2-linear" width="64" class="mx-auto mb-4 opacity-30" />
 				<p class="text-lg">{$_('curated.empty')}</p>
 				<p class="text-sm mt-2">{$_('curated.emptyHint')}</p>
 			</div>

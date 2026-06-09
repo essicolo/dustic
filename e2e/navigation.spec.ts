@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Navigation', () => {
 	test('home page loads', async ({ page }) => {
@@ -13,7 +13,11 @@ test.describe('Navigation', () => {
 		// Click Search in sidebar
 		await page.getByRole('link', { name: 'Search', exact: true }).click();
 		await expect(page).toHaveURL(/search/);
-		await expect(page.locator('input[type="search"]')).toBeVisible();
+		// The layout crossfades pages, so the home page (which has its own
+		// search input) lingers in the DOM for ~150ms; wait for it to leave.
+		const searchInput = page.locator('input[type="search"]');
+		await expect(searchInput).toHaveCount(1);
+		await expect(searchInput).toBeVisible();
 	});
 
 	test('browse page loads content types', async ({ page }) => {

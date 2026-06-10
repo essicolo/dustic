@@ -99,4 +99,75 @@ test.describe('Search Page', () => {
 		await expect(page.locator('.alert-error')).toBeVisible({ timeout: 25000 });
 		await expect(page.getByText(/No results for/)).not.toBeVisible();
 	});
+
+	// Routes every external request: FunkWhale aborted, advancedsearch
+	// answered from `respond`, other archive.org/thumbnail traffic aborted.
+	async function mockSources(
+		page: import('@playwright/test').Page,
+		respond: (q: string) => Promise<any[]> | any[]
+	) {
+		await page.route('**/*', async (route) => {
+			const u = new URL(route.request().url());
+			if (u.hostname.endsWith('open.audio') || u.hostname.includes('funkwhale')) {
+				return route.abort();
+			}
+			if (u.pathname.includes('advancedsearch.php')) {
+				const docs = await respond(u.searchParams.get('q') ?? '');
+				return route.fulfill({
+					contentType: 'application/json',
+					body: JSON.stringify({ response: { numFound: docs.length, start: 0, docs } })
+				});
+			}
+			if (u.hostname.endsWith('archive.org') || u.hostname.includes('weserv')) {
+				return route.abort();
+			}
+			return route.continue();
+		});
+	}
+
+	const doc = (id: string, title: string) => ({
+		identifier: id,
+		title,
+		creator: 'Mock Artist',
+		collection: ['etree']
+	});
+
+	test('renders results returned by the sources', async ({ page }) => {
+		await mockSources(page, (q) => (q.includes('mockband') ? [doc('mock-1', 'First Mock Album'), doc('mock-2', 'Second Mock Album')] : []));
+
+		await page.goto('/search');
+		const input = page.locator('input[type="search"]');
+		await input.fill('mockband');
+		await input.press('Enter');
+
+		await expect(page.getByText('First Mock Album')).toBeVisible();
+		await expect(page.getByText('Second Mock Album')).toBeVisible();
+	});
+
+	test('a slow stale response cannot overwrite a newer search', async ({ page }) => {
+		await mockSources(page, async (q) => {
+			if (q.includes('slowband')) {
+				// Old query answers long after the user has moved on.
+				await new Promise((r) => setTimeout(r, 3000));
+				return [doc('slow-1', 'Slow Band Result')];
+			}
+			if (q.includes('fastband')) return [doc('fast-1', 'Fast Band Result')];
+			return [];
+		});
+
+		await page.goto('/search');
+		const input = page.locator('input[type="search"]');
+		await input.fill('slowband');
+		await input.press('Enter');
+		// Supersede the in-flight search immediately.
+		await input.fill('fastband');
+		await input.press('Enter');
+
+		await expect(page.getByText('Fast Band Result')).toBeVisible();
+
+		// Let the stale slowband response land — it must be discarded.
+		await page.waitForTimeout(3500);
+		await expect(page.getByText('Fast Band Result')).toBeVisible();
+		await expect(page.getByText('Slow Band Result')).not.toBeVisible();
+	});
 });

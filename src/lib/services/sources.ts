@@ -133,11 +133,16 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 		}
 	}
 
+	const pageSize = params.pageSize || 50;
 	return {
 		items: merged,
 		total: iaTotal + fwTotal,
 		page: params.page || 1,
-		pageSize: params.pageSize || 50,
+		pageSize,
+		// Each page pulls up to pageSize from BOTH sources, so the real
+		// page count follows the larger source. Deriving it from the
+		// combined total would promise trailing pages that come up empty.
+		pageCount: Math.max(Math.ceil(iaTotal / pageSize), Math.ceil(fwTotal / pageSize)),
 		error
 	};
 }

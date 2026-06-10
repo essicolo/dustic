@@ -112,7 +112,7 @@
 </script>
 
 <svelte:head>
-	<title>{library?.name || $_('webdav.libraryFallback')} — Dustic</title>
+	<title>{library?.name || $_('webdav.libraryFallback')} — dustic</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-6xl p-4">

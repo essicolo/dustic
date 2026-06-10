@@ -50,16 +50,28 @@ export async function sequentialExecute<T>(
 export function debounce<T extends (...args: any[]) => any>(
 	func: T,
 	wait: number = 300
-): (...args: Parameters<T>) => void {
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
 	let timeout: ReturnType<typeof setTimeout> | null = null;
 
-	return function (...args: Parameters<T>) {
+	const debounced = (...args: Parameters<T>) => {
 		if (timeout) {
 			clearTimeout(timeout);
 		}
 
 		timeout = setTimeout(() => {
+			timeout = null;
 			func(...args);
 		}, wait);
 	};
+
+	// Drops the pending invocation, e.g. when the action it would trigger
+	// has already run through another path (Enter vs. debounced input).
+	debounced.cancel = () => {
+		if (timeout) {
+			clearTimeout(timeout);
+			timeout = null;
+		}
+	};
+
+	return debounced;
 }

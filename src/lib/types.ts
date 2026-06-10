@@ -132,6 +132,13 @@ export interface SearchResult {
 	page: number;
 	pageSize: number;
 	error?: string; // Specific error (e.g., item is dark/private)
+	/**
+	 * True number of result pages. For multi-source results this differs
+	 * from ceil(total / pageSize): each page drains up to pageSize from
+	 * EVERY source, so the page count is governed by the largest source,
+	 * not the combined total.
+	 */
+	pageCount?: number;
 }
 
 export interface IASearchResponse {

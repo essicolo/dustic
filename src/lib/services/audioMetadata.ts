@@ -4,7 +4,7 @@
 // every collection has its own conventions and many tracks land outside
 // any predictable structure. The robust solution is to read the file's
 // own metadata tags (ID3v2 for mp3, Vorbis comments for flac/ogg/opus,
-// MP4 atoms for m4a) via a Range request and `music-metadata-browser`.
+// MP4 atoms for m4a) via a Range request and `music-metadata`.
 //
 // We pull the first ~256KB of each audio file, which is enough for the
 // tag block on every common format including embedded cover art. Results
@@ -189,21 +189,13 @@ async function doFetch(
 	}
 	if (!buffer || buffer.byteLength < 32) return null;
 
-	// music-metadata-browser internally uses Node's Buffer global
-	// (notably in ID3v1Parser.hasID3v1Header → Buffer.alloc(3)). Without
-	// a polyfill, every parseBuffer() call throws "Buffer is not
-	// defined" before reading any tags. Install the polyfill once on
-	// first use — the buffer package is already a transitive dep.
-	if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
-		const { Buffer } = await import('buffer');
-		(globalThis as { Buffer?: unknown }).Buffer = Buffer;
-	}
-
-	// music-metadata-browser is large; dynamic-import so the bundle only
-	// pays the cost on pages that actually browse WebDAV folders.
+	// music-metadata is large; dynamic-import so the bundle only pays the
+	// cost on pages that actually browse WebDAV folders. (Since v8 the
+	// library is browser-native and works on Uint8Array directly — no
+	// Node Buffer polyfill needed, unlike the old music-metadata-browser.)
 	let parsed;
 	try {
-		const { parseBuffer } = await import('music-metadata-browser');
+		const { parseBuffer } = await import('music-metadata');
 		parsed = await parseBuffer(new Uint8Array(buffer), undefined, {
 			skipCovers: false,
 			duration: false

@@ -7,16 +7,33 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'f
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
 import { createRequire } from 'module';
-import { getIcons } from '@iconify/utils';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const srcDir = join(__dirname, '../src');
 
-const COLLECTIONS = {
-	solar: require('@iconify-json/solar/icons.json'),
-	mdi: require('@iconify-json/mdi/icons.json')
-};
+// The build-time icon packages are devDependencies. Load them behind a
+// guard so a missing install fails with an actionable message instead of
+// a raw ERR_MODULE_NOT_FOUND stack trace.
+let getIcons;
+let COLLECTIONS;
+try {
+	({ getIcons } = await import('@iconify/utils'));
+	COLLECTIONS = {
+		solar: require('@iconify-json/solar/icons.json'),
+		mdi: require('@iconify-json/mdi/icons.json')
+	};
+} catch (err) {
+	if (err?.code === 'ERR_MODULE_NOT_FOUND' || err?.code === 'MODULE_NOT_FOUND') {
+		console.error(
+			'\n[generate-icon-bundle] Missing icon build dependencies ' +
+				'(@iconify/utils, @iconify-json/solar, @iconify-json/mdi).\n' +
+				'Run `npm install` and try again.\n'
+		);
+		process.exit(1);
+	}
+	throw err;
+}
 
 // Collect every "<prefix>:<icon-name>" string literal in source files.
 const ICON_RE = /\b(solar|mdi):([a-z0-9][a-z0-9-]*)/g;

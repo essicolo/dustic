@@ -145,8 +145,16 @@
 			}
 		} catch (e: any) {
 			console.warn('[Search] Failed:', e.message || e);
-			if (e.message?.includes('Network error') || e.message?.includes('network')) {
+			if (
+				e.message?.includes('Network error') ||
+				e.message?.includes('network') ||
+				e.name === 'TimeoutError'
+			) {
 				error = $_('search.networkError');
+			} else {
+				// Don't swallow other failures — an outage rendered as
+				// "No results" sends users away thinking the archive is empty.
+				error = e.message || $_('search.networkError');
 			}
 		} finally {
 			isSearching = false;
@@ -500,13 +508,15 @@
 				</button>
 			</div>
 		{/if}
-	{:else if searchQuery.trim()}
+	{:else if searchQuery.trim() && !error}
+		<!-- Suppressed while an error is shown: "No results" would wrongly
+		     suggest the query matched nothing when the sources were down. -->
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
 			<p class="text-lg">{$_('search.noResults', { values: { query: searchQuery } })}</p>
 			<p class="text-sm mt-2">{$_('search.noResultsHint')}</p>
 		</div>
-	{:else}
+	{:else if !error}
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
 			<p class="text-lg">{$_('search.emptyPrompt')}</p>

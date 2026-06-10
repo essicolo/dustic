@@ -3,7 +3,7 @@
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
-	import { getItemMetadata } from '$lib/services/internetArchive';
+	import { fetchItemsByIdentifiers, getItemMetadata } from '$lib/services/internetArchive';
 	import type { Track, ArchiveItem, FavoriteType } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -60,7 +60,26 @@
 		const trackFavorites = favorites.filter((f) => f.type === 'track');
 		const albumFavorites = favorites.filter((f) => f.type === 'album');
 
+		// All Internet Archive favorites (tracks AND albums) resolve through
+		// one batched advancedsearch request: the cards only need display
+		// metadata here — AudioCard resolves the streamUrl lazily on play.
+		// Only fw:/wd: identifiers still need per-item lookups.
+		const isIA = (id: string) => !id.startsWith('fw:') && !id.startsWith('wd:');
+		const iaIds = [
+			...trackFavorites.filter((f) => isIA(f.id)).map((f) => f.id.split('#')[0]),
+			...albumFavorites.filter((f) => isIA(f.id)).map((f) => f.id)
+		];
+
+		let batched = new Map<string, Track>();
+		try {
+			batched = await fetchItemsByIdentifiers(iaIds);
+		} catch (e) {
+			console.warn('[Favorites] Batch lookup failed, falling back to per-item fetches:', e);
+		}
+
 		const trackTasks = trackFavorites.map((f) => async () => {
+			const fromBatch = batched.get(f.id.split('#')[0]);
+			if (fromBatch) return { ...fromBatch, identifier: f.id };
 			try {
 				return await getTrack(f.id);
 			} catch {
@@ -69,7 +88,17 @@
 		});
 
 		const albumTasks = albumFavorites.map((f) => async () => {
+			const fromBatch = batched.get(f.id);
+			if (fromBatch) {
+				return {
+					identifier: fromBatch.identifier,
+					title: fromBatch.title || $_('common.untitled'),
+					creator: fromBatch.artist
+				} as ArchiveItem;
+			}
 			try {
+				// IA items the batch search didn't return (e.g. dark items):
+				// fall back to the per-item metadata endpoint.
 				const meta = await getItemMetadata(f.id);
 				if (!meta) return null;
 				return {
@@ -82,7 +111,8 @@
 			}
 		});
 
-		// Load with concurrency limit of 6, showing results as they arrive
+		// Anything not answered by the batch loads with concurrency 6,
+		// showing results as they arrive.
 		await Promise.all([
 			loadConcurrent(trackTasks, 6, (track) => {
 				if (track) tracks = [...tracks, track];

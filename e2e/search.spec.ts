@@ -74,4 +74,29 @@ test.describe('Search Page', () => {
 			await expect(page.getByText('Sort by')).toBeVisible();
 		}
 	});
+
+	test('shows an error, not "No results", when every source is unreachable', async ({ page }) => {
+		// Abort all source traffic in the browser to simulate a full outage
+		// (captive portal, blocked network, archive.org down). Match on
+		// hostname only — a plain regex would also hit the vite dev
+		// server's module URLs (e.g. /src/lib/services/funkwhale.ts).
+		await page.route('**/*', (route) => {
+			const host = new URL(route.request().url()).hostname;
+			if (host.endsWith('archive.org') || host.endsWith('open.audio') || host.includes('funkwhale')) {
+				return route.abort();
+			}
+			return route.continue();
+		});
+
+		await page.goto('/search');
+		const input = page.locator('input[type="search"]');
+		await input.fill('Mozart');
+		await input.press('Enter');
+
+		// The failure must surface as an error alert — never as
+		// "No results for Mozart", which implies the archive has nothing.
+		// Generous timeout: the IA client retries with backoff first.
+		await expect(page.locator('.alert-error')).toBeVisible({ timeout: 25000 });
+		await expect(page.getByText(/No results for/)).not.toBeVisible();
+	});
 });

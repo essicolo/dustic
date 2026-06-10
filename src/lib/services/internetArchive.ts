@@ -254,6 +254,65 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 }
 
 /**
+ * Fetch display metadata for many items in one advancedsearch request
+ * (chunked). Used by the favorites page: one query for N favorites
+ * instead of N metadata calls. Returned tracks have no streamUrl —
+ * playback resolves it lazily via getTrack.
+ */
+export async function fetchItemsByIdentifiers(identifiers: string[]): Promise<Map<string, Track>> {
+	const found = new Map<string, Track>();
+	if (identifiers.length === 0) return found;
+
+	const CHUNK = 50; // keep the q= parameter well under URL length limits
+	const chunks: string[][] = [];
+	for (let i = 0; i < identifiers.length; i += CHUNK) {
+		chunks.push(identifiers.slice(i, i + CHUNK));
+	}
+
+	await Promise.all(
+		chunks.map(async (chunk) => {
+			const q = `identifier:(${chunk.join(' OR ')})`;
+			const urlParams = new URLSearchParams({
+				q,
+				fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection'].join(','),
+				rows: String(chunk.length),
+				page: '1',
+				output: 'json'
+			});
+			const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+
+			const data = await withCache(
+				`ia:batch:${q}`,
+				async () => {
+					const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+					const rawData = await response.json();
+					return IASearchResponseSchema.parse(rawData);
+				},
+				3 * 60 * 1000
+			);
+
+			for (const doc of data.response.docs) {
+				found.set(doc.identifier, {
+					identifier: doc.identifier,
+					filename: '',
+					title: Array.isArray(doc.title) ? doc.title[0] : doc.title || 'Untitled',
+					artist: Array.isArray(doc.creator) ? doc.creator[0] : doc.creator || 'Unknown Artist',
+					date: doc.date,
+					collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+					genre: Array.isArray(doc.subject) ? doc.subject : doc.subject ? [doc.subject] : undefined,
+					format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+					streamUrl: '',
+					thumbnailUrl: getThumbnailUrl(doc.identifier),
+					metadata: doc
+				});
+			}
+		})
+	);
+
+	return found;
+}
+
+/**
  * Extract potential identifier from concert title patterns
  * e.g., "Mono Live at Venue on 2010-03-21" → "mono2010-03-21"
  */

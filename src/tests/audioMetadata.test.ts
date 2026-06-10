@@ -52,7 +52,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 			password: 'p',
 			rootPath: '/'
 		} as unknown as Parameters<
-			Awaited<ReturnType<typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']>>
+			typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']
 		>[1];
 
 		const { fetchAudioMetadata } = await import('$lib/services/audioMetadata');
@@ -103,7 +103,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 			password: 'p',
 			rootPath: '/'
 		} as unknown as Parameters<
-			Awaited<ReturnType<typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']>>
+			typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']
 		>[1];
 
 		const { fetchAudioMetadata } = await import('$lib/services/audioMetadata');

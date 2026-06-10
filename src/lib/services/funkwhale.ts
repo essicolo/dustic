@@ -324,7 +324,10 @@ export async function searchInstance(
 		return { tracks, total: data.count || tracks.length };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
-		return { tracks: [], total: 0 };
+		// Rethrow so search() can tell "instance unreachable" apart from
+		// "instance reachable but empty" — it still tolerates partial
+		// failures via allSettled.
+		throw error;
 	}
 }
 
@@ -348,12 +351,20 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	// Merge results from all instances
 	const allTracks: Track[] = [];
 	let totalCount = 0;
+	let fulfilled = 0;
 
 	for (const result of results) {
 		if (result.status === 'fulfilled') {
+			fulfilled++;
 			allTracks.push(...result.value.tracks);
 			totalCount += result.value.total;
 		}
+	}
+
+	// Every configured instance failed — surface it as a network error so
+	// the UI doesn't present an outage as "no results".
+	if (fulfilled === 0) {
+		throw new Error('Network error: no FunkWhale instance could be reached.');
 	}
 
 	return {

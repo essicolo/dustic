@@ -131,3 +131,42 @@ describe('fetchItemsByIdentifiers', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
+
+describe('buildRelevanceQuery', () => {
+	it('boosts title and creator for plain-text queries', async () => {
+		const { buildRelevanceQuery } = await import('$lib/services/internetArchive');
+		expect(buildRelevanceQuery('miles davis')).toBe(
+			'(title:(miles davis)^4 OR creator:(miles davis)^3 OR (miles davis))'
+		);
+	});
+
+	it('leaves field-syntax queries untouched', async () => {
+		const { buildRelevanceQuery } = await import('$lib/services/internetArchive');
+		expect(buildRelevanceQuery('creator:"Bach"')).toBe('creator:"Bach"');
+	});
+
+	it('leaves empty queries untouched', async () => {
+		const { buildRelevanceQuery } = await import('$lib/services/internetArchive');
+		expect(buildRelevanceQuery('')).toBe('');
+		expect(buildRelevanceQuery('  ')).toBe('  ');
+	});
+
+	it('is applied to the advancedsearch q parameter', async () => {
+		const fetchMock = vi.fn(async (_url: string) => ({
+			ok: true,
+			json: async () => ({ response: { numFound: 0, start: 0, docs: [] } })
+		}));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const { search } = await import('$lib/services/internetArchive');
+		const { cache } = await import('$lib/utils/cache');
+		cache.clear();
+		await search({ query: 'unique relevance probe' });
+
+		const q = new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('q') ?? '';
+		expect(q).toContain('title:(unique relevance probe)^4');
+		expect(q).toContain('creator:(unique relevance probe)^3');
+		expect(q).toContain('AND mediatype:audio');
+		vi.unstubAllGlobals();
+	});
+});

@@ -106,6 +106,19 @@ export function cleanSearchInput(input: string): string {
  * Check if a string looks like an Archive.org identifier
  * Identifiers: alphanumeric, hyphens, dots, underscores, no spaces
  */
+/**
+ * Wrap a plain-text query so title and creator matches rank above
+ * matches buried in descriptions/transcripts. The bare clause keeps the
+ * match set identical to the unboosted query (the default text field
+ * already covers title/creator); only the ordering changes. Queries
+ * that already use field syntax (creator:"...") are left untouched.
+ */
+export function buildRelevanceQuery(query: string): string {
+	const trimmed = query.trim();
+	if (!trimmed || trimmed.includes(':')) return query;
+	return `(title:(${trimmed})^4 OR creator:(${trimmed})^3 OR (${trimmed}))`;
+}
+
 function looksLikeIdentifier(input: string): boolean {
 	if (!input || input.length === 0) return false;
 	// If it contains spaces, it's likely a natural language query
@@ -378,8 +391,17 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		}
 	}
 
+	// Strategies 4+5 run concurrently: the speculative no-filter request
+	// costs one extra (3-min-cached) GET per fresh query, and turns the
+	// zero-result path from two sequential round-trips into one. The
+	// pre-attached catch keeps an unused speculative failure from
+	// surfacing as an unhandled rejection when strategy 4 throws first.
+	const textPromise = search({ ...params, query: cleaned });
+	const noFilterPromise = searchWithoutFormatFilter({ ...params, query: cleaned });
+	noFilterPromise.catch(() => {});
+
 	// Strategy 4: Regular text search with format filters
-	const textResult = await search({ ...params, query: cleaned });
+	const textResult = await textPromise;
 	if (textResult.items.length > 0) {
 		return textResult;
 	}
@@ -387,7 +409,7 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	console.log(`[IA] Text search returned no results, trying without format filters`);
 
 	// Strategy 5: Try without restrictive format filters (for edge cases)
-	const noFilterResult = await searchWithoutFormatFilter({ ...params, query: cleaned });
+	const noFilterResult = await noFilterPromise;
 	if (noFilterResult.items.length > 0) {
 		return noFilterResult;
 	}
@@ -422,7 +444,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 		pageSize = CONFIG.defaultPageSize
 	} = params;
 
-	let q = query;
+	let q = buildRelevanceQuery(query);
 
 	// Add creator filter for artist searches (exact match)
 	if (params.creator) {
@@ -554,8 +576,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		pageSize = CONFIG.defaultPageSize
 	} = params;
 
-	// Build search query
-	let q = query;
+	// Build search query, ranking title/creator matches first
+	let q = buildRelevanceQuery(query);
 
 	// Add creator filter for artist searches (exact match)
 	if (params.creator) {

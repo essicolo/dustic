@@ -320,8 +320,15 @@ export async function searchInstance(
 			.map((t) => toTrack(t, baseUrl))
 			.filter((t) => t.streamUrl); // Only include tracks with a valid stream URL
 
-		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${data.count})`);
-		return { tracks, total: data.count || tracks.length };
+		// data.count is the server-side match count, but some of those
+		// tracks get dropped client-side (no usable stream URL). Scale the
+		// total by this page's playable ratio so pagination doesn't
+		// promise pages that would render empty.
+		const playableRatio = fwTracks.length > 0 ? tracks.length / fwTracks.length : 0;
+		const total = Math.max(tracks.length, Math.round((data.count || fwTracks.length) * playableRatio));
+
+		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${total} est. of ${data.count})`);
+		return { tracks, total };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
 		// Rethrow so search() can tell "instance unreachable" apart from

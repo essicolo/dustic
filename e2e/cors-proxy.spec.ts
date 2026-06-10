@@ -5,9 +5,15 @@
 // browser try to decompress plain JSON and silently discard it. Visible
 // symptom in the app: thumbnails never appear, because every Deezer
 // call goes through this proxy.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
-test('cors-proxy returns parseable JSON for a Deezer album search', async ({ page }) => {
+test('cors-proxy returns parseable JSON for a Deezer album search', async ({ page, request }) => {
+	// This test needs real egress to api.deezer.com. Sandboxed CI runners
+	// often block it; in that case the proxy would only forward the
+	// upstream block, telling us nothing about the proxy itself.
+	const probe = await request.get('https://api.deezer.com/infos', { timeout: 10000 }).catch(() => null);
+	test.skip(!probe || !probe.ok(), 'api.deezer.com unreachable from this environment');
+
 	await page.goto('/');
 	await page.waitForLoadState('networkidle');
 

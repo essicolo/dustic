@@ -51,6 +51,7 @@
 	let isTyping = false;
 	let results: Track[] = [];
 	let totalResults = 0;
+	let pageCount = 0;
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
@@ -96,11 +97,22 @@
 		}
 	}
 
+	// Monotonic sequence so overlapping searches can't finish out of
+	// order: a slow response from an older query must never overwrite
+	// the results of a newer one.
+	let searchSeq = 0;
+
 	async function handleSearch() {
+		// An explicit search supersedes any pending debounced one — without
+		// this, Enter mid-debounce fires the same search twice.
+		debouncedSearch.cancel();
+		const seq = ++searchSeq;
+
 		const hasFilters = selectedContentType || selectedTag;
 		if (!searchQuery.trim() && !hasFilters) {
 			results = [];
 			totalResults = 0;
+			pageCount = 0;
 			isTyping = false;
 			error = '';
 			return;
@@ -135,8 +147,11 @@
 
 		try {
 			const result = await searchAPI(params);
+			if (seq !== searchSeq) return; // a newer search owns the UI now
+
 			results = result.items;
 			totalResults = result.total;
+			pageCount = result.pageCount ?? Math.ceil(result.total / pageSize);
 
 			if (result.error) {
 				error = result.error;
@@ -144,13 +159,24 @@
 				error = '';
 			}
 		} catch (e: any) {
+			if (seq !== searchSeq) return;
 			console.warn('[Search] Failed:', e.message || e);
-			if (e.message?.includes('Network error') || e.message?.includes('network')) {
+			if (
+				e.message?.includes('Network error') ||
+				e.message?.includes('network') ||
+				e.name === 'TimeoutError'
+			) {
 				error = $_('search.networkError');
+			} else {
+				// Don't swallow other failures — an outage rendered as
+				// "No results" sends users away thinking the archive is empty.
+				error = e.message || $_('search.networkError');
 			}
 		} finally {
-			isSearching = false;
-			syncUrl();
+			if (seq === searchSeq) {
+				isSearching = false;
+				syncUrl();
+			}
 		}
 	}
 
@@ -280,7 +306,7 @@
 		}, 3000);
 	}
 
-	$: totalPages = Math.ceil(totalResults / pageSize);
+	$: totalPages = pageCount || Math.ceil(totalResults / pageSize);
 	$: hasActiveFilters = selectedContentType !== '' || selectedTag !== '' || sortBy !== 'relevance' || !sourceIA || !sourceFW;
 	$: activeTags = selectedContentType
 		? (CONTENT_TYPES.find(ct => ct.id === selectedContentType)?.tags ?? POPULAR_TAGS)
@@ -500,13 +526,15 @@
 				</button>
 			</div>
 		{/if}
-	{:else if searchQuery.trim()}
+	{:else if searchQuery.trim() && !error}
+		<!-- Suppressed while an error is shown: "No results" would wrongly
+		     suggest the query matched nothing when the sources were down. -->
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
 			<p class="text-lg">{$_('search.noResults', { values: { query: searchQuery } })}</p>
 			<p class="text-sm mt-2">{$_('search.noResultsHint')}</p>
 		</div>
-	{:else}
+	{:else if !error}
 		<div class="text-center py-20 text-base-content/50">
 			<Icon icon="solar:magnifer-linear" width="48" class="mx-auto mb-4 opacity-30" />
 			<p class="text-lg">{$_('search.emptyPrompt')}</p>

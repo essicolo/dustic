@@ -126,7 +126,7 @@
 	"library": {
 		"title": "Bibliothèque",
 		"favoritesItems": "{count, plural, one {# élément} other {# éléments}}",
-		"historySubtitle": "Écoutes récentes",
+		"historySubtitle": "Reprenez là où vous en étiez",
 		"playlistCount": "{count, plural, one {# playlist} other {# playlists}}",
 		"folders": {
 			"title": "Vos dossiers",

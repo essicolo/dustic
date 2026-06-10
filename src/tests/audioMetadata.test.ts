@@ -1,19 +1,16 @@
-// Unit test for the Buffer polyfill in audioMetadata.doFetch. We can't
-// straightforwardly exercise music-metadata-browser here (it relies on
-// strtok3 internals that don't play well with jsdom), but we CAN verify
-// the polyfill mechanism itself by triggering doFetch indirectly and
-// asserting that globalThis.Buffer is populated by the time the parser
-// is reached. The regression we're guarding against: removing the
-// polyfill block causes every WebDAV track to tombstone with
-// "Buffer is not defined" for a year.
+// Unit tests for audioMetadata.doFetch. We can't straightforwardly
+// exercise the real music-metadata parser here (it relies on strtok3
+// internals that don't play well with jsdom), so the parser is mocked
+// and we verify doFetch's caching, concurrency, and calling contracts
+// around it.
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-describe('audioMetadata — Buffer polyfill', () => {
+describe('audioMetadata — doFetch', () => {
 	beforeEach(() => {
 		vi.resetModules();
-		// Start each test with no global Buffer so we can prove the
-		// polyfill installs it.
+		// music-metadata (v8+) is browser-native; nothing should install a
+		// Node Buffer polyfill anymore. Start clean so we can assert that.
 		delete (globalThis as { Buffer?: unknown }).Buffer;
 	});
 
@@ -28,7 +25,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 		// caused every WebDAV track to tombstone for a YEAR. After the
 		// refactor, parse failures bubble up uncached and the next render
 		// retries — letting a fix actually take effect.
-		vi.doMock('music-metadata-browser', () => ({
+		vi.doMock('music-metadata', () => ({
 			parseBuffer: vi.fn(async () => {
 				throw new Error('simulated library bug');
 			})
@@ -52,7 +49,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 			password: 'p',
 			rootPath: '/'
 		} as unknown as Parameters<
-			Awaited<ReturnType<typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']>>
+			typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']
 		>[1];
 
 		const { fetchAudioMetadata } = await import('$lib/services/audioMetadata');
@@ -88,7 +85,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 				};
 			})
 		);
-		vi.doMock('music-metadata-browser', () => ({
+		vi.doMock('music-metadata', () => ({
 			parseBuffer: vi.fn(async () => ({ common: {} }))
 		}));
 		vi.doMock('$lib/services/crypto', () => ({
@@ -103,7 +100,7 @@ describe('audioMetadata — Buffer polyfill', () => {
 			password: 'p',
 			rootPath: '/'
 		} as unknown as Parameters<
-			Awaited<ReturnType<typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']>>
+			typeof import('$lib/services/audioMetadata')['fetchAudioMetadata']
 		>[1];
 
 		const { fetchAudioMetadata } = await import('$lib/services/audioMetadata');
@@ -115,14 +112,17 @@ describe('audioMetadata — Buffer polyfill', () => {
 		expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(12);
 	});
 
-	it('installs globalThis.Buffer before invoking parseBuffer', async () => {
-		// Mock music-metadata-browser so we can observe what global state
-		// existed when parseBuffer was called — without actually parsing.
-		let bufferAtParseTime: unknown = undefined;
-		vi.doMock('music-metadata-browser', () => ({
-			parseBuffer: vi.fn(async () => {
-				bufferAtParseTime = (globalThis as { Buffer?: unknown }).Buffer;
-				return { common: {} };
+	it('passes a Uint8Array to parseBuffer and needs no Buffer polyfill', async () => {
+		// music-metadata (the successor of music-metadata-browser) works on
+		// Uint8Array natively. Pin that contract: the parser receives a
+		// Uint8Array, results flow through, and doFetch no longer installs
+		// a global Buffer polyfill as a side effect. If a future change
+		// reintroduces one, this should fail and force a deliberate look.
+		let receivedArg: unknown = undefined;
+		vi.doMock('music-metadata', () => ({
+			parseBuffer: vi.fn(async (data: unknown) => {
+				receivedArg = data;
+				return { common: { artist: 'Mock Artist', album: 'Mock Album' } };
 			})
 		}));
 
@@ -141,10 +141,8 @@ describe('audioMetadata — Buffer polyfill', () => {
 			decryptValue: vi.fn(async () => 'pw')
 		}));
 
-		expect((globalThis as { Buffer?: unknown }).Buffer).toBeUndefined();
-
 		const { fetchAudioMetadata } = await import('$lib/services/audioMetadata');
-		await fetchAudioMetadata('wd:test:1', {
+		const meta = await fetchAudioMetadata('wd:test:1', {
 			id: 'lib',
 			name: 'test',
 			url: 'https://example.test',
@@ -153,9 +151,10 @@ describe('audioMetadata — Buffer polyfill', () => {
 			rootPath: '/'
 		} as unknown as Parameters<typeof fetchAudioMetadata>[1], '/track.mp3');
 
-		// Polyfill was installed before parseBuffer ran.
-		expect(bufferAtParseTime).toBeDefined();
-		// And it persists on globalThis after doFetch returns.
-		expect((globalThis as { Buffer?: unknown }).Buffer).toBeDefined();
+		expect(receivedArg).toBeInstanceOf(Uint8Array);
+		expect(meta?.artist).toBe('Mock Artist');
+		expect(meta?.album).toBe('Mock Album');
+		// No polyfill side effect on globalThis.
+		expect((globalThis as { Buffer?: unknown }).Buffer).toBeUndefined();
 	});
 });

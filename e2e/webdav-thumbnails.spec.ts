@@ -10,7 +10,7 @@
 //   - folder path "/Music/Pink Floyd/The Wall/..."
 // If the pipeline produces the Deezer cover URL, the user's screen will
 // too (assuming HMR / cache states are aligned).
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const COVER_URL = 'https://e-cdns-images.dzcdn.net/images/cover/abc/1000x1000-000000-80-0-0.jpg';
 

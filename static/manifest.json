@@ -1,6 +1,6 @@
 {
-  "name": "Dustic - Archive Audio Player",
-  "short_name": "Dustic",
+  "name": "dustic - Archive Audio Player",
+  "short_name": "dustic",
   "description": "Stream music, audiobooks, and podcasts from the Internet Archive",
   "start_url": "/",
   "scope": "/",
@@ -8,7 +8,10 @@
   "background_color": "#1d232a",
   "theme_color": "#1d232a",
   "orientation": "portrait-primary",
-  "categories": ["music", "entertainment"],
+  "categories": [
+    "music",
+    "entertainment"
+  ],
   "icons": [
     {
       "src": "/logo-dustic.svg",

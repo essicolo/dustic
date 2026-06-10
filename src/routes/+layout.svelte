@@ -1,5 +1,8 @@
 <script lang="ts">
 	import '../app.css';
+	// Registers bundled icon data so no icon is ever fetched from
+	// api.iconify.design at runtime (offline/PWA + no third-party calls).
+	import '$lib/generated/icon-bundle';
 	import PlayerBar from '$lib/components/Player/PlayerBar.svelte';
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import SourcesStatus from '$lib/components/Sidebar/SourcesStatus.svelte';
@@ -62,6 +65,10 @@
 	}
 
 	onMount(async () => {
+		// Marks client-side hydration complete; e2e tests wait for this
+		// before interacting, since pre-hydration clicks are lost.
+		document.body.dataset.hydrated = '1';
+
 		// First-launch theme picker: shown once per profile.
 		showThemePicker = theme.isFirstLaunch();
 
@@ -149,12 +156,17 @@
 		};
 
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		return () => {
+		// A cleanup function returned from an *async* onMount is silently
+		// ignored by Svelte, so register it for onDestroy instead.
+		cleanup = () => {
 			window.removeEventListener('scroll', handleScroll);
 			if (scrollTimeout) clearTimeout(scrollTimeout);
 			sourceStatus.stop();
 		};
 	});
+
+	let cleanup: (() => void) | null = null;
+	onDestroy(() => cleanup?.());
 </script>
 
 <div class="min-h-screen flex flex-col">
@@ -169,8 +181,8 @@
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
 			<div class="flex items-center gap-2 flex-1 justify-center">
-				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-6 h-6" />
-				<h1 class="text-lg font-semibold">Dustic</h1>
+				<img src="{base}/logo-dustic.svg" alt="dustic" class="w-6 h-6" />
+				<h1 class="text-lg font-semibold">dustic</h1>
 			</div>
 			<div class="w-12 flex-shrink-0"></div>
 		</div>
@@ -196,8 +208,8 @@
 		>
 			<!-- Logo - Desktop only -->
 			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
-				<img src="{base}/logo-dustic.svg" alt="Dustic" class="w-8 h-8" />
-				<span class="text-xl font-bold">Dustic</span>
+				<img src="{base}/logo-dustic.svg" alt="dustic" class="w-8 h-8" />
+				<span class="text-xl font-bold">dustic</span>
 			</a>
 
 			<!-- Close button for mobile only -->

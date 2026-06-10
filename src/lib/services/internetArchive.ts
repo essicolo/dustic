@@ -106,6 +106,19 @@ export function cleanSearchInput(input: string): string {
  * Check if a string looks like an Archive.org identifier
  * Identifiers: alphanumeric, hyphens, dots, underscores, no spaces
  */
+/**
+ * Wrap a plain-text query so title and creator matches rank above
+ * matches buried in descriptions/transcripts. The bare clause keeps the
+ * match set identical to the unboosted query (the default text field
+ * already covers title/creator); only the ordering changes. Queries
+ * that already use field syntax (creator:"...") are left untouched.
+ */
+export function buildRelevanceQuery(query: string): string {
+	const trimmed = query.trim();
+	if (!trimmed || trimmed.includes(':')) return query;
+	return `(title:(${trimmed})^4 OR creator:(${trimmed})^3 OR (${trimmed}))`;
+}
+
 function looksLikeIdentifier(input: string): boolean {
 	if (!input || input.length === 0) return false;
 	// If it contains spaces, it's likely a natural language query
@@ -254,6 +267,65 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 }
 
 /**
+ * Fetch display metadata for many items in one advancedsearch request
+ * (chunked). Used by the favorites page: one query for N favorites
+ * instead of N metadata calls. Returned tracks have no streamUrl —
+ * playback resolves it lazily via getTrack.
+ */
+export async function fetchItemsByIdentifiers(identifiers: string[]): Promise<Map<string, Track>> {
+	const found = new Map<string, Track>();
+	if (identifiers.length === 0) return found;
+
+	const CHUNK = 50; // keep the q= parameter well under URL length limits
+	const chunks: string[][] = [];
+	for (let i = 0; i < identifiers.length; i += CHUNK) {
+		chunks.push(identifiers.slice(i, i + CHUNK));
+	}
+
+	await Promise.all(
+		chunks.map(async (chunk) => {
+			const q = `identifier:(${chunk.join(' OR ')})`;
+			const urlParams = new URLSearchParams({
+				q,
+				fl: ['identifier', 'title', 'creator', 'date', 'subject', 'format', 'collection'].join(','),
+				rows: String(chunk.length),
+				page: '1',
+				output: 'json'
+			});
+			const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
+
+			const data = await withCache(
+				`ia:batch:${q}`,
+				async () => {
+					const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
+					const rawData = await response.json();
+					return IASearchResponseSchema.parse(rawData);
+				},
+				3 * 60 * 1000
+			);
+
+			for (const doc of data.response.docs) {
+				found.set(doc.identifier, {
+					identifier: doc.identifier,
+					filename: '',
+					title: Array.isArray(doc.title) ? doc.title[0] : doc.title || 'Untitled',
+					artist: Array.isArray(doc.creator) ? doc.creator[0] : doc.creator || 'Unknown Artist',
+					date: doc.date,
+					collection: Array.isArray(doc.collection) ? doc.collection : doc.collection ? [doc.collection] : [],
+					genre: Array.isArray(doc.subject) ? doc.subject : doc.subject ? [doc.subject] : undefined,
+					format: Array.isArray(doc.format) ? doc.format[0] : doc.format || 'mp3',
+					streamUrl: '',
+					thumbnailUrl: getThumbnailUrl(doc.identifier),
+					metadata: doc
+				});
+			}
+		})
+	);
+
+	return found;
+}
+
+/**
  * Extract potential identifier from concert title patterns
  * e.g., "Mono Live at Venue on 2010-03-21" → "mono2010-03-21"
  */
@@ -319,8 +391,17 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		}
 	}
 
+	// Strategies 4+5 run concurrently: the speculative no-filter request
+	// costs one extra (3-min-cached) GET per fresh query, and turns the
+	// zero-result path from two sequential round-trips into one. The
+	// pre-attached catch keeps an unused speculative failure from
+	// surfacing as an unhandled rejection when strategy 4 throws first.
+	const textPromise = search({ ...params, query: cleaned });
+	const noFilterPromise = searchWithoutFormatFilter({ ...params, query: cleaned });
+	noFilterPromise.catch(() => {});
+
 	// Strategy 4: Regular text search with format filters
-	const textResult = await search({ ...params, query: cleaned });
+	const textResult = await textPromise;
 	if (textResult.items.length > 0) {
 		return textResult;
 	}
@@ -328,7 +409,7 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	console.log(`[IA] Text search returned no results, trying without format filters`);
 
 	// Strategy 5: Try without restrictive format filters (for edge cases)
-	const noFilterResult = await searchWithoutFormatFilter({ ...params, query: cleaned });
+	const noFilterResult = await noFilterPromise;
 	if (noFilterResult.items.length > 0) {
 		return noFilterResult;
 	}
@@ -363,7 +444,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 		pageSize = CONFIG.defaultPageSize
 	} = params;
 
-	let q = query;
+	let q = buildRelevanceQuery(query);
 
 	// Add creator filter for artist searches (exact match)
 	if (params.creator) {
@@ -495,8 +576,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		pageSize = CONFIG.defaultPageSize
 	} = params;
 
-	// Build search query
-	let q = query;
+	// Build search query, ranking title/creator matches first
+	let q = buildRelevanceQuery(query);
 
 	// Add creator filter for artist searches (exact match)
 	if (params.creator) {

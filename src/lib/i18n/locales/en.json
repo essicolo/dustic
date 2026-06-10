@@ -126,7 +126,7 @@
 	"library": {
 		"title": "Library",
 		"favoritesItems": "{count, plural, one {# item} other {# items}}",
-		"historySubtitle": "Recently played",
+		"historySubtitle": "Pick up where you left off",
 		"playlistCount": "{count, plural, one {# playlist} other {# playlists}}",
 		"folders": {
 			"title": "Your folders",

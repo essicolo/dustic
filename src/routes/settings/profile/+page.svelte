@@ -662,7 +662,7 @@
 						{#if webdavTestStatus === 'testing'}
 							<span class="loading loading-spinner loading-sm"></span>
 						{:else}
-							<Icon icon="solar:wifi-router-bold" width="16" />
+							<Icon icon="solar:wi-fi-router-bold" width="16" />
 						{/if}
 						{$_('settings.profile.testConnection')}
 					</button>

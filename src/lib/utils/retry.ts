@@ -6,6 +6,7 @@ export interface RetryOptions {
 	maxDelay?: number; // milliseconds
 	backoffMultiplier?: number;
 	retryableStatuses?: number[]; // HTTP status codes that should trigger retry
+	timeoutMs?: number; // per-attempt timeout for fetchWithRetry
 }
 
 const DEFAULT_OPTIONS: Required<RetryOptions> = {
@@ -13,7 +14,8 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
 	initialDelay: 1000,
 	maxDelay: 10000,
 	backoffMultiplier: 2,
-	retryableStatuses: [408, 429, 500, 502, 503, 504]
+	retryableStatuses: [408, 429, 500, 502, 503, 504],
+	timeoutMs: 15000
 };
 
 /**
@@ -90,8 +92,17 @@ export async function fetchWithRetry(
 	options?: RequestInit,
 	retryOptions?: RetryOptions
 ): Promise<Response> {
+	const timeoutMs = retryOptions?.timeoutMs ?? DEFAULT_OPTIONS.timeoutMs;
 	return retry(async () => {
-		const response = await fetch(url, options);
+		// Bound each attempt so a hung connection can't stall the UI for
+		// minutes (the browser default). Timeouts abort and are not
+		// retried — isRetryable doesn't match TimeoutError — keeping the
+		// worst case at one timeout window. A caller-provided signal
+		// takes precedence.
+		const signal =
+			options?.signal ??
+			(typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined);
+		const response = await fetch(url, { ...options, signal });
 
 		// Throw on HTTP errors to trigger retry
 		if (!response.ok) {

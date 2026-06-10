@@ -1,15 +1,13 @@
 // Sources / Profile / Settings all live at the bottom of the sidebar.
 // They must share the same left indent (so the icons line up) and the
 // spacing between blocks must look consistent. This guards both.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test('Sources / Profile / Settings share left indent and consistent vertical rhythm', async ({
 	page
 }) => {
 	await page.goto('/');
 	await page.waitForLoadState('networkidle');
-	const close = page.getByText(/Continue with/i);
-	if (await close.count()) await close.first().click();
 
 	// Sources block: locate via the SourcesStatus component's container.
 	const sourcesIcon = page

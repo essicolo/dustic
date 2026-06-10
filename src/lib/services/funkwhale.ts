@@ -320,11 +320,21 @@ export async function searchInstance(
 			.map((t) => toTrack(t, baseUrl))
 			.filter((t) => t.streamUrl); // Only include tracks with a valid stream URL
 
-		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${data.count})`);
-		return { tracks, total: data.count || tracks.length };
+		// data.count is the server-side match count, but some of those
+		// tracks get dropped client-side (no usable stream URL). Scale the
+		// total by this page's playable ratio so pagination doesn't
+		// promise pages that would render empty.
+		const playableRatio = fwTracks.length > 0 ? tracks.length / fwTracks.length : 0;
+		const total = Math.max(tracks.length, Math.round((data.count || fwTracks.length) * playableRatio));
+
+		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${total} est. of ${data.count})`);
+		return { tracks, total };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
-		return { tracks: [], total: 0 };
+		// Rethrow so search() can tell "instance unreachable" apart from
+		// "instance reachable but empty" — it still tolerates partial
+		// failures via allSettled.
+		throw error;
 	}
 }
 
@@ -348,12 +358,20 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	// Merge results from all instances
 	const allTracks: Track[] = [];
 	let totalCount = 0;
+	let fulfilled = 0;
 
 	for (const result of results) {
 		if (result.status === 'fulfilled') {
+			fulfilled++;
 			allTracks.push(...result.value.tracks);
 			totalCount += result.value.total;
 		}
+	}
+
+	// Every configured instance failed — surface it as a network error so
+	// the UI doesn't present an outage as "no results".
+	if (fulfilled === 0) {
+		throw new Error('Network error: no FunkWhale instance could be reached.');
 	}
 
 	return {

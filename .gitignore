@@ -149,4 +149,7 @@ blob-report/
 # Auto-generated version files (created by scripts/generate-version.js during build)
 static/version.json
 src/lib/version.ts
+
+# Auto-generated icon bundle (created by scripts/generate-icon-bundle.js during build)
+src/lib/generated/
 .claude/settings.local.json

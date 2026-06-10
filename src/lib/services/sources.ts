@@ -95,14 +95,30 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 	if (enableIA) iaSettled = settled[idx++];
 	if (enableFW) fwSettled = settled[idx++];
 
+	// Every enabled source failed: throw instead of returning an empty
+	// result, so the UI can distinguish "sources unreachable" from
+	// "genuinely no results".
+	const rejections = settled.filter(
+		(s): s is PromiseRejectedResult => s.status === 'rejected'
+	);
+	if (settled.length > 0 && rejections.length === settled.length) {
+		const reason = rejections[0].reason;
+		throw reason instanceof Error ? reason : new Error(String(reason));
+	}
+
 	const iaItems = iaSettled?.status === 'fulfilled' ? iaSettled.value.items : [];
 	const iaTotal = iaSettled?.status === 'fulfilled' ? iaSettled.value.total : 0;
 
 	const fwItems = fwSettled?.status === 'fulfilled' ? fwSettled.value.items : [];
 	const fwTotal = fwSettled?.status === 'fulfilled' ? fwSettled.value.total : 0;
 
-	// Pass through IA errors
-	const error = iaSettled?.status === 'fulfilled' ? iaSettled.value.error : undefined;
+	// Pass through IA errors; if one source failed and the other came back
+	// empty, surface the failure rather than implying "no results".
+	let error = iaSettled?.status === 'fulfilled' ? iaSettled.value.error : undefined;
+	if (!error && rejections.length > 0 && iaItems.length + fwItems.length === 0) {
+		const reason = rejections[0].reason;
+		error = reason instanceof Error ? reason.message : String(reason);
+	}
 
 	// Interleave results: alternate IA and FW tracks so both sources are visible
 	const merged: typeof iaItems = [];
@@ -117,11 +133,16 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 		}
 	}
 
+	const pageSize = params.pageSize || 50;
 	return {
 		items: merged,
 		total: iaTotal + fwTotal,
 		page: params.page || 1,
-		pageSize: params.pageSize || 50,
+		pageSize,
+		// Each page pulls up to pageSize from BOTH sources, so the real
+		// page count follows the larger source. Deriving it from the
+		// combined total would promise trailing pages that come up empty.
+		pageCount: Math.max(Math.ceil(iaTotal / pageSize), Math.ceil(fwTotal / pageSize)),
 		error
 	};
 }

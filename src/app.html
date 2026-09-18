@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dustic">
+<html lang="en" data-theme="light">
     <head>
         <meta charset="utf-8" />
         <link
@@ -24,7 +24,50 @@
         />
         <meta name="apple-mobile-web-app-title" content="dustic" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#1d232a" />
+        <meta name="theme-color" content="#ffffff" />
+
+        <!-- Resolve the theme before first paint. Without this a dark-mode
+             device is shown a white app until hydration swaps data-theme,
+             which is a visible flash on every cold start. Mirrors the
+             precedence in src/lib/stores/theme.ts; hydration then takes
+             over and may refine it from the stored profile. -->
+        <script>
+            (function () {
+                try {
+                    var legacy = {
+                        minimal: "light",
+                        dustic: "light",
+                        sunset: "light",
+                        bubblegum: "light",
+                        forest: "dark",
+                        midnight: "dark",
+                    };
+                    var stored = localStorage.getItem("dustic-theme");
+                    stored = legacy[stored] || stored;
+                    var theme =
+                        stored === "light" || stored === "dark"
+                            ? stored
+                            : window.matchMedia(
+                                    "(prefers-color-scheme: dark)",
+                                ).matches
+                              ? "dark"
+                              : "light";
+                    document.documentElement.setAttribute(
+                        "data-theme",
+                        theme,
+                    );
+                    document.documentElement.style.colorScheme = theme;
+                    document
+                        .querySelector('meta[name="theme-color"]')
+                        .setAttribute(
+                            "content",
+                            theme === "dark" ? "#0f0f0f" : "#ffffff",
+                        );
+                } catch (e) {
+                    /* storage blocked — the light default in the markup stands */
+                }
+            })();
+        </script>
 
         <!-- Apple Touch Icons -->
         <link

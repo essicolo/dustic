@@ -3,7 +3,7 @@
 
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
-import { applyTheme, DEFAULT_THEME, THEMES, type ThemeId } from '$lib/themes';
+import { applyTheme, systemPreference, THEMES, type ThemeId } from '$lib/themes';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
 const STORAGE_KEY = 'dustic-theme';
@@ -13,22 +13,33 @@ function isValidThemeId(value: string | null | undefined): value is ThemeId {
 	return !!value && value in THEMES;
 }
 
-// One-off rename: the default theme was internally renamed from 'minimal'
-// to 'dustic' so daisyUI's data-theme attribute matches the existing brand
-// theme. Map any old stored value forward.
+// The palette used to ship five themes (dustic/minimal, sunset, bubblegum,
+// forest, midnight). It is now one monochrome identity in two modes, so any
+// value stored by an older build — in localStorage or in a WebDAV-synced
+// profile — maps onto whichever mode it was closest to.
+const LEGACY_IDS: Record<string, ThemeId> = {
+	minimal: 'light',
+	dustic: 'light',
+	sunset: 'light',
+	bubblegum: 'light',
+	forest: 'dark',
+	midnight: 'dark'
+};
+
 function migrateLegacyId(value: string | null | undefined): string | null | undefined {
-	if (value === 'minimal') return 'dustic';
-	return value;
+	if (!value) return value;
+	return LEGACY_IDS[value] ?? value;
 }
 
 function loadInitial(): ThemeId {
-	if (!browser) return DEFAULT_THEME;
+	if (!browser) return systemPreference();
 	const fromLs = migrateLegacyId(localStorage.getItem(STORAGE_KEY));
 	if (isValidThemeId(fromLs)) return fromLs;
 	const profile = loadFromStorageSync();
 	const fromProfile = migrateLegacyId(profile?.settings?.theme);
 	if (isValidThemeId(fromProfile)) return fromProfile;
-	return DEFAULT_THEME;
+	// Never chosen: follow the operating system rather than forcing light.
+	return systemPreference();
 }
 
 function createThemeStore() {
@@ -56,10 +67,11 @@ function createThemeStore() {
 		 * Re-apply the theme stored in the profile (used after a profile import).
 		 */
 		syncFromProfile(id: string | undefined) {
-			if (!browser || !isValidThemeId(id)) return;
-			set(id);
-			localStorage.setItem(STORAGE_KEY, id);
-			applyTheme(id);
+			const migrated = migrateLegacyId(id);
+			if (!browser || !isValidThemeId(migrated)) return;
+			set(migrated);
+			localStorage.setItem(STORAGE_KEY, migrated);
+			applyTheme(migrated);
 		},
 		/**
 		 * Mark the first-launch picker as dismissed/completed.

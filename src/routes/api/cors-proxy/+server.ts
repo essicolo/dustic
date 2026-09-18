@@ -1,4 +1,9 @@
 import type { RequestHandler } from './$types';
+import {
+	checkProxyTarget,
+	fetchFollowingSafeRedirects,
+	isSameOriginRequest
+} from '$lib/server/proxyGuard';
 
 const ALLOWED_DOMAINS = [
 	'archive.org',
@@ -38,6 +43,20 @@ const ALLOWED_DOMAINS = [
 	'ia900009.us.archive.org'
 ];
 
+/**
+ * Note the leading dot on the wildcard branch: matching on `archive.org`
+ * alone would also accept `evilarchive.org`, which is a domain anyone can
+ * register. Applied to redirect hops too, so an allowed host cannot bounce
+ * the request somewhere off the list.
+ */
+function isAllowedHost(target: URL): boolean {
+	const hostname = target.hostname.toLowerCase();
+	return ALLOWED_DOMAINS.some((domain) => {
+		const bare = domain.startsWith('*.') ? domain.slice(2) : domain;
+		return hostname === bare || hostname.endsWith('.' + bare);
+	});
+}
+
 export const GET: RequestHandler = async ({ url, request }) => {
 	const targetUrl = url.searchParams.get('url');
 
@@ -45,17 +64,21 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		return new Response('Missing url parameter', { status: 400 });
 	}
 
-	try {
-		// SSRF Protection: Validate URL is from allowed domains
-		const parsedUrl = new URL(targetUrl);
-		const isAllowed = ALLOWED_DOMAINS.some((domain) => {
-			if (domain.startsWith('*.')) {
-				return parsedUrl.hostname.endsWith(domain.slice(2));
-			}
-			return parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain);
-		});
+	if (!isSameOriginRequest(request, url.origin)) {
+		return new Response('Forbidden', { status: 403 });
+	}
 
-		if (!isAllowed) {
+	try {
+		// SSRF protection, part one: scheme, credentials, and private address
+		// ranges are refused outright.
+		const checked = checkProxyTarget(targetUrl);
+		if (!checked.ok) {
+			return new Response(checked.message, { status: checked.status });
+		}
+		const parsedUrl = checked.url;
+
+		// Part two: the host must be one we actually talk to.
+		if (!isAllowedHost(parsedUrl)) {
 			return new Response('URL not allowed', { status: 403 });
 		}
 
@@ -66,7 +89,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		}
 		headers.set('User-Agent', 'Mozilla/5.0 (compatible; Dustic/1.0)');
 
-		const response = await fetch(targetUrl, { headers });
+		const result = await fetchFollowingSafeRedirects(parsedUrl, { headers }, { isAllowedHost });
+		if (!(result instanceof Response)) {
+			return new Response(result.message, { status: result.status });
+		}
+		const response = result;
 
 		// Determine cache duration based on content type
 		const contentType = response.headers.get('content-type') || '';
@@ -77,7 +104,10 @@ export const GET: RequestHandler = async ({ url, request }) => {
 
 		// Build response with CORS headers
 		const responseHeaders = new Headers(response.headers);
-		responseHeaders.set('Access-Control-Allow-Origin', '*');
+		// The app is the only intended consumer, so scope the response to
+		// our own origin instead of handing it to every site on the web.
+		responseHeaders.set('Access-Control-Allow-Origin', url.origin);
+		responseHeaders.set('Vary', 'Origin');
 		responseHeaders.set('Cache-Control', `public, max-age=${maxAge}`);
 		// Node fetch (and Cloudflare's runtime) already decompresses upstream
 		// content-encoded responses, but forwards the original encoding
@@ -98,10 +128,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	}
 };
 
-export const OPTIONS: RequestHandler = async () => {
+export const OPTIONS: RequestHandler = async ({ url }) => {
     return new Response(null, {
         headers: {
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': url.origin,
+            'Vary': 'Origin',
             'Access-Control-Allow-Methods': 'GET, OPTIONS',
             'Access-Control-Allow-Headers': 'Range, Content-Type'
         }

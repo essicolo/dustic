@@ -2,6 +2,7 @@
 // Eliminates CORS issues by proxying requests through the app's own domain.
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { checkProxyTarget, isSameOriginRequest } from '$lib/server/proxyGuard';
 
 interface ProxyRequest {
 	url: string;
@@ -12,7 +13,13 @@ interface ProxyRequest {
 
 const ALLOWED_METHODS = ['OPTIONS', 'GET', 'PUT', 'HEAD', 'PROPFIND', 'DELETE', 'MKCOL'];
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
+	// This route forwards the user's WebDAV credentials to whatever host the
+	// body names, so it must only ever act on the app's own requests.
+	if (!isSameOriginRequest(request, url.origin)) {
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
+
 	let payload: ProxyRequest;
 
 	try {
@@ -29,6 +36,14 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'Method not allowed' }, { status: 405 });
 	}
 
+	// A WebDAV server reachable from the deployment is by definition on the
+	// public internet, so refusing private ranges costs nothing and closes
+	// the "point it at an internal service and read the reply" path.
+	const checked = checkProxyTarget(payload.url);
+	if (!checked.ok) {
+		return json({ error: checked.message }, { status: checked.status });
+	}
+
 	try {
 		// Some WebDAV servers reject requests with the default Workers fetch
 		// User-Agent (or an empty one). Send a realistic UA unless the caller
@@ -39,7 +54,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			outboundHeaders['User-Agent'] = 'Dustic/1.0 (WebDAV client)';
 		}
 
-		const response = await fetch(payload.url, {
+		const response = await fetch(checked.url.toString(), {
 			method: payload.method,
 			headers: outboundHeaders,
 			body: payload.body || undefined

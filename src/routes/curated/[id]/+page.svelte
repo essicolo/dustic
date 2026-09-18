@@ -12,6 +12,8 @@
 	import type { Track } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import PlaylistCover from '$lib/components/PlaylistCover.svelte';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
 	import { _ } from '$lib/i18n';
 
@@ -28,15 +30,26 @@
 	}
 
 	let playlistId = '';
-	let playlist: CuratedPlaylist | null = null;
 	let tracks: Track[] = [];
 	let trackIndexMap: Map<string, number> = new Map(); // Maps track identifier to its trackIndex
+	// Notes belong to the track, not to a position. Reading them back as
+	// playlist.tracks[i] alongside filteredTracks[i] silently mismatches as
+	// soon as one entry fails to resolve (a dark-archive item, say) or the
+	// offline filter is on, and every note below it shifts up a row.
+	let noteMap: Map<string, string> = new Map();
 	let isLoading = false;
 	let error = '';
 	let viewMode: 'grid' | 'list' = 'list';
 	let showOfflineOnly = false;
 
 	$: playlistId = $page.params.id as string;
+	// The curated list ships with the app, so the playlist itself needs no
+	// network at all. Deriving it synchronously lets the title, description
+	// and cover paint immediately while the tracks are still resolving —
+	// previously the whole page sat behind one spinner until the last of
+	// them came back.
+	$: playlist =
+		(curatedPlaylistsData.find((p) => p.id === playlistId) as CuratedPlaylist | undefined) ?? null;
 	$: filteredTracks = showOfflineOnly
 		? tracks.filter((t) => $offline.offlineTracks.some((ot) => ot.track.identifier === t.identifier))
 		: tracks;
@@ -72,18 +85,14 @@
 		error = '';
 
 		try {
-			// Find the playlist in the curated data
-			const foundPlaylist = curatedPlaylistsData.find(p => p.id === playlistId);
-
-			if (!foundPlaylist) {
+			if (!playlist) {
 				error = $_('curated.detailNotFound');
 				return;
 			}
 
-			playlist = foundPlaylist as CuratedPlaylist;
-
 			// Load track metadata for each item
 			trackIndexMap.clear();
+			noteMap.clear();
 			const trackPromises = playlist.tracks.map(async (item) => {
 				try {
 					let track: Track | null = null;
@@ -101,6 +110,7 @@
 						track = await getTrack(item.identifier);
 					}
 
+					if (track && item.note) noteMap.set(track.identifier, item.note);
 					return track;
 				} catch (e) {
 					console.error(`Failed to load track ${item.identifier}:`, e);
@@ -111,6 +121,7 @@
 			const loadedTracks = await Promise.all(trackPromises);
 			tracks = loadedTracks.filter((t): t is Track => t !== null);
 			trackIndexMap = trackIndexMap; // Trigger reactivity
+			noteMap = noteMap;
 
 		} catch (e) {
 			console.error('Error loading curated playlist:', e);
@@ -131,7 +142,7 @@
 	});
 </script>
 
-<div class="p-4 md:p-8 max-w-6xl mx-auto">
+<div class="p-4 md:p-8">
 	<!-- Header with controls -->
 	<div class="flex items-center justify-between mb-6">
 		<button on:click={goBack} class="btn btn-ghost btn-sm">
@@ -189,17 +200,15 @@
 		</div>
 	{/if}
 
-	{#if isLoading}
-		<div class="flex justify-center items-center py-20">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
-		</div>
-	{:else if playlist}
+	{#if playlist}
 		<!-- Header -->
 		<div class="mb-8">
 			<div class="flex items-start gap-4 mb-4">
-				<div class="bg-gradient-to-br from-primary to-secondary p-6 rounded-2xl flex-shrink-0">
-					<Icon icon="solar:star-bold" width="48" class="text-primary-content" />
-				</div>
+				<PlaylistCover
+					identifiers={playlist.tracks.map((t) => t.identifier)}
+					alt={playlist.name}
+					className="w-28 md:w-36 flex-shrink-0 rounded"
+				/>
 				<div class="flex-1">
 					<div class="badge badge-primary badge-sm mb-2">{$_('curated.badge')}</div>
 					<h1 class="text-3xl md:text-4xl font-bold mb-2">{playlist.name}</h1>
@@ -212,7 +221,12 @@
 							{#if showOfflineOnly && filteredTracks.length !== tracks.length}
 								{$_('curated.trackCountOf', { values: { filtered: filteredTracks.length, total: tracks.length } })}
 							{:else}
-								{$_('curated.trackCount', { values: { count: tracks.length } })}
+								<!-- Count from the shipped list while the tracks are
+								     still resolving, so the header does not read
+								     "0 tracks" for a second. -->
+								{$_('curated.trackCount', {
+									values: { count: isLoading ? playlist.tracks.length : tracks.length }
+								})}
 							{/if}
 						</span>
 					</div>
@@ -230,7 +244,15 @@
 		</div>
 
 		<!-- Tracks -->
-		{#if tracks.length === 0}
+		{#if isLoading}
+			<!-- Skeletons in the shape of the rows that are coming, sized from
+			     the track count we already know. -->
+			<div class="divide-y divide-base-300 border-y border-base-300">
+				{#each playlist.tracks.slice(0, 8) as item (item.identifier)}
+					<SkeletonCard layout="list" />
+				{/each}
+			</div>
+		{:else if tracks.length === 0}
 			<div class="text-center py-20 text-base-content/50">
 				<p class="text-lg">{$_('curated.emptyTracks')}</p>
 			</div>
@@ -242,7 +264,7 @@
 		{:else if viewMode === 'grid'}
 			<!-- Grid View -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-				{#each filteredTracks as track, index}
+				{#each filteredTracks as track (track.identifier)}
 					<div
 						class="relative cursor-pointer"
 						on:click={() => {
@@ -266,9 +288,9 @@
 						tabindex="0"
 					>
 						<AudioCard item={track} type="track" layout="tile" />
-						{#if playlist.tracks[index]?.note}
+						{#if noteMap.get(track.identifier)}
 							<div class="text-xs text-base-content/50 italic mt-1 px-2">
-								{playlist.tracks[index].note}
+								{noteMap.get(track.identifier)}
 							</div>
 						{/if}
 					</div>
@@ -277,7 +299,7 @@
 		{:else}
 			<!-- List View -->
 			<div class="space-y-2">
-				{#each filteredTracks as track, index}
+				{#each filteredTracks as track (track.identifier)}
 					<div
 						class="relative cursor-pointer"
 						on:click={() => {
@@ -301,9 +323,9 @@
 						tabindex="0"
 					>
 						<AudioCard item={track} type="track" layout="list" />
-						{#if playlist.tracks[index]?.note}
+						{#if noteMap.get(track.identifier)}
 							<div class="text-xs text-base-content/50 italic ml-16 mt-1">
-								{playlist.tracks[index].note}
+								{noteMap.get(track.identifier)}
 							</div>
 						{/if}
 					</div>

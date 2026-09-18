@@ -15,6 +15,7 @@
     },
     {
       "identifier": "geniesduclassique_vol3no18_202101",
+      "trackIndex": 5,
       "note": "Maurice Ravel: Pavane pour une infante défunte — Le Roux / ORTF"
     },
     {
@@ -23,6 +24,7 @@
     },
     {
       "identifier": "geniesduclassique_vol3no18_202101",
+      "trackIndex": 3,
       "note": "Maurice Ravel: Rapsodie espagnole — Dervaux / Orchestre des Concerts Colonne"
     },
     {
@@ -35,14 +37,17 @@
     },
     {
       "identifier": "geniesduclassique_vol3no18_202101",
+      "trackIndex": 1,
       "note": "Maurice Ravel: Alborada del gracioso — Le Roux / ORTF"
     },
     {
       "identifier": "geniesduclassique_vol3no18_202101",
+      "trackIndex": 0,
       "note": "Maurice Ravel: Boléro — Le Roux / ORTF — the great ritual"
     },
     {
       "identifier": "geniesduclassique_vol3no22",
+      "trackIndex": 8,
       "note": "Igor Stravinsky: L'Oiseau de feu, Danse infernale — Valek / Radio Prague SO"
     },
     {
@@ -71,14 +76,17 @@
     },
     {
       "identifier": "BartokFourOrchestralPiecesConcertoForOrchestra",
+      "trackIndex": 7,
       "note": "Béla Bartók: Concerto for Orchestra IV, Intermezzo interrotto — Boulez / Chicago SO"
     },
     {
       "identifier": "BartokFourOrchestralPiecesConcertoForOrchestra",
+      "trackIndex": 8,
       "note": "Béla Bartók: Concerto for Orchestra V, Finale — Boulez / Chicago SO"
     },
     {
       "identifier": "geniesduclassique_vol3no18_202101",
+      "trackIndex": 2,
       "note": "Maurice Ravel: La Valse — Paray / Monte-Carlo — the waltz destroys itself"
     },
     {
@@ -87,6 +95,7 @@
     },
     {
       "identifier": "geniesduclassique_vol3no22",
+      "trackIndex": 9,
       "note": "Igor Stravinsky: L'Oiseau de feu, Berceuse — lullaby after the fire"
     },
     {
@@ -102,10 +111,6 @@
   "curator": "Dustic team",
   "tracks": [
     {
-      "identifier": "mogwai-the-hawk-is-howling",
-      "note": "Mogwai: Danphe and the Brain"
-    },
-    {
       "identifier": "GYBE-StatesEnd-2021",
       "note": "Godspeed You! Black Emperor: Fire at Static Valley, live"
     },
@@ -118,7 +123,8 @@
       "note": "Explosions in the Sky: So Long, Lonesome"
     },
     {
-      "identifier": "mono2010-03-21.Nijmegen.flac16?track=7",
+      "identifier": "mono2010-03-21.Nijmegen.flac16",
+      "trackIndex": 7,
       "note": "Mono:  Halcyon (Beautiful Days), live"
     },
     {
@@ -126,11 +132,13 @@
       "note": "65daysofstatic: Radio Protector, live"
     },
     {
-      "identifier": "LostChildren025?track=3",
+      "identifier": "LostChildren025",
+      "trackIndex": 3,
       "note": "pg.lost: Yes I Am"
     },
     {
-      "identifier": "caspian2006-10-15.akgc1000s.flac16?track=1",
+      "identifier": "caspian2006-10-15.akgc1000s.flac16",
+      "trackIndex": 1,
       "note": "Caspian: ASA, live"
     },
     {

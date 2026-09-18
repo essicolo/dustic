@@ -1,11 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Icon from './Icon.svelte';
+	import CoverFallback from './CoverFallback.svelte';
 
 	export let src: string | undefined;
 	export let alt: string;
 	export let className: string = '';
 	export let aspectRatio: 'square' | 'auto' = 'square';
+	/** Seeds the generated fallback tile; the item identifier where available. */
+	export let fallbackSeed: string = '';
+
+	// Thumbnails proxied through weserv are requested in CORS mode. weserv
+	// sends `access-control-allow-origin: *` on both hits and misses, and a
+	// miss (an item with no artwork) is a 404 carrying a JSON body. Firefox's
+	// Opaque Response Blocking refuses a no-cors response whose type does not
+	// match its use, so those misses were logged as
+	// "blocked by OpaqueResponseBlocking" on every artwork-less item. ORB does
+	// not apply to CORS-mode requests, so asking for CORS removes the warning
+	// while the error event still fires and the generated tile still appears.
+	$: isProxied = !!src && src.startsWith('https://images.weserv.nl/');
 
 	let loaded = false;
 	let error = false;
@@ -45,14 +57,13 @@
 			bind:this={imageElement}
 			{src}
 			{alt}
+			crossorigin={isProxied ? 'anonymous' : null}
 			on:load={handleLoad}
 			on:error={handleError}
 			class="w-full h-full object-cover {loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
 		/>
 	{:else}
-		<!-- Fallback placeholder -->
-		<div class="w-full h-full flex items-center justify-center bg-base-300">
-			<Icon icon="solar:music-note-bold" width="64" className="text-base-content/30" />
-		</div>
+		<!-- No artwork: draw one rather than showing a "broken" icon. -->
+		<CoverFallback seed={fallbackSeed || alt} className="w-full h-full" />
 	{/if}
 </div>

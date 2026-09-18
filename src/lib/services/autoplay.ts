@@ -33,11 +33,28 @@ import { get } from 'svelte/store';
  */
 function classifyContentType(track: Track): AutoplayContentType | null {
 	if (!track.collection || track.collection.length === 0) return null;
+
+	// Spoken-word types are identified by their own collections.
 	for (const type of CONTENT_TYPES) {
-		if (track.collection.some((c) => type.iaCollections.includes(c))) {
+		if (
+			type.iaCollections.length > 0 &&
+			track.collection.some((c) => type.iaCollections.includes(c))
+		) {
 			return type.id as AutoplayContentType;
 		}
 	}
+
+	// Music is defined by exclusion, exactly as the Music tab searches it:
+	// audio that is not a podcast or an audiobook. A whitelist would miss
+	// most of it — the archive keeps recordings in collections nobody would
+	// think to enumerate.
+	const byExclusion = CONTENT_TYPES.find((t) => t.iaExcludeCollections?.length);
+	if (byExclusion) {
+		const excluded = byExclusion.iaExcludeCollections!;
+		if (track.collection.some((c) => excluded.includes(c))) return null;
+		return byExclusion.id as AutoplayContentType;
+	}
+
 	return null;
 }
 

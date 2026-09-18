@@ -5,6 +5,7 @@ import { smartSearch as iaSearch, getTrack as iaGetTrack } from './internetArchi
 import { search as fwSearch, getTrack as fwGetTrack, isFunkwhaleTrack } from './funkwhale';
 import { isWebDAVTrack, decodeIdentifier, buildTrack as buildWebDAVTrack, findLibrary } from './webdavLibrary';
 import { settings } from '$lib/stores/settings';
+import { unavailableItems } from '$lib/stores/unavailable';
 import { CONTENT_TYPES } from '$lib/utils/constants';
 import { withCache } from '$lib/utils/cache';
 
@@ -31,40 +32,75 @@ function applyContentType(params: SearchParams): EnrichedParams {
 		updated.collection = ct.iaCollections;
 	}
 
+	// Some types are defined by what they are not; see iaExcludeCollections.
+	if (!updated.excludeCollection?.length && ct.iaExcludeCollections?.length) {
+		updated.excludeCollection = ct.iaExcludeCollections;
+	}
+
 	// FW doesn't support tag filtering in the API; pass tags through so the
 	// caller can fold them into the FW query as keywords.
 	return { params: updated, fwTags: ct.fwTags };
 }
 
 /**
- * Apply tag filter to search params.
- * Tags are added as keywords to the search query for both sources.
+ * Apply a genre tag to search params.
+ *
+ * The tag used to be appended to the query as a keyword, which did not filter
+ * by genre at all — it added a term the archive then matched against
+ * descriptions and transcripts. Measured: "Tori Amos" ranks the artist second,
+ * while "Tori Amos rock" returns 137 documents headed by Voice of America
+ * broadcasts, with the artist gone entirely. A tag made results worse.
+ *
+ * Tags are now a browse filter on the `subject` field instead, and the UI only
+ * offers them when there is no query to damage. `subject` alone is still far
+ * too noisy (`subject:("rock")` is 368k documents, mostly radio station
+ * recordings, because the radio archive tags everything with genre-like
+ * subjects), so it is always scoped to the collections of the active content
+ * type — which is what makes it return music rather than talk radio.
+ *
+ * FunkWhale has no equivalent field, so there the tag stays a keyword.
  */
 function applyTag(params: SearchParams): SearchParams {
 	if (!params.tag) return params;
+	return { ...params, subject: params.tag };
+}
 
-	const updated = { ...params };
+/** Exposed for tests; the mapping is the whole point of the change. */
+export const applyTagForTest = applyTag;
+
+/** FunkWhale has no subject field; fold the tag into its text query instead. */
+function applyTagForFunkwhale(params: SearchParams): SearchParams {
 	const tag = params.tag;
+	if (!tag) return params;
+	if (params.query?.toLowerCase().includes(tag.toLowerCase())) return params;
+	return { ...params, query: params.query ? `${params.query} ${tag}` : tag };
+}
 
-	// Don't duplicate if the query already contains the tag
-	if (updated.query && updated.query.toLowerCase().includes(tag.toLowerCase())) {
-		return updated;
-	}
-
-	if (updated.query) {
-		updated.query = `${updated.query} ${tag}`;
-	} else {
-		updated.query = tag;
-	}
-
-	return updated;
+export interface UnifiedSearchOptions {
+	/**
+	 * Called as soon as Internet Archive answers, before FunkWhale has.
+	 *
+	 * The two sources are queried in parallel but differ by an order of
+	 * magnitude: measured over several queries, IA returns in ~130-340ms
+	 * while a FunkWhale instance takes 350-1900ms, and for most queries it
+	 * contributes nothing. Waiting for both before showing anything made
+	 * every search as slow as the slowest source. Callers that pass this get
+	 * the archive's results immediately and the merged set when it is ready.
+	 *
+	 * Skipped when IA is disabled or returned nothing, since there would be
+	 * nothing to show early.
+	 */
+	onPartial?: (result: SearchResult) => void;
 }
 
 /**
  * Unified search across all sources (Internet Archive + FunkWhale instances)
  * Supports content type filtering and tag-based discovery.
  */
-export async function unifiedSearch(params: SearchParams): Promise<SearchResult> {
+export async function unifiedSearch(
+	params: SearchParams,
+	options: UnifiedSearchOptions = {}
+): Promise<SearchResult> {
 	const enableIA = params.sources?.ia !== false;
 	const enableFW = params.sources?.fw !== false;
 
@@ -73,15 +109,39 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 	const enriched = applyTag(typedParams);
 
 	// For FW, build a separate query with content-type tags folded in.
-	const fwParams = { ...enriched };
+	const fwParams = applyTagForFunkwhale({ ...enriched });
 	if (fwTags.length && !fwParams.query) {
 		fwParams.query = fwTags[0];
 	}
 
 	// Search enabled sources in parallel
+	const iaPromise = enableIA ? iaSearch(enriched) : null;
+	const fwPromise = enableFW ? fwSearch(fwParams) : null;
+
+	// Hand the archive's results to the caller the moment they land, rather
+	// than holding them until the slower source finishes.
+	if (options.onPartial && iaPromise && fwPromise) {
+		iaPromise
+			.then((early) => {
+				const items = unavailableItems.filter(early.items);
+				if (items.length === 0) return;
+				const pageSize = params.pageSize || 50;
+				options.onPartial!({
+					items,
+					total: early.total,
+					page: params.page || 1,
+					pageSize,
+					pageCount: early.pageCount ?? Math.ceil(early.total / pageSize)
+				});
+			})
+			.catch(() => {
+				// Handled below, where both outcomes are reconciled.
+			});
+	}
+
 	const promises: [Promise<SearchResult> | null, Promise<SearchResult> | null] = [
-		enableIA ? iaSearch(enriched) : null,
-		enableFW ? fwSearch(fwParams) : null
+		iaPromise,
+		fwPromise
 	];
 
 	const settled = await Promise.allSettled(
@@ -133,9 +193,15 @@ export async function unifiedSearch(params: SearchParams): Promise<SearchResult>
 		}
 	}
 
+	// Drop rows the archive has already told us it no longer serves. Its
+	// search index outlives removed items, so a dead item keeps returning a
+	// healthy-looking document (formats, byte size, download count) until
+	// someone presses play. See stores/unavailable.ts.
+	const items = unavailableItems.filter(merged);
+
 	const pageSize = params.pageSize || 50;
 	return {
-		items: merged,
+		items,
 		total: iaTotal + fwTotal,
 		page: params.page || 1,
 		pageSize,

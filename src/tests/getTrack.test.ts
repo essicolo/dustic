@@ -42,9 +42,14 @@ describe('getTrack', () => {
 		expect(track.streamUrl).toContain('archive.org/serve/test-item/');
 		expect(track.streamUrl).toContain('02 - Track 2.mp3');
 
-		// Thumbnail should use weserv proxy
+		// Thumbnail should use weserv proxy, pointed at the item's own
+		// thumbnail derivative (see getThumbnailUrl: /services/img serves the
+		// archive's building logo with a 200 when an item has no artwork,
+		// which makes "no cover" undetectable).
 		expect(track.thumbnailUrl).toContain('images.weserv.nl');
-		expect(track.thumbnailUrl).toContain(encodeURIComponent('https://archive.org/services/img/test-item'));
+		expect(track.thumbnailUrl).toContain(
+			encodeURIComponent('https://archive.org/download/test-item/__ia_thumb.jpg')
+		);
 	});
 
 	it('should handle identifiers without track index', async () => {

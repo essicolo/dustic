@@ -88,10 +88,28 @@ describe('autoplay — content-type classification', () => {
 		expect(__test.classifyContentType(track(['librivoxaudio']))).toBe('audiobooks');
 	});
 
-	it('returns null for unknown collections (callers should treat as music-ish)', async () => {
+	it('counts audio outside the well-known collections as music', async () => {
+		// Music is defined by exclusion, matching how the Music tab searches.
+		// These are real collections holding real records: a whitelist of
+		// audio_music/etree/78rpm classified them as "unknown", and searching
+		// the Music tab for Tori Amos or Nick Drake returned nothing at all.
 		const { __test } = await import('$lib/services/autoplay');
-		expect(__test.classifyContentType(track(['opensource_audio']))).toBeNull();
+		for (const collection of ['opensource_audio', 'hifidelity', 'roiocollection', 'folksoundomy']) {
+			expect(__test.classifyContentType(track([collection])), collection).toBe('music');
+		}
+	});
+
+	it('returns null when there is nothing to classify by', async () => {
+		const { __test } = await import('$lib/services/autoplay');
 		expect(__test.classifyContentType(track([]))).toBeNull();
+	});
+
+	it('does not call a spoken-word item music just because it also sits elsewhere', async () => {
+		const { __test } = await import('$lib/services/autoplay');
+		expect(__test.classifyContentType(track(['opensource_audio', 'librivoxaudio']))).toBe(
+			'audiobooks'
+		);
+		expect(__test.classifyContentType(track(['hifidelity', 'radioprograms']))).toBe('podcasts');
 	});
 
 	it('isAutoplayAllowed honors the user-disabled content types', async () => {

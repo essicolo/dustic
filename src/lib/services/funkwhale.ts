@@ -357,14 +357,21 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 
 	// Merge results from all instances
 	const allTracks: Track[] = [];
+	const instanceTotals: number[] = [];
 	let totalCount = 0;
 	let fulfilled = 0;
+	// Each page pulls up to pageSize from *every* instance in parallel, so
+	// the number of pages that actually contain anything follows the largest
+	// instance, not the sum. Summing promised pages that came back empty:
+	// two instances with 60 matches each and pageSize 50 advertised three
+	// pages where there were only two.
 
 	for (const result of results) {
 		if (result.status === 'fulfilled') {
 			fulfilled++;
 			allTracks.push(...result.value.tracks);
 			totalCount += result.value.total;
+			instanceTotals.push(result.value.total);
 		}
 	}
 
@@ -378,8 +385,23 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		items: allTracks,
 		total: totalCount,
 		page: params.page || 1,
-		pageSize
+		pageSize,
+		pageCount: pageCountAcrossInstances(instanceTotals, pageSize)
 	};
+}
+
+/**
+ * How many pages of results there actually are across several instances.
+ *
+ * Every page queries all of them in parallel and concatenates what comes
+ * back, so the answer follows the largest instance rather than the sum of
+ * their totals. Summing advertised pages that came back empty: two instances
+ * with 60 matches each at pageSize 50 promised three pages where there were
+ * two. It takes 2+ enabled instances to show, which is why it went unnoticed.
+ */
+export function pageCountAcrossInstances(totals: number[], pageSize: number): number {
+	if (pageSize <= 0 || totals.length === 0) return 0;
+	return Math.max(0, ...totals.map((t) => Math.ceil(Math.max(0, t) / pageSize)));
 }
 
 /**

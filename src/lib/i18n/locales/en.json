@@ -17,7 +17,9 @@
 		"itemUnavailable": "This recording is no longer available on the Internet Archive",
 		"itemRestricted": "This recording has been restricted by the Internet Archive and cannot be played",
 		"playFailed": "Could not start playback",
-		"tracksFailed": "Could not load the tracks for this item"
+		"tracksFailed": "Could not load the tracks for this item",
+		"trackWillNotPlay": "This track would not play, skipping to the next one",
+		"playbackStopped": "Several tracks in a row would not play, so playback has stopped"
 	},
 	"viewMode": {
 		"label": "View mode",

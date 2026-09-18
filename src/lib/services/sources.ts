@@ -171,6 +171,12 @@ export async function unifiedSearch(
 
 	const fwItems = fwSettled?.status === 'fulfilled' ? fwSettled.value.items : [];
 	const fwTotal = fwSettled?.status === 'fulfilled' ? fwSettled.value.total : 0;
+	// FunkWhale reports its own page count, because with several instances
+	// the sum of their totals over-counts: every page queries all of them.
+	const fwPages =
+		fwSettled?.status === 'fulfilled'
+			? (fwSettled.value.pageCount ?? Math.ceil(fwTotal / (params.pageSize || 50)))
+			: 0;
 
 	// Pass through IA errors; if one source failed and the other came back
 	// empty, surface the failure rather than implying "no results".
@@ -208,7 +214,7 @@ export async function unifiedSearch(
 		// Each page pulls up to pageSize from BOTH sources, so the real
 		// page count follows the larger source. Deriving it from the
 		// combined total would promise trailing pages that come up empty.
-		pageCount: Math.max(Math.ceil(iaTotal / pageSize), Math.ceil(fwTotal / pageSize)),
+		pageCount: Math.max(Math.ceil(iaTotal / pageSize), fwPages),
 		error
 	};
 }

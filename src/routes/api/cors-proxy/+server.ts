@@ -5,42 +5,15 @@ import {
 	isSameOriginRequest
 } from '$lib/server/proxyGuard';
 
+// `*.archive.org` already covers every ia######.us.archive.org node, which
+// is where the audio actually lives; thirty of them used to be enumerated
+// here one by one.
 const ALLOWED_DOMAINS = [
 	'archive.org',
 	'*.archive.org',
 	'open.audio',
 	'*.funkwhale.audio',
-	'api.deezer.com',
-	'ia600000.us.archive.org',
-	'ia600001.us.archive.org',
-	'ia600002.us.archive.org',
-	'ia600003.us.archive.org',
-	'ia600004.us.archive.org',
-	'ia600005.us.archive.org',
-	'ia600006.us.archive.org',
-	'ia600007.us.archive.org',
-	'ia600008.us.archive.org',
-	'ia600009.us.archive.org',
-	'ia800000.us.archive.org',
-	'ia800001.us.archive.org',
-	'ia800002.us.archive.org',
-	'ia800003.us.archive.org',
-	'ia800004.us.archive.org',
-	'ia800005.us.archive.org',
-	'ia800006.us.archive.org',
-	'ia800007.us.archive.org',
-	'ia800008.us.archive.org',
-	'ia800009.us.archive.org',
-	'ia900000.us.archive.org',
-	'ia900001.us.archive.org',
-	'ia900002.us.archive.org',
-	'ia900003.us.archive.org',
-	'ia900004.us.archive.org',
-	'ia900005.us.archive.org',
-	'ia900006.us.archive.org',
-	'ia900007.us.archive.org',
-	'ia900008.us.archive.org',
-	'ia900009.us.archive.org'
+	'api.deezer.com'
 ];
 
 /**

@@ -1,80 +1,82 @@
 import { test, expect } from './fixtures';
 
+// Assertions here are locale-tolerant on purpose. The UI ships in English and
+// French and picks one from the browser, so matching a single language made
+// these tests pass or fail depending on the environment rather than on the
+// app — the empty-state check was already failing in isolation for that
+// reason while passing in a full run.
+
 test.describe('Favorites', () => {
 	test('favorites page loads with empty state', async ({ page }) => {
 		await page.goto('/library/favorites');
 		// Should show empty state or favorites list
-		await expect(page.getByText(/Favorites/)).toBeVisible();
+		await expect(page.getByRole('heading', { name: /Favoris|Favorites/i })).toBeVisible();
 	});
 
 	test('view toggle between grid and list exists', async ({ page }) => {
 		await page.goto('/library/favorites');
-		const gridBtn = page.locator('button[title="Grid view"]');
-		const listBtn = page.locator('button[title="List view"]');
+		const gridBtn = page.locator('button[title="Grid view"], button[title="Vue grille"]');
+		const listBtn = page.locator('button[title="List view"], button[title="Vue liste"]');
 
 		// Both view buttons should exist (may be hidden if no favorites)
 		// Just check the page loaded without error
-		await expect(page.getByText(/Favorites/)).toBeVisible();
+		await expect(page.getByRole('heading', { name: /Favoris|Favorites/i })).toBeVisible();
 	});
 
-	test('favorites persist in localStorage', async ({ page }) => {
-		// Inject a favorite directly into localStorage using new FavoriteEntry format
-		await page.goto('/');
-		await page.evaluate(() => {
-			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			profile.favorites = profile.favorites || [];
-			const exists = profile.favorites.some((f: any) => f.id === 'test-track-123');
-			if (!exists) {
-				profile.favorites.push({ id: 'test-track-123', type: 'track', addedAt: Date.now() });
-			}
-			localStorage.setItem('dustic-profile', JSON.stringify(profile));
-		});
+	test('a favourite survives a reload and is shown in the library', async ({ page }) => {
+		// The old version of this test round-tripped localStorage and asserted
+		// nothing about the app: it passed whether or not the store ever read
+		// what was written. Drive the real thing instead — favourite something
+		// from search results, reload, and check the library says so.
+		await page.goto('/search?q=godspeed');
+		const heart = page
+			.locator('[data-row] button[aria-label*="favoris"], [data-row] button[aria-label*="avorite"]')
+			.first();
+		await heart.waitFor({ timeout: 25000 });
+		await heart.click();
 
-		// Reload and check it persisted
+		// The profile autosaves on a debounce. Wait for it to actually land
+		// rather than for a fixed number of seconds: under parallel load a
+		// sleep long enough to be reliable is also long enough to be slow.
+		await expect
+			.poll(
+				() =>
+					page.evaluate(
+						() => JSON.parse(localStorage.getItem('dustic-profile') || '{}').favorites?.length ?? 0
+					),
+				{ timeout: 20000 }
+			)
+			.toBeGreaterThan(0);
 		await page.reload();
-		const favoriteIds = await page.evaluate(() => {
-			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			return (profile.favorites || []).map((f: any) => typeof f === 'string' ? f : f.id);
-		});
-		expect(favoriteIds).toContain('test-track-123');
+
+		// The library index counts what the *store* holds, with no network of
+		// its own — which is precisely the link the old test never checked.
+		// Deliberately not asserting that the favourites page renders a row:
+		// that needs the archive to answer, and makes a store-level assertion
+		// hostage to network weather.
+		await page.goto('/library');
+		await expect(page.getByText(/1 élément|1 item/i)).toBeVisible({ timeout: 20000 });
 	});
 
-	test('removing a favorite persists after reload', async ({ page }) => {
-		// Set up favorites in localStorage using new FavoriteEntry format
-		await page.goto('/');
-		await page.evaluate(() => {
-			const profile = {
-				schemaVersion: 2,
-				favorites: [
-					{ id: 'track-to-remove', type: 'track', addedAt: Date.now() },
-					{ id: 'track-to-keep', type: 'track', addedAt: Date.now() }
-				],
-				playlists: {},
-				history: [],
-				autoplayRules: [],
-				settings: { volume: 0.7, repeat: 'off', audioQuality: 'medium' }
-			};
-			localStorage.setItem('dustic-profile', JSON.stringify(profile));
-		});
+	test('un-favouriting removes it from the library', async ({ page }) => {
+		await page.goto('/search?q=godspeed');
+		const heart = page
+			.locator('[data-row] button[aria-label*="favoris"], [data-row] button[aria-label*="avorite"]')
+			.first();
+		await heart.waitFor({ timeout: 25000 });
+		await heart.click();
+		const saved = () =>
+			page.evaluate(
+				() => JSON.parse(localStorage.getItem('dustic-profile') || '{}').favorites?.length ?? 0
+			);
+		await expect.poll(saved, { timeout: 20000 }).toBeGreaterThan(0);
 
-		// Reload to let the app pick up the localStorage
-		await page.reload();
+		// Same control toggles it back off.
+		await heart.click();
+		await expect.poll(saved, { timeout: 20000 }).toBe(0);
 
-		// Simulate removing a favorite via the store
-		await page.evaluate(() => {
-			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			profile.favorites = profile.favorites.filter((f: any) => f.id !== 'track-to-remove');
-			localStorage.setItem('dustic-profile', JSON.stringify(profile));
-		});
-
-		// Reload and verify persistence
-		await page.reload();
-		const favoriteIds = await page.evaluate(() => {
-			const profile = JSON.parse(localStorage.getItem('dustic-profile') || '{}');
-			return (profile.favorites || []).map((f: any) => typeof f === 'string' ? f : f.id);
-		});
-		expect(favoriteIds).not.toContain('track-to-remove');
-		expect(favoriteIds).toContain('track-to-keep');
+		await page.goto('/library');
+		await expect(page.getByText(/0 élément|0 items?/i)).toBeVisible({ timeout: 15000 });
 	});
 
 	test('loads all IA favorites with a single batched search request', async ({ page }) => {

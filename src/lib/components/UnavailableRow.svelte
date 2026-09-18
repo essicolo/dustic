@@ -13,7 +13,6 @@
 	import Icon from './Icon.svelte';
 	import CoverFallback from './CoverFallback.svelte';
 	import { _ } from '$lib/i18n';
-	import { createEventDispatcher } from 'svelte';
 
 	/** The saved identifier, shown when no title was ever stored. */
 	export let identifier: string;
@@ -21,8 +20,12 @@
 	export let title: string = '';
 	/** Restricted (withheld, may return) rather than removed outright. */
 	export let restricted = false;
-
-	const dispatch = createEventDispatcher<{ remove: { identifier: string } }>();
+	/**
+	 * Called when the listener chooses to forget this entry. A callback
+	 * rather than an event so the row cannot remove anything itself — the
+	 * decision belongs to whichever library is showing it.
+	 */
+	export let onRemove: (identifier: string) => void = () => {};
 </script>
 
 <div class="flex items-center gap-3 opacity-60">
@@ -44,7 +47,7 @@
 		class="btn btn-ghost btn-sm btn-circle mr-2 flex-shrink-0"
 		title={$_('library.removeUnavailable')}
 		aria-label={$_('library.removeUnavailable')}
-		on:click={() => dispatch('remove', { identifier })}
+		on:click={() => onRemove(identifier)}
 	>
 		<Icon icon="solar:trash-bin-trash-linear" width="18" />
 	</button>

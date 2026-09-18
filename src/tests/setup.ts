@@ -74,3 +74,9 @@ Object.defineProperty(global.navigator, 'mediaSession', {
 global.HTMLMediaElement.prototype.load = vi.fn();
 global.HTMLMediaElement.prototype.play = vi.fn(() => Promise.resolve());
 global.HTMLMediaElement.prototype.pause = vi.fn();
+
+// svelte-i18n refuses to format before a locale is registered, so any
+// component that renders a translated string needs this. Done once here
+// rather than in each test file.
+import { initI18n } from '$lib/i18n';
+initI18n('en');

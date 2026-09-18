@@ -17,7 +17,9 @@
 		"itemUnavailable": "Cet enregistrement n'est plus disponible sur Internet Archive",
 		"itemRestricted": "Cet enregistrement a été restreint par Internet Archive et ne peut pas être lu",
 		"playFailed": "Impossible de démarrer la lecture",
-		"tracksFailed": "Impossible de charger les pistes de cet élément"
+		"tracksFailed": "Impossible de charger les pistes de cet élément",
+		"trackWillNotPlay": "Cette piste n'a pas pu être lue, passage à la suivante",
+		"playbackStopped": "Plusieurs pistes de suite n’ont pas pu être lues, la lecture est arrêtée"
 	},
 	"viewMode": {
 		"label": "Mode d'affichage",

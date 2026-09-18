@@ -8,6 +8,7 @@ import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 import { offlineStorage } from '$lib/services/offlineStorage';
 import { settings } from './settings';
+import { notifications } from './notifications';
 import { decodeIdentifier, fetchTrackBlob, findLibrary } from '$lib/services/webdavLibrary';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
@@ -149,11 +150,15 @@ function createPlayerStore() {
 					consecutiveErrors++;
 					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
 						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
+						// Otherwise the track simply does not play and something
+						// unrelated starts, with no way to tell why.
+						notifications.error('errors.trackWillNotPlay');
 						// Use autoplayNext with last successful track as basis,
 						// NOT the failed track (which would search for the wrong artist)
 						setTimeout(() => this.autoplayNext(), 500);
 					} else {
 						console.warn('[Player] Too many consecutive errors, stopping playback');
+						notifications.error('errors.playbackStopped');
 						consecutiveErrors = 0;
 					}
 				}

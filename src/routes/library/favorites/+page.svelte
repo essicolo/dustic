@@ -355,7 +355,7 @@
 					<UnavailableRow
 						identifier={entry.identifier}
 						restricted={entry.restricted}
-						on:remove={(e) => forget(e.detail.identifier)}
+						onRemove={forget}
 					/>
 				{/each}
 			</div>

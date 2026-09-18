@@ -9,18 +9,31 @@ test.describe('Search Page', () => {
 		await expect(page.getByRole('button', { name: 'Audiobooks' })).toBeVisible();
 	});
 
-	test('selecting a content type updates tag chips', async ({ page }) => {
+	test('genre chips belong to a content type, and only while browsing', async ({ page }) => {
+		// Genre chips filter on the archive's `subject` field scoped to the
+		// active tab's collections. That needs a tab, and it only makes sense
+		// with an empty search box: as a keyword on top of a query they made
+		// results measurably worse.
 		await page.goto('/search');
 
-		// Default tags should include music tags (POPULAR_TAGS)
-		await expect(page.locator('button.badge', { hasText: 'rock' })).toBeVisible();
+		// No tab selected: nothing to scope a genre to, so no chips. (This
+		// used to show the music genre list even though the tab spans
+		// podcasts and audiobooks.)
+		await expect(page.locator('button.badge', { hasText: 'rock' })).toHaveCount(0);
 
-		// Click Podcasts tab
+		await page.getByRole('button', { name: 'Music' }).click();
+		await expect(page.locator('button.badge', { hasText: 'rock' })).toBeVisible({ timeout: 5000 });
+
+		// Each tab offers its own vocabulary.
 		await page.getByRole('button', { name: 'Podcasts' }).click();
-		await page.waitForTimeout(300);
-
-		// Podcast tags should appear
 		await expect(page.locator('button.badge', { hasText: 'interview' })).toBeVisible({ timeout: 5000 });
+		await expect(page.locator('button.badge', { hasText: 'rock' })).toHaveCount(0);
+
+		// Typing turns the page into a search, so the browse affordance goes.
+		await page.getByRole('button', { name: 'Music' }).click();
+		await expect(page.locator('button.badge', { hasText: 'rock' })).toBeVisible({ timeout: 5000 });
+		await page.locator('input[type="search"]').fill('nick drake');
+		await expect(page.locator('button.badge', { hasText: 'rock' })).toHaveCount(0);
 	});
 
 	test('typing in search box does not navigate away', async ({ page }) => {

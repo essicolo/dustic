@@ -13,6 +13,12 @@
 		"playAllCount": "Play all ({count})",
 		"untitled": "Untitled"
 	},
+	"errors": {
+		"itemUnavailable": "This recording is no longer available on the Internet Archive",
+		"itemRestricted": "This recording has been restricted by the Internet Archive and cannot be played",
+		"playFailed": "Could not start playback",
+		"tracksFailed": "Could not load the tracks for this item"
+	},
 	"viewMode": {
 		"label": "View mode",
 		"tiles": "Tiles view",
@@ -58,6 +64,13 @@
 		"addToPlaylistHeader": "Add to playlist",
 		"newPlaylist": "+ New Playlist",
 		"shareTrack": "Share track"
+	},
+	"share": {
+		"shared": "Shared",
+		"copied": "Link copied to clipboard",
+		"cancelled": "Share cancelled",
+		"copyFailed": "Could not copy the link",
+		"unsupported": "Sharing is not available in this browser"
 	},
 	"queue": {
 		"title": "Queue",
@@ -105,8 +118,7 @@
 		"viewAllPlaylists": "View all {count} playlists",
 		"welcome": "Welcome to dustic",
 		"welcomeSubtitle": "Start exploring music from the Internet Archive and FunkWhale",
-		"searchMusic": "Search Music",
-		"viewCurated": "View Curated Playlists"
+		"searchMusic": "Search Music"
 	},
 	"history": {
 		"title": "Recently Played",
@@ -137,7 +149,8 @@
 			"introStrong": "Internet Archive and FunkWhale work out of the box",
 			"introRest": " — no setup needed. Connect a folder here to add your own audio: music, audiobooks, courses, podcasts. Works with Koofr, Nextcloud, pCloud, or any cloud that supports WebDAV.",
 			"disabled": "disabled"
-		}
+		},
+		"removeUnavailable": "Remove from library"
 	},
 	"favorites": {
 		"title": "Favorites",
@@ -150,7 +163,8 @@
 		"filterTracks": "Tracks ({count})",
 		"filterAlbums": "Albums ({count})",
 		"albumsHeader": "Albums",
-		"tracksHeader": "Tracks"
+		"tracksHeader": "Tracks",
+		"unavailableHeader": "No longer available ({count})"
 	},
 	"playlists": {
 		"title": "Your Playlists",
@@ -372,6 +386,16 @@
 		"empty": "No tracks found",
 		"emptyHint": "Try a different category or check if {host} is online"
 	},
+	"themes": {
+		"light": {
+			"name": "Light",
+			"description": "Black on white. Sharp corners, no color."
+		},
+		"dark": {
+			"name": "Dark",
+			"description": "White on near-black. The same palette, inverted."
+		}
+	},
 	"settings": {
 		"title": "Settings",
 		"tabs": {
@@ -390,7 +414,7 @@
 		},
 		"appearance": {
 			"title": "Appearance",
-			"description": "Pick a theme. \"Minimal\" keeps the pure monochrome look; the others apply soft corners, warmer surfaces, and an accent color used for likes, the play button, and the progress bar."
+			"description": "Light or dark. Both use the same monochrome palette, so only the surfaces change."
 		},
 		"audio": {
 			"title": "Audio Quality",
@@ -581,8 +605,8 @@
 			"noAccountHint": "No account, no tracking. Just press Continue to start browsing.",
 			"continueWith": "Continue with {name}",
 			"useTheme": "Use {name} theme",
-			"playSwatch": "Play",
-			"artistSongSwatch": "Artist · Song"
+			"artistSongSwatch": "Artist",
+			"trackSwatch": "Track title"
 		},
 		"audioCard": {
 			"untitled": "Untitled",

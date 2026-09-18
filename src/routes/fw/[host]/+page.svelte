@@ -126,7 +126,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="space-y-2 mb-6">
+			<div class="divide-y divide-base-300 border-y border-base-300 mb-6">
 				{#each results as item}
 					<AudioCard
 						item={{ ...(item as any), creator: item.artist }}

@@ -1,3 +1,5 @@
+@import './fonts.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,37 +9,67 @@
 	--sat: env(safe-area-inset-top, 0px);
 	--sab: env(safe-area-inset-bottom, 0px);
 
-	/* Theme meta vars overridden by applyTheme() in src/lib/themes.ts.
+	/* The single corner radius for the whole app. Tailwind's rounded-*
+	   scale and daisyUI's --rounded-box/btn/badge both resolve here, so
+	   one value governs cards, buttons, inputs and chips alike.
 	   Colors come from daisyUI via data-theme on <html>. */
-	--card-radius: 4px;
-	--shadow: none;
+	--radius: 0.25rem;
 }
 
 body {
-	@apply bg-base-100 text-base-content;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-		'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+	@apply bg-base-100 text-base-content font-sans;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
-/* Theme-driven radius applied to all card-like surfaces (Change 6).
-   The selector covers daisyUI cards, modal boxes, the modal-box used by
-   the profile panel, and the player bar (which gets a softer top edge in
-   non-Minimal themes). Buttons/inputs keep their daisyUI defaults so
-   tactile controls stay consistent. */
-.card,
-.modal-box,
-.alert,
-.menu.rounded-box,
-.rounded-box {
-	border-radius: var(--card-radius);
-	box-shadow: var(--shadow);
+/* Page and section headings are the display voice. Track titles inside
+   cards and rows deliberately stay in the UI face: they are long, messy,
+   frequently ALL CAPS archive strings that need Inter's small-size
+   legibility far more than they need character. */
+h1,
+h2:not(.card-title) {
+	font-family: theme('fontFamily.display');
+	font-weight: 500;
+	letter-spacing: -0.01em;
 }
 
-.player-bar-themed {
-	border-top-left-radius: var(--card-radius);
-	border-top-right-radius: var(--card-radius);
+/* Times, counts and durations line up in columns instead of jittering as
+   the digits change. Inter ships tabular figures; this turns them on. */
+.tabular,
+input[type='range'] + span,
+.countdown {
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: 'tnum' 1;
+}
+
+/* Keyboard focus. Stated once, globally, in :where() so specificity stays
+   at zero and any component can still opt out deliberately. Without this
+   the cards — the app's main interactive element — had no visible focus
+   state at all. currentColor tracks the theme, so it reads in both. */
+:where(a, button, [role='button'], input, select, textarea, summary, [tabindex]):focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* daisyUI makes .card-title a flex container, which silently disables
+   text-overflow: a long title is chopped mid-letter instead of ellipsed.
+   Restore block layout wherever a truncation utility is also present. */
+.card-title.truncate {
+	display: block;
+}
+
+/* Honour the OS "reduce motion" setting. The app's motion is decorative
+   (hover scales, page cross-fades, the pulsing cover placeholder), so it
+   all collapses rather than degrading to something slower. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
 }
 
 /* Minimalist scrollbar */

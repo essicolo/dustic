@@ -484,7 +484,7 @@
 			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.includedTitle')}</h3>
 			<ul class="space-y-2 text-base-content/80">
 				<li class="flex items-start gap-2">
-					<Icon icon="solar:heart-bold" width="20" className="text-red-500 flex-shrink-0 mt-0.5" />
+					<Icon icon="solar:heart-bold" width="20" className="text-primary flex-shrink-0 mt-0.5" />
 					<div>
 						<strong>{$_('settings.profile.included.favoritesStrong')}</strong>{$_('settings.profile.included.favoritesRest')}
 					</div>

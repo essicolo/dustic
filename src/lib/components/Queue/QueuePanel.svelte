@@ -20,7 +20,7 @@
 
 <!-- Queue Panel overlay — only below xl (at xl+, the layout renders the inline panel) -->
 {#if $queuePanelOpen}
-	<div class="xl:hidden fixed inset-0 z-50 flex justify-end">
+	<div class="xl:hidden fixed inset-0 z-modal flex justify-end">
 		<!-- Backdrop -->
 		<div
 			class="absolute inset-0 bg-black/50"

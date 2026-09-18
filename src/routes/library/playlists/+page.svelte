@@ -22,7 +22,7 @@
 	}
 </script>
 
-<div class="p-4 md:p-8 max-w-4xl mx-auto">
+<div class="p-4 md:p-8">
 	<!-- Back Button -->
 	<button on:click={() => goto(`${base}/library`)} class="btn btn-ghost btn-sm mb-6">
 		<Icon icon="solar:arrow-left-linear" width="20" />

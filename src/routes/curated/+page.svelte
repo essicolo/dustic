@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import Icon from '@iconify/svelte';
 	import curatedPlaylistsData from '$lib/data/curatedPlaylists.json';
+	import PlaylistCover from '$lib/components/PlaylistCover.svelte';
 	import { _ } from '$lib/i18n';
 
 	interface CuratedPlaylist {
@@ -21,7 +22,7 @@
 </script>
 
 <div class="p-4 md:p-8">
-	<div class="max-w-4xl mx-auto">
+	<div>
 		<h2 class="text-2xl md:text-3xl font-bold mb-2">{$_('curated.title')}</h2>
 		<p class="text-base-content/70 mb-8">
 			{$_('curated.subtitle')}
@@ -41,10 +42,12 @@
 						class="card bg-base-200 hover:bg-base-300 transition-all duration-200 hover:shadow-xl cursor-pointer"
 					>
 						<div class="card-body">
-							<div class="flex items-start gap-3">
-								<div class="bg-primary/10 p-3 rounded-lg flex-shrink-0">
-									<Icon icon="solar:star-bold" width="24" class="text-primary" />
-								</div>
+							<div class="flex items-start gap-4">
+								<PlaylistCover
+									identifiers={playlist.tracks.map((t) => t.identifier)}
+									alt={playlist.name}
+									className="w-20 flex-shrink-0 rounded"
+								/>
 								<div class="flex-1 min-w-0">
 									<h3 class="card-title text-lg mb-1">{playlist.name}</h3>
 									<p class="text-xs text-base-content/50 mb-2">

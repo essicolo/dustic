@@ -8,6 +8,12 @@
 	import { library } from '$lib/stores/library';
 	import { queue } from '$lib/stores/queue';
 	import { player } from '$lib/stores/player';
+	import { notifications } from '$lib/stores/notifications';
+	import {
+		unavailableItems,
+		isUnplayableItemError,
+		isRestrictedItemError
+	} from '$lib/stores/unavailable';
 
 	// Services & Utils
 	import { getAllTracks, getThumbnailUrl } from '$lib/services/internetArchive';
@@ -21,6 +27,7 @@
 	// Components
 	import DownloadButton from '$lib/components/DownloadButton.svelte';
 	import LoadingImage from './LoadingImage.svelte';
+	import CoverFallback from './CoverFallback.svelte';
 
 	// Types
 	import type { ArchiveItem, Track } from '$lib/types';
@@ -212,8 +219,29 @@
 		thumbLookupDone = true;
 	}
 
+	/**
+	 * Handle a failure from ensureTracks(). An item the archive no longer
+	 * serves is a normal outcome, not a bug: its search document outlives it,
+	 * so the row looked playable. Remember it so it stops coming back in
+	 * results, and say so rather than failing silently.
+	 */
+	function reportTrackFailure(error: unknown, fallbackKey: string) {
+		console.warn('[AudioCard] Failed for', item.identifier, error);
+		if (isUnplayableItemError(error)) {
+			unavailableItems.mark(item.identifier);
+			notifications.error(
+				isRestrictedItemError(error) ? 'errors.itemRestricted' : 'errors.itemUnavailable'
+			);
+		} else {
+			notifications.error(fallbackKey);
+		}
+	}
+
 	async function ensureTracks(): Promise<Track[]> {
-		if (tracks.length > 0) return tracks;
+		// A seeded track without a streamUrl is display data (a listing row,
+		// a batched search hit), not something that can be played, queued or
+		// downloaded. Treat it as absent so it gets resolved properly.
+		if (tracks.length > 0 && tracks.every((t) => t.streamUrl)) return tracks;
 		isFetching = true;
 		try {
 			let fetchedTracks: Track[] = [];
@@ -257,30 +285,51 @@
 			return;
 		}
 
-		// Normal behavior: replace queue with this track/album
-		const tracksToPlay = await ensureTracks();
-		if (tracksToPlay?.length > 0) {
-			queue.setQueue(tracksToPlay, 0);
-			player.play(tracksToPlay[0]);
+		// Normal behavior: replace queue with this track/album.
+		// ensureTracks() reaches the network, and the archive regularly
+		// returns search rows whose metadata has since been removed. Without
+		// this catch the rejection escaped the handler and the play button
+		// simply did nothing, with the only trace in the console.
+		try {
+			const tracksToPlay = await ensureTracks();
+			if (tracksToPlay?.length > 0) {
+				queue.setQueue(tracksToPlay, 0);
+				player.play(tracksToPlay[0]);
+			} else {
+				notifications.error('errors.tracksFailed');
+			}
+		} catch (error) {
+			reportTrackFailure(error, 'errors.playFailed');
 		}
 	}
 
 	async function handleAddToQueue(e: Event) {
 		e.stopPropagation();
 		showActions = false;
-		const tracksToAdd = await ensureTracks();
-		if (tracksToAdd?.length > 0) {
-			queue.addToEnd(tracksToAdd[0]);
+		try {
+			const tracksToAdd = await ensureTracks();
+			if (tracksToAdd?.length > 0) {
+				queue.addToEnd(tracksToAdd[0]);
+			} else {
+				notifications.error('errors.tracksFailed');
+			}
+		} catch (error) {
+			reportTrackFailure(error, 'errors.tracksFailed');
 		}
 	}
 
 	async function handleShare(e: Event) {
 		e.stopPropagation();
 		showActions = false;
-		const tracksToShare = await ensureTracks();
-		if (tracksToShare?.[0]) {
-			await shareTrack(tracksToShare[0]);
+		const tracksToShare = await ensureTracks().catch(() => []);
+		if (!tracksToShare?.[0]) {
+			notifications.error('errors.tracksFailed');
+			return;
 		}
+		// Sharing from a card used to give no feedback at all; only the
+		// page-level share buttons showed a toast.
+		const result = await shareTrack(tracksToShare[0]);
+		notifications[result.success ? 'info' : 'error'](result.messageKey);
 	}
 
 	function handleToggleFavorite(e: Event) {
@@ -376,10 +425,25 @@
 
 <svelte:window bind:innerWidth={windowWidth} />
 
+<!-- Tile keeps the card: a cover, a title and actions genuinely are one
+     object, and the surface is what separates it from its neighbours in a
+     grid. The list row drops it. Fifty stacked boxes are not a hierarchy,
+     they are wallpaper; a row separated by a hairline reads as a list, packs
+     more of the archive onto the screen, and lets the artwork be the only
+     thing carrying colour. The hairline belongs to the container (divide-y),
+     not to the row, so that anything the container groups with a row stays
+     visually attached to it. -->
 <div
-	class="card bg-base-200 hover:bg-base-300 transition-colors duration-200 cursor-pointer group outline-none"
-	class:card-side={layout === 'list'}
+	class="transition-colors duration-200 cursor-pointer group"
+	class:card={layout === 'tile'}
+	class:bg-base-200={layout === 'tile'}
+	class:hover:bg-base-300={layout === 'tile'}
 	class:h-full={layout === 'tile'}
+	class:flex={layout === 'list'}
+	class:items-center={layout === 'list'}
+	class:gap-3={layout === 'list'}
+	class:hover:bg-base-200={layout === 'list'}
+	data-row={layout === 'list' ? '' : undefined}
 	on:click={handleNavigate}
 	on:keydown={handleKeyDown}
 	role="button"
@@ -389,8 +453,11 @@
 	<figure
 		class="relative bg-neutral overflow-hidden"
 		class:aspect-square={layout === 'tile'}
-		class:w-20={layout === 'list'}
-		class:h-20={layout === 'list'}
+		class:w-14={layout === 'list'}
+		class:h-14={layout === 'list'}
+		class:rounded={layout === 'list'}
+		class:my-2={layout === 'list'}
+		class:ml-2={layout === 'list'}
 		class:flex-shrink-0={layout === 'list'}
 		on:touchstart={startLongPress}
 		on:touchend={cancelLongPress}
@@ -398,25 +465,23 @@
 		on:touchcancel={cancelLongPress}
 	>
 		{#if isWD && !thumb}
-			<!-- WebDAV tracks: show music-note placeholder during lookup; if
-			     neither the embedded tag nor Deezer returns a cover we keep
-			     it permanently instead of an ugly gray pulse. Gated on
-			     `thumb` (not just `fetchedThumb`) so embedded covers from
-			     parsedMeta.pictureUrl actually render — gating on
-			     fetchedThumb hid them whenever Deezer was skipped. -->
-			<div class="w-full h-full bg-base-300 flex items-center justify-center">
-				<Icon
-					icon="solar:music-note-bold-duotone"
-					width="40"
-					class="opacity-30 {thumbLookupDone ? '' : 'animate-pulse'}"
-				/>
-			</div>
+			<!-- WebDAV tracks: pulse while the tag read and the Deezer lookup
+			     are still out, then settle on the generated tile if neither
+			     produced a cover. Gated on `thumb` (not just `fetchedThumb`)
+			     so embedded covers from parsedMeta.pictureUrl actually render
+			     — gating on fetchedThumb hid them whenever Deezer was skipped. -->
+			{#if thumbLookupDone}
+				<CoverFallback seed={item.identifier} className="w-full h-full" />
+			{:else}
+				<div class="w-full h-full bg-base-300 animate-pulse"></div>
+			{/if}
 		{:else}
 			<LoadingImage
 				src={thumb}
 				alt={$_('components.audioCard.coverAlt', { values: { title: item.title } })}
 				className="w-full h-full object-cover"
 				aspectRatio="square"
+				fallbackSeed={item.identifier}
 			/>
 		{/if}
 		<div
@@ -425,24 +490,29 @@
 			{#if isFetching}
 				<span class="loading loading-spinner text-primary"></span>
 			{:else}
+				<!-- The list row's thumbnail is 56px, so the default 48px
+				     circle would all but fill it. -->
 				<button
 					class="btn btn-primary btn-circle"
-					class:btn-sm={compact}
+					class:btn-sm={compact || layout === 'list'}
 					on:click={handlePlay}
 					aria-label={$_('components.audioCard.playButtonAria')}
 				>
-					<Icon icon="solar:play-bold" width={compact ? '20' : '28'} />
+					<Icon icon="solar:play-bold" width={compact || layout === 'list' ? '18' : '28'} />
 				</button>
 			{/if}
 		</div>
 	</figure>
 
 	<div
-		class="card-body min-w-0 {layout === 'list'
-			? 'flex-row items-center justify-between p-3'
-			: `flex flex-col ${compact ? 'p-2' : 'p-4'}`}"
+		class="min-w-0 {layout === 'list'
+			? 'flex flex-1 flex-row items-center justify-between gap-2 py-2 pr-2'
+			: `card-body flex flex-col ${compact ? 'p-2' : 'p-4'}`}"
 	>
-		<div class="flex-grow min-w-0 {layout === 'list' ? 'max-w-[60%]' : ''}">
+		<!-- No max-width in list layout: the action cluster beside it is
+		     already flex-shrink-0, so capping the title at 60% only left a
+		     dead strip and truncated titles that had room to spare. -->
+		<div class="flex-grow min-w-0">
 			<h2
 				class="card-title {layout === 'list' ? 'truncate' : 'card-title-clamp'} {compact ? 'text-sm' : 'text-base'}"
 				title={displayTitle}
@@ -481,7 +551,7 @@
 			>
 				<Icon
 					icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-					class={isFavorite ? 'text-accent' : ''}
+					class={isFavorite ? 'text-primary' : ''}
 					width="20"
 				/>
 			</button>
@@ -502,7 +572,7 @@
 							use:portal
 							bind:this={actionsMenu}
 							use:clickOutside
-							class="fixed z-[99]"
+							class="fixed z-popover"
 						>
 							<ul
 								class="menu p-2 shadow-2xl bg-base-300 rounded-box min-w-[14rem] w-max max-w-xs"
@@ -551,7 +621,7 @@
 					{#if showPlaylistSelector}
 						<div
 							id="playlist-selector-{item.identifier}"
-							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
+							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-popover border border-base-content/10 max-h-60 overflow-y-auto"
 						>
 							<h3 class="text-xs font-bold p-2 text-base-content/70">{$_('components.audioCard.addToPlaylistHeader')}</h3>
 							{#each playlists as p}

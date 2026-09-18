@@ -164,6 +164,55 @@ describe('Queue Store', () => {
 				expect(state.tracks).toContainEqual(track);
 			});
 		});
+
+		// These drive enableShuffle/disableShuffle directly rather than
+		// toggling: clear() deliberately leaves shuffleEnabled alone (it is
+		// the user's preference, and the player bar mirrors it), so a toggle
+		// here would inherit whatever the previous test left behind.
+		it('keeps tracks added while shuffled when shuffle is turned off', () => {
+			const extra: Track = { ...mockTracks[0], identifier: 'item2#extra.mp3', title: 'Extra' };
+
+			queue.disableShuffle();
+			queue.setQueue(mockTracks, 0);
+			queue.enableShuffle();
+			queue.addToEnd(extra);
+			queue.disableShuffle();
+
+			const state = get(queue);
+			// Unshuffling restores a snapshot; if that snapshot is not kept
+			// current, everything queued in the meantime disappears.
+			expect(state.shuffleEnabled).toBe(false);
+			expect(state.tracks).toHaveLength(mockTracks.length + 1);
+			expect(state.tracks.map((t) => t.identifier)).toContain('item2#extra.mp3');
+		});
+
+		it('does not resurrect a track removed while shuffled', () => {
+			queue.disableShuffle();
+			queue.setQueue(mockTracks, 0);
+			queue.enableShuffle();
+
+			const doomed = get(queue).tracks[1].identifier;
+			queue.remove(1);
+			queue.disableShuffle();
+
+			const state = get(queue);
+			expect(state.tracks).toHaveLength(mockTracks.length - 1);
+			expect(state.tracks.map((t) => t.identifier)).not.toContain(doomed);
+		});
+
+		it('leaves the current track playing across an unshuffle', () => {
+			queue.disableShuffle();
+			queue.setQueue(mockTracks, 0);
+			queue.enableShuffle();
+			queue.addToEnd({ ...mockTracks[0], identifier: 'item2#extra.mp3', title: 'Extra' });
+
+			const before = get(queue);
+			const playing = before.tracks[before.currentIndex].identifier;
+			queue.disableShuffle();
+
+			const state = get(queue);
+			expect(state.tracks[state.currentIndex].identifier).toBe(playing);
+		});
 	});
 
 	describe('Edge Cases', () => {

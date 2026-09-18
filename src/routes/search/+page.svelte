@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifications } from '$lib/stores/notifications';
 	import { unifiedSearch as searchAPI, unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player, currentTrack } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
@@ -30,7 +31,7 @@
 			downloadingIds = new Set(downloadingIds);
 		}
 	}
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
 	import { debounce } from '$lib/utils/throttle';
@@ -55,8 +56,6 @@
 	let error = '';
 	let loadingTrack: string | null = null;
 	let showFilters = false;
-	let shareMessage = '';
-	let showShareToast = false;
 
 	let userIsEditing = false;
 
@@ -77,6 +76,12 @@
 				handleSearch();
 			} else if (q) {
 				searchQuery = q;
+				handleSearch();
+			} else if (ct || tag) {
+				// A bookmarked or shared browse link. Selecting a tab or a
+				// genre in the app runs a search, but arriving on the same
+				// state by URL only set the variables and left the page
+				// empty.
 				handleSearch();
 			}
 			setTimeout(() => { initialized = true; }, 0);
@@ -115,6 +120,14 @@
 			pageCount = 0;
 			isTyping = false;
 			error = '';
+			// Clearing the box supersedes any search still in flight: bumping
+			// searchSeq above already made that response a no-op, so its
+			// `finally` will not run and this is the only place left that can
+			// put the page back into its resting state. Without these two
+			// lines the skeletons spin forever and ?q= keeps the old term,
+			// which the $page watcher then types back into the box.
+			isSearching = false;
+			syncUrl();
 			return;
 		}
 
@@ -122,10 +135,18 @@
 		isTyping = false;
 		error = '';
 
-		// Use tag or content type name as fallback query when search box is empty
-		const effectiveQuery = searchQuery.trim()
-			|| selectedTag
-			|| (selectedContentType ? CONTENT_TYPES.find(ct => ct.id === selectedContentType)?.name.toLowerCase() || '' : '');
+		// A selected tag is deliberately NOT folded into the query. It is a
+		// filter on the archive's `subject` field now; using it as a keyword
+		// as well would reintroduce exactly the noise that change removed.
+		// The content-type name is still used as a fallback when there is
+		// nothing else to search on, so the tab alone returns something.
+		const effectiveQuery =
+			searchQuery.trim() ||
+			(selectedTag
+				? ''
+				: selectedContentType
+					? CONTENT_TYPES.find((ct) => ct.id === selectedContentType)?.name.toLowerCase() || ''
+					: '');
 
 		const params: SearchParams = {
 			query: effectiveQuery,
@@ -146,7 +167,19 @@
 		}
 
 		try {
-			const result = await searchAPI(params);
+			const result = await searchAPI(params, {
+				// Internet Archive answers in a few hundred milliseconds;
+				// a FunkWhale instance can take two seconds and usually adds
+				// nothing. Show the archive's rows straight away and let the
+				// merged set replace them when it arrives.
+				onPartial: (partial) => {
+					if (seq !== searchSeq) return; // a newer search owns the UI now
+					results = partial.items;
+					totalResults = partial.total;
+					pageCount = partial.pageCount ?? Math.ceil(partial.total / pageSize);
+					isSearching = false;
+				}
+			});
 			if (seq !== searchSeq) return; // a newer search owns the UI now
 
 			results = result.items;
@@ -184,6 +217,10 @@
 		currentPage = 1;
 		handleSearch();
 	}, 400);
+
+	// A search still queued when the user navigates away would fire against
+	// the next page and syncUrl() would graft ?q= onto it.
+	onDestroy(() => debouncedSearch.cancel());
 
 	/** Keep URL in sync with current search state so the $page watcher doesn't reset stale params */
 	function syncUrl() {
@@ -299,18 +336,21 @@
 
 	async function handleShare(item: Track) {
 		const result = await shareTrack(item);
-		shareMessage = result.message;
-		showShareToast = true;
-		setTimeout(() => {
-			showShareToast = false;
-		}, 3000);
+		notifications[result.success ? 'info' : 'error'](result.messageKey);
 	}
 
 	$: totalPages = pageCount || Math.ceil(totalResults / pageSize);
 	$: hasActiveFilters = selectedContentType !== '' || selectedTag !== '' || sortBy !== 'relevance' || !sourceIA || !sourceFW;
-	$: activeTags = selectedContentType
-		? (CONTENT_TYPES.find(ct => ct.id === selectedContentType)?.tags ?? POPULAR_TAGS)
-		: POPULAR_TAGS;
+	$: activeTags = CONTENT_TYPES.find((ct) => ct.id === selectedContentType)?.tags ?? [];
+
+	// Genre chips are a way to browse, not a way to refine. They filter on
+	// the archive's `subject` field scoped to the current tab's collections,
+	// which only works when there is a tab (the "All" tab has no collections
+	// to scope to) and only makes sense when there is nothing to refine.
+	//
+	// They used to be shown always, and on "All" they showed the music genre
+	// list regardless of the tab spanning podcasts and audiobooks.
+	$: showTagChips = activeTags.length > 0 && !searchQuery.trim();
 </script>
 
 <div class="p-4 md:p-8">
@@ -369,19 +409,25 @@
 		{/each}
 	</div>
 
-	<!-- Tag Chips (content-type-aware) -->
-	<div class="flex flex-wrap gap-1.5 mb-4">
-		{#each activeTags as tag}
-			<button
-				on:click={() => selectTag(tag)}
-				class="badge badge-md cursor-pointer transition-colors hover:bg-base-300"
-				class:badge-primary={selectedTag === tag}
-				class:badge-outline={selectedTag !== tag}
-			>
-				{tag}
-			</button>
-		{/each}
-	</div>
+	<!-- Genre chips: a browse affordance, shown only on a content-type tab
+	     and only while the search box is empty (see showTagChips).
+	     badge-md is 20px tall, which is a miss on a phone; h-8 with real
+	     horizontal padding gives these a tappable target without turning
+	     them into buttons visually. -->
+	{#if showTagChips}
+		<div class="flex flex-wrap gap-2 mb-4">
+			{#each activeTags as tag}
+				<button
+					on:click={() => selectTag(tag)}
+					class="badge h-8 px-3 text-sm cursor-pointer transition-colors hover:bg-base-300"
+					class:badge-primary={selectedTag === tag}
+					class:badge-outline={selectedTag !== tag}
+				>
+					{tag}
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Active Filters & Controls Row -->
 	<div class="flex items-center justify-between mb-4 gap-2">
@@ -498,7 +544,7 @@
 			<span class="loading loading-spinner loading-lg text-primary"></span>
 		</div>
 	{:else if results.length > 0}
-		<div class="space-y-2 mb-6">
+		<div class="divide-y divide-base-300 border-y border-base-300 mb-6">
 			{#each results as item}
 				<AudioCard item={item} type="album" layout="list" />
 			{/each}
@@ -542,13 +588,4 @@
 		</div>
 	{/if}
 
-	<!-- Share Toast -->
-	{#if showShareToast}
-		<div class="toast toast-top toast-center z-50">
-			<div class="alert alert-success">
-				<Icon icon="solar:check-circle-bold" width="20" />
-				<span>{shareMessage}</span>
-			</div>
-		</div>
-	{/if}
 </div>

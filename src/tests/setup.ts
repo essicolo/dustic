@@ -14,6 +14,15 @@ vi.mock('$app/stores', () => ({
 	updated: { subscribe: vi.fn() }
 }));
 
+// `base` is '' whenever the app is mounted at the root of its domain, which
+// is how it is deployed. The real module reads a build-time constant that
+// does not exist outside a SvelteKit build.
+vi.mock('$app/paths', () => ({
+	base: '',
+	assets: '',
+	resolveRoute: (id: string) => id
+}));
+
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
 	invalidate: vi.fn(),

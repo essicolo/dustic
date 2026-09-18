@@ -23,6 +23,22 @@ const initialState: QueueState = {
 function createQueueStore() {
 	const { subscribe, set, update } = writable<QueueState>(initialState);
 
+	// While shuffle is on, `originalOrder` is the queue the user gets back
+	// when they turn it off. It therefore has to follow every membership
+	// change made in the meantime — otherwise unshuffling silently reverts
+	// to a snapshot, dropping tracks added since and resurrecting removed
+	// ones. Order within the snapshot is the unshuffled order, so additions
+	// go at the end.
+	const withAdded = (state: QueueState, added: Track[]): Track[] =>
+		state.shuffleEnabled ? [...state.originalOrder, ...added] : state.originalOrder;
+
+	const withRemoved = (state: QueueState, removed: Track | undefined): Track[] => {
+		if (!state.shuffleEnabled || !removed) return state.originalOrder;
+		const at = state.originalOrder.findIndex((t) => t.identifier === removed.identifier);
+		if (at === -1) return state.originalOrder;
+		return state.originalOrder.filter((_, i) => i !== at);
+	};
+
 	return {
 		subscribe,
 
@@ -35,7 +51,8 @@ function createQueueStore() {
 
 				return {
 					...state,
-					tracks: newTracks
+					tracks: newTracks,
+					originalOrder: withAdded(state, [track])
 				};
 			});
 		},
@@ -51,10 +68,12 @@ function createQueueStore() {
 				}
 
 				const newTracks = [...state.tracks, ...tracksArray].slice(0, CONFIG.maxQueueSize);
+				const accepted = tracksArray.slice(0, newTracks.length - state.tracks.length);
 
 				return {
 					...state,
-					tracks: newTracks
+					tracks: newTracks,
+					originalOrder: withAdded(state, accepted)
 				};
 			});
 		},
@@ -62,6 +81,7 @@ function createQueueStore() {
 		// Remove track at index
 		remove(index: number) {
 			update((state) => {
+				const removed = state.tracks[index];
 				const newTracks = state.tracks.filter((_, i) => i !== index);
 				let newIndex = state.currentIndex;
 
@@ -76,7 +96,8 @@ function createQueueStore() {
 				return {
 					...state,
 					tracks: newTracks,
-					currentIndex: newIndex
+					currentIndex: newIndex,
+					originalOrder: withRemoved(state, removed)
 				};
 			});
 		},

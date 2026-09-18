@@ -20,8 +20,8 @@
 </script>
 
 <!-- Language -->
-<div class="card bg-base-200 mb-6">
-	<div class="card-body">
+<div class="mb-8 border-t border-base-300 pt-6">
+	<div class="space-y-1">
 		<h3 class="card-title mb-4">
 			<Icon icon="solar:global-bold" width="24" />
 			{$_('settings.language.title')}
@@ -42,8 +42,8 @@
 </div>
 
 <!-- Appearance / Theme -->
-<div class="card bg-base-200 mb-6">
-	<div class="card-body">
+<div class="mb-8 border-t border-base-300 pt-6">
+	<div class="space-y-1">
 		<h3 class="card-title mb-4">
 			<Icon icon="solar:pallete-2-bold" width="24" />
 			{$_('settings.appearance.title')}
@@ -56,8 +56,8 @@
 </div>
 
 <!-- Audio Quality Settings -->
-<div class="card bg-base-200 mb-6">
-	<div class="card-body">
+<div class="mb-8 border-t border-base-300 pt-6">
+	<div class="space-y-1">
 		<h3 class="card-title mb-4">
 			<Icon icon="solar:music-library-2-bold" width="24" />
 			{$_('settings.audio.title')}
@@ -151,8 +151,8 @@
 </div>
 
 <!-- Autoplay Settings -->
-<div class="card bg-base-200">
-	<div class="card-body">
+<div class="border-t border-base-300 pt-6">
+	<div class="space-y-1">
 		<AutoplayRuleEditor />
 	</div>
 </div>

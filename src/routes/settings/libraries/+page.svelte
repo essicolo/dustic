@@ -145,7 +145,7 @@
 	</p>
 
 	<!-- Internet Archive -->
-	<section class="card bg-base-200 p-4 mb-4">
+	<section class="border-t border-base-300 pt-5 mb-6">
 		<div class="flex items-center gap-3">
 			<img src="{base}/internet-archive-icon.svg" alt="Internet Archive" class="w-6 h-6" />
 			<div class="flex-1 min-w-0">
@@ -164,7 +164,7 @@
 	</section>
 
 	<!-- FunkWhale -->
-	<section class="card bg-base-200 p-4 mb-4">
+	<section class="border-t border-base-300 pt-5 mb-6">
 		<div class="flex items-center gap-3 mb-3">
 			<img src="{base}/funkwhale-icon.svg" alt="FunkWhale" class="w-6 h-6" />
 			<div class="flex-1 min-w-0">
@@ -234,7 +234,7 @@
 	</section>
 
 	<!-- Your folders -->
-	<section class="card bg-base-200 p-4 mb-4">
+	<section class="border-t border-base-300 pt-5 mb-6">
 		<div class="flex items-center gap-3 mb-3">
 			<Icon icon="mdi:folder-music" width="24" />
 			<div class="flex-1 min-w-0">

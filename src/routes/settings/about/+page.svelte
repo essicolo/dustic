@@ -10,7 +10,7 @@
 
 <div class="space-y-6">
 	<!-- What is Dustic -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.what.title')}</h2>
 		<p class="text-base-content/80 leading-relaxed">
 			{$_('about.what.body')}
@@ -18,7 +18,7 @@
 	</section>
 
 	<!-- Progressive Web App -->
-	<section class="card bg-base-200 p-6 border-l-4 border-primary">
+	<section class="bg-base-200 p-6 border-l-4 border-primary">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.pwa.title')}</h2>
 		<div class="space-y-3 text-base-content/80 leading-relaxed">
 			<p>
@@ -49,7 +49,7 @@
 	</section>
 
 	<!-- Author -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.creator.title')}</h2>
 		<p class="text-base-content/80 leading-relaxed">
 			{$_('about.creator.bodyBefore')}<strong>{$_('about.creator.bodyName')}</strong>{$_('about.creator.bodyAfter')}
@@ -57,7 +57,7 @@
 	</section>
 
 	<!-- Data Source -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.sources.title')}</h2>
 		<div class="space-y-4 text-base-content/80 leading-relaxed">
 			<div>
@@ -89,7 +89,7 @@
 	</section>
 
 	<!-- Privacy & Data -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.privacy.title')}</h2>
 		<div class="space-y-3 text-base-content/80 leading-relaxed">
 			<p><strong>{$_('about.privacy.introStrong')}</strong>{$_('about.privacy.introRest')}</p>
@@ -123,7 +123,7 @@
 	</section>
 
 	<!-- Open Source -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.openSource.title')}</h2>
 		<p class="text-base-content/80 leading-relaxed mb-3">{$_('about.openSource.body')}</p>
 		<a href="https://github.com/essicolo/dustic" target="_blank" rel="noopener noreferrer" class="link link-primary">
@@ -132,7 +132,7 @@
 	</section>
 
 	<!-- Technology -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.tech.title')}</h2>
 		<ul class="list-disc list-inside ml-4 space-y-1 text-base-content/80">
 			<li>{$_('about.tech.item1')}</li>
@@ -143,7 +143,7 @@
 	</section>
 
 	<!-- Version -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-3">{$_('about.version.title')}</h2>
 		<p class="text-base-content/80">
 			{$_('about.version.current')} <strong>{APP_VERSION}</strong>
@@ -151,7 +151,7 @@
 	</section>
 
 	<!-- Support & Feedback -->
-	<section class="card bg-base-200 p-6">
+	<section class="border-t border-base-300 pt-6">
 		<h2 class="text-xl font-semibold mb-4">{$_('about.support.title')}</h2>
 		<div class="space-y-3">
 			<a href="https://github.com/sponsors/essicolo" target="_blank" rel="noopener noreferrer" class="btn btn-primary w-full flex items-center gap-2">

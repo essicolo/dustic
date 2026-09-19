@@ -119,7 +119,8 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		const v = audioResponse.headers.get(h);
 		if (v) responseHeaders.set(h, v);
 	}
-	responseHeaders.set('Access-Control-Allow-Origin', url.origin);
+	// Echo the caller's origin; there is no fixed hostname to assume.
+	responseHeaders.set('Access-Control-Allow-Origin', request.headers.get('origin') ?? '*');
 	responseHeaders.set('Vary', 'Origin');
 	// Public: this is public FunkWhale audio, and edge caching is half the
 	// reason the proxy exists (it keeps repeat plays off the instance,
@@ -158,10 +159,10 @@ async function resolveListenUrl(
 	return null;
 }
 
-export const OPTIONS: RequestHandler = async ({ url }) => {
+export const OPTIONS: RequestHandler = async ({ request }) => {
 	return new Response(null, {
 		headers: {
-			'Access-Control-Allow-Origin': url.origin,
+			'Access-Control-Allow-Origin': request.headers.get('origin') ?? '*',
 			'Vary': 'Origin',
 			'Access-Control-Allow-Methods': 'GET, OPTIONS',
 			'Access-Control-Allow-Headers': 'Range, Content-Type'

@@ -162,23 +162,34 @@ export function checkProxyTarget(raw: string): ProxyTarget | ProxyRejection {
 /**
  * True when the request plausibly came from the app itself.
  *
- * A browser attaches `Origin` or `Sec-Fetch-Site` to anything issued by
- * another site, so this stops a third-party page from pointing an <img>,
- * <audio> or fetch() at our proxy. Requests carrying neither header are
- * allowed through: same-origin media loads legitimately omit both, and
- * refusing them would break playback. It is therefore a check against
- * casual hotlinking, not against a scripted client, which can set any
- * header it likes.
+ * `Sec-Fetch-Site` is consulted first and, when present, decides on its own.
+ * The browser computes it, so it needs no hostname: dustic is open source
+ * and self-hosted, and the origin the server derives depends on the adapter
+ * and on any proxy in front of it. Deciding from a server-derived origin
+ * would make the proxies sensitive to deployment shape for no benefit.
+ *
+ * `Origin` is only a fallback, for browsers that send it without Fetch
+ * Metadata (Safari before 16.4). There the comparison does need our own
+ * origin, so a deployment whose derived origin differs from the name in the
+ * address bar would refuse those browsers — thumbnails and FunkWhale audio
+ * would fail for them, and nobody else.
+ *
+ * Requests carrying neither are allowed: same-origin media loads
+ * legitimately omit both. This is therefore a guard against a third-party
+ * page pointing an <img>, <audio> or fetch() at the proxy, not against a
+ * scripted client, which can send whatever headers it likes.
  */
-export function isSameOriginRequest(request: Request, appOrigin: string): boolean {
-	const origin = request.headers.get('origin');
-	if (origin) return origin === appOrigin;
-
+export function isSameOriginRequest(request: Request, appOrigin?: string): boolean {
 	const site = request.headers.get('sec-fetch-site');
 	if (site) return site === 'same-origin';
 
+	const origin = request.headers.get('origin');
+	if (origin && appOrigin) return origin === appOrigin;
+
 	return true;
 }
+
+
 
 /**
  * Follow redirects by hand so every hop is re-validated. `redirect: 'follow'`

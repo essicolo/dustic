@@ -70,19 +70,42 @@ describe('checkProxyTarget', () => {
 });
 
 describe('isSameOriginRequest', () => {
-	const req = (headers: Record<string, string>) => new Request('https://dustic.app/api/x', { headers });
+	const req = (headers: Record<string, string>) =>
+		new Request('https://dustic.app/api/x', { headers });
+	const OURS = 'https://dustic.app';
 
-	it('accepts the app\'s own origin and requests with neither header', () => {
-		expect(isSameOriginRequest(req({ origin: 'https://dustic.app' }), 'https://dustic.app')).toBe(true);
-		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'same-origin' }), 'https://dustic.app')).toBe(true);
-		// Media elements legitimately send neither; refusing these would
-		// break playback on browsers that omit Sec-Fetch-*.
-		expect(isSameOriginRequest(req({}), 'https://dustic.app')).toBe(true);
+	it('lets Sec-Fetch-Site decide, without consulting any hostname', () => {
+		// dustic is self-hosted, so the origin the server derives depends on
+		// the adapter and any proxy in front of it. The browser computes this
+		// header itself, which makes the decision deployment-independent.
+		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'same-origin' }))).toBe(true);
+		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'cross-site' }))).toBe(false);
+		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'same-site' }))).toBe(false);
+		// A URL typed into the address bar is not the app making a request.
+		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'none' }))).toBe(false);
 	});
 
-	it('rejects a third-party page pointing at the proxy', () => {
-		expect(isSameOriginRequest(req({ origin: 'https://evil.example' }), 'https://dustic.app')).toBe(false);
-		expect(isSameOriginRequest(req({ 'sec-fetch-site': 'cross-site' }), 'https://dustic.app')).toBe(false);
+	it('trusts Sec-Fetch-Site over Origin, so a mismatched host cannot refuse the app', () => {
+		// Served at music.example.org while the server thinks it is something
+		// else: the browser still says same-origin, and that is what counts.
+		expect(
+			isSameOriginRequest(
+				req({ origin: 'https://music.example.org', 'sec-fetch-site': 'same-origin' }),
+				OURS
+			)
+		).toBe(true);
+	});
+
+	it('falls back to Origin for browsers without Fetch Metadata', () => {
+		// Safari before 16.4 sends Origin but no Sec-Fetch-Site.
+		expect(isSameOriginRequest(req({ origin: OURS }), OURS)).toBe(true);
+		expect(isSameOriginRequest(req({ origin: 'https://evil.example' }), OURS)).toBe(false);
+	});
+
+	it('allows requests carrying neither header', () => {
+		// Same-origin media loads legitimately omit both; refusing them would
+		// break playback.
+		expect(isSameOriginRequest(req({}), OURS)).toBe(true);
 	});
 });
 

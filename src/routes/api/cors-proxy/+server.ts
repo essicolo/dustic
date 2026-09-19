@@ -77,9 +77,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
 
 		// Build response with CORS headers
 		const responseHeaders = new Headers(response.headers);
-		// The app is the only intended consumer, so scope the response to
-		// our own origin instead of handing it to every site on the web.
-		responseHeaders.set('Access-Control-Allow-Origin', url.origin);
+		// Echo the caller's origin rather than one derived on the server:
+		// same reason as the guard above, there is no fixed hostname here.
+		// Safe because the guard has already refused anything the browser
+		// called cross-site.
+		responseHeaders.set('Access-Control-Allow-Origin', request.headers.get('origin') ?? '*');
 		responseHeaders.set('Vary', 'Origin');
 		responseHeaders.set('Cache-Control', `public, max-age=${maxAge}`);
 		// Node fetch (and Cloudflare's runtime) already decompresses upstream
@@ -101,10 +103,10 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	}
 };
 
-export const OPTIONS: RequestHandler = async ({ url }) => {
+export const OPTIONS: RequestHandler = async ({ request }) => {
     return new Response(null, {
         headers: {
-            'Access-Control-Allow-Origin': url.origin,
+            'Access-Control-Allow-Origin': request.headers.get('origin') ?? '*',
             'Vary': 'Origin',
             'Access-Control-Allow-Methods': 'GET, OPTIONS',
             'Access-Control-Allow-Headers': 'Range, Content-Type'

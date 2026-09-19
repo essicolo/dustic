@@ -22,7 +22,7 @@
 </script>
 
 {#if !isOnline}
-	<div class="toast toast-bottom toast-center z-50" role="status" aria-live="polite">
+	<div class="toast toast-bottom toast-center z-toast" role="status" aria-live="polite">
 		<div class="alert alert-warning shadow-lg">
 			<Icon icon="mdi:wifi-off" width="24" />
 			<span>{$_('components.offline.banner')}</span>

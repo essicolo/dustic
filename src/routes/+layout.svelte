@@ -7,6 +7,7 @@
 	import ProfileManager from '$lib/components/Sidebar/ProfileManager.svelte';
 	import SourcesStatus from '$lib/components/Sidebar/SourcesStatus.svelte';
 	import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+	import Notifications from '$lib/components/Notifications.svelte';
 	import QueueContent from '$lib/components/Queue/QueueContent.svelte';
 	import { queuePanelOpen } from '$lib/stores/queuePanel';
 	import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
@@ -14,6 +15,7 @@
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
+	import Logo from '$lib/components/Logo.svelte';
 	import { fade } from 'svelte/transition';
 	import { player } from '$lib/stores/player';
 	import { offline } from '$lib/stores/offline';
@@ -35,6 +37,16 @@
 
 	$: currentPath = $page.url.pathname;
 	$: pageKey = $page.url.pathname;
+
+	// Svelte transitions are driven from JS, so the CSS-level
+	// prefers-reduced-motion rule in app.css cannot reach them. Read the
+	// query directly and collapse the page cross-fade to nothing.
+	const reduceMotion =
+		browser && window.matchMedia
+			? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+			: false;
+	$: fadeIn = reduceMotion ? { duration: 0 } : { duration: 150, delay: 150 };
+	$: fadeOut = reduceMotion ? { duration: 0 } : { duration: 150 };
 
 	let isSidebarOpen = false;
 	let showHeader = true;
@@ -169,11 +181,11 @@
 	onDestroy(() => cleanup?.());
 </script>
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-dvh flex flex-col">
 	<div class="flex-1 flex">
 		<!-- Mobile Header - Compact + Auto-hide -->
 		<div
-			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-30 flex items-center justify-between px-2 safe-header transition-transform duration-200 ease-out"
+			class="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-nav flex items-center justify-between px-2 safe-header transition-transform duration-200 ease-out"
 			class:-translate-y-full={!showHeader}
 			style="will-change: transform;"
 		>
@@ -181,8 +193,8 @@
 				<Icon icon="solar:hamburger-menu-bold" width="24" />
 			</button>
 			<div class="flex items-center gap-2 flex-1 justify-center">
-				<img src="{base}/logo-dustic.svg" alt="dustic" class="w-6 h-6" />
-				<h1 class="text-lg font-semibold">dustic</h1>
+				<Logo size={24} />
+				<span class="font-display text-lg font-semibold">dustic</span>
 			</div>
 			<div class="w-12 flex-shrink-0"></div>
 		</div>
@@ -190,7 +202,7 @@
 		<!-- Overlay for mobile -->
 		{#if isSidebarOpen}
 			<div
-				class="lg:hidden fixed inset-0 bg-black/50 z-30"
+				class="lg:hidden fixed inset-0 bg-black/50 z-overlay"
 				on:click={closeSidebar}
 				on:keydown={(e) => e.key === 'Escape' && closeSidebar()}
 				role="button"
@@ -201,15 +213,15 @@
 
 		<!-- Sidebar -->
 		<aside
-			class="w-64 bg-base-200 p-2 pb-6 overflow-y-auto border-r border-base-300 fixed lg:sticky inset-y-0 lg:top-0 lg:h-screen left-0 z-40 transform transition-transform duration-200 ease-in-out safe-sidebar sidebar-scrollbar"
+			class="w-64 bg-base-200 p-2 pb-6 overflow-y-auto border-r border-base-300 fixed lg:sticky inset-y-0 lg:top-0 lg:h-dvh left-0 z-nav transform transition-transform duration-200 ease-in-out safe-sidebar sidebar-scrollbar"
 			class:translate-x-0={isSidebarOpen}
 			class:-translate-x-full={!isSidebarOpen}
 			class:lg:translate-x-0={true}
 		>
 			<!-- Logo - Desktop only -->
 			<a href="{base}/" class="hidden lg:flex items-center gap-3 px-4 py-3 mb-1">
-				<img src="{base}/logo-dustic.svg" alt="dustic" class="w-8 h-8" />
-				<span class="text-xl font-bold">dustic</span>
+				<Logo size={32} />
+				<span class="font-display text-xl font-bold">dustic</span>
 			</a>
 
 			<!-- Close button for mobile only -->
@@ -281,11 +293,16 @@
 			<nav class="space-y-1 px-2 mb-4">
 				<SourcesStatus />
 				<ProfileManager />
+				<!-- Selected state matches the main nav above (filled primary)
+				     rather than daisyUI's grey btn-active, so "you are here"
+				     looks the same wherever it appears in the sidebar. -->
 				<a
 					href="{base}/settings"
 					on:click={closeSidebar}
 					class="btn btn-ghost btn-sm w-full justify-start gap-2 normal-case font-medium"
-					class:btn-active={currentPath.startsWith(`${base}/settings`)}
+					class:bg-primary={currentPath.startsWith(`${base}/settings`)}
+					class:text-primary-content={currentPath.startsWith(`${base}/settings`)}
+					class:hover:bg-primary={currentPath.startsWith(`${base}/settings`)}
 				>
 					<Icon icon="solar:settings-bold" width="18" />
 					<span>{$_('nav.settings')}</span>
@@ -296,7 +313,10 @@
 		<!-- Main content -->
 		<main class="flex-1 overflow-y-auto bg-base-100 safe-main-padding safe-content-padding lg:pt-0 lg:ml-0">
 			{#key pageKey}
-				<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
+				<!-- One measure for every route. Pages used to set their own
+				     max-width (or none), so the content column jumped between
+				     full-bleed and ~900px as you moved through the nav. -->
+				<div class="w-full max-w-6xl mx-auto" in:fade={fadeIn} out:fade={fadeOut}>
 					<slot />
 				</div>
 			{/key}
@@ -304,7 +324,7 @@
 
 		<!-- Queue right panel — desktop xl+ only -->
 		{#if $queuePanelOpen}
-			<aside class="hidden xl:flex w-96 bg-base-200 border-l border-base-300 flex-col sticky top-0 h-screen overflow-hidden shrink-0"
+			<aside class="hidden xl:flex w-96 bg-base-200 border-l border-base-300 flex-col sticky top-0 h-dvh overflow-hidden shrink-0"
 				style="padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));">
 				<QueueContent on:close={() => queuePanelOpen.close()} />
 			</aside>
@@ -312,13 +332,16 @@
 	</div>
 
 	<!-- Player bar - Fixed at bottom with iOS safe area support -->
-	<footer class="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-40 safe-player-bar">
+	<footer class="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-nav safe-player-bar">
 		<PlayerBar />
 	</footer>
 </div>
 
 <!-- Update notification -->
 <UpdateNotification />
+
+<!-- Transient messages, mounted once for the whole app -->
+<Notifications />
 
 <!-- First-launch theme picker -->
 {#if showThemePicker}

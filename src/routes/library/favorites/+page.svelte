@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { library } from '$lib/stores/library';
+	import {
+		unavailableItems,
+		isUnplayableItemError,
+		isRestrictedItemError
+	} from '$lib/stores/unavailable';
+	import UnavailableRow from '$lib/components/UnavailableRow.svelte';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
@@ -17,6 +23,26 @@
 
 	let tracks: (Track | null)[] = [];
 	let albums: (ArchiveItem | null)[] = [];
+	/**
+	 * Favourites the archive will not serve any more. They stay on screen,
+	 * marked, instead of being filtered out: silently dropping something the
+	 * listener saved is the one outcome that gives them no way to understand
+	 * what happened, or to decide what to do about it.
+	 */
+	let unavailable: { identifier: string; restricted: boolean }[] = [];
+
+	function noteUnavailable(identifier: string, error: unknown) {
+		if (!isUnplayableItemError(error)) return;
+		unavailableItems.mark(identifier);
+		if (unavailable.some((u) => u.identifier === identifier)) return;
+		unavailable = [...unavailable, { identifier, restricted: isRestrictedItemError(error) }];
+	}
+
+	function forget(identifier: string) {
+		// toggleFavorite removes when the entry is present.
+		library.toggleFavorite(identifier);
+		unavailable = unavailable.filter((u) => u.identifier !== identifier);
+	}
 	let isLoading = false;
 	let showOfflineOnly = false;
 	let viewMode: 'grid' | 'list' = 'list';
@@ -55,18 +81,36 @@
 
 	async function loadFavorites() {
 		isLoading = true;
+		unavailable = [];
 		const favorites = $library.favorites;
 
-		const trackFavorites = favorites.filter((f) => f.type === 'track');
-		const albumFavorites = favorites.filter((f) => f.type === 'album');
+		// Anything we already learned is gone. A removed item keeps a healthy
+		// search document, so the batch lookup below would happily render it
+		// as playable again — it only fails when someone presses play. Once
+		// that has happened there is no reason to keep pretending.
+		const known = favorites.filter((f) => unavailableItems.has(f.id));
+		if (known.length > 0) {
+			unavailable = known.map((f) => ({ identifier: f.id, restricted: false }));
+		}
+		const pending = favorites.filter((f) => !unavailableItems.has(f.id));
 
-		// All Internet Archive favorites (tracks AND albums) resolve through
-		// one batched advancedsearch request: the cards only need display
-		// metadata here — AudioCard resolves the streamUrl lazily on play.
-		// Only fw:/wd: identifiers still need per-item lookups.
+		const trackFavorites = pending.filter((f) => f.type === 'track');
+		const albumFavorites = pending.filter((f) => f.type === 'album');
+
+		// Internet Archive favorites resolve through one batched
+		// advancedsearch request instead of N per-item lookups. The batch
+		// returns item-level display metadata only, so it can stand in for a
+		// card but not for a file: playback resolves the streamUrl lazily
+		// (AudioCard re-fetches any seeded track that has none).
+		//
+		// One case the batch cannot serve: a favorite on a single track of an
+		// album, stored as "<item>#<n>". The item document has no per-track
+		// title, duration or filename, so those still need getTrack — every
+		// such favorite would otherwise render as a row named after the album.
 		const isIA = (id: string) => !id.startsWith('fw:') && !id.startsWith('wd:');
+		const isItemLevel = (id: string) => !id.includes('#');
 		const iaIds = [
-			...trackFavorites.filter((f) => isIA(f.id)).map((f) => f.id.split('#')[0]),
+			...trackFavorites.filter((f) => isIA(f.id) && isItemLevel(f.id)).map((f) => f.id),
 			...albumFavorites.filter((f) => isIA(f.id)).map((f) => f.id)
 		];
 
@@ -78,11 +122,12 @@
 		}
 
 		const trackTasks = trackFavorites.map((f) => async () => {
-			const fromBatch = batched.get(f.id.split('#')[0]);
+			const fromBatch = isItemLevel(f.id) ? batched.get(f.id) : undefined;
 			if (fromBatch) return { ...fromBatch, identifier: f.id };
 			try {
 				return await getTrack(f.id);
-			} catch {
+			} catch (e) {
+				noteUnavailable(f.id, e);
 				return null;
 			}
 		});
@@ -106,7 +151,8 @@
 					title: meta.metadata.title || $_('common.untitled'),
 					creator: Array.isArray(meta.metadata.creator) ? meta.metadata.creator[0] : meta.metadata.creator
 				} as ArchiveItem;
-			} catch {
+			} catch (e) {
+				noteUnavailable(f.id, e);
 				return null;
 			}
 		});
@@ -229,7 +275,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="space-y-2">
+			<div class="divide-y divide-base-300 border-y border-base-300">
 				{#each Array(8) as _}
 					<SkeletonCard layout="list" />
 				{/each}
@@ -253,7 +299,7 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="space-y-2 mb-8">
+				<div class="divide-y divide-base-300 border-y border-base-300 mb-8">
 					{#each validAlbums as album (album.identifier)}
 						<AudioCard item={album} type="album" layout="list" />
 					{/each}
@@ -278,7 +324,7 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="space-y-2">
+				<div class="divide-y divide-base-300 border-y border-base-300">
 					{#each filteredTracks as track (track.identifier)}
 						<AudioCard item={{ ...track, tracks: [track] }} type="track" layout="list" />
 					{/each}
@@ -291,5 +337,28 @@
 				<span class="loading loading-spinner loading-sm text-primary"></span>
 			</div>
 		{/if}
+
+
+	{/if}
+
+	<!-- Saved entries the archive no longer serves. Outside the
+	     empty/non-empty branches on purpose: when every saved item has gone
+	     dark, the page would otherwise render "you have no favourites" and
+	     hide the very rows that explain where they went. -->
+	{#if !isLoading && unavailable.length > 0}
+		<section class="mt-10">
+			<h3 class="text-sm font-medium text-base-content/60 mb-2">
+				{$_('favorites.unavailableHeader', { values: { count: unavailable.length } })}
+			</h3>
+			<div class="divide-y divide-base-300 border-y border-base-300">
+				{#each unavailable as entry (entry.identifier)}
+					<UnavailableRow
+						identifier={entry.identifier}
+						restricted={entry.restricted}
+						onRemove={forget}
+					/>
+				{/each}
+			</div>
+		</section>
 	{/if}
 </div>

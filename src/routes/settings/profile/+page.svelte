@@ -369,8 +369,8 @@
 />
 
 <!-- Profile Statistics -->
-	<div class="card bg-base-200 mb-6">
-		<div class="card-body">
+	<div class="mb-8 border-t border-base-300 pt-6">
+		<div class="space-y-1">
 			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.statsTitle')}</h3>
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<div class="stat bg-base-300 rounded-lg p-4">
@@ -394,8 +394,8 @@
 	</div>
 
 	<!-- Profile Management -->
-	<div class="card bg-base-200 mb-6">
-		<div class="card-body">
+	<div class="mb-8 border-t border-base-300 pt-6">
+		<div class="space-y-1">
 			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.backupTitle')}</h3>
 
 			<!-- Dirty indicator -->
@@ -479,12 +479,12 @@
 	</div>
 
 	<!-- What's Stored -->
-	<div class="card bg-base-200 mb-6">
-		<div class="card-body">
+	<div class="mb-8 border-t border-base-300 pt-6">
+		<div class="space-y-1">
 			<h3 class="text-xl font-semibold mb-4">{$_('settings.profile.includedTitle')}</h3>
 			<ul class="space-y-2 text-base-content/80">
 				<li class="flex items-start gap-2">
-					<Icon icon="solar:heart-bold" width="20" className="text-red-500 flex-shrink-0 mt-0.5" />
+					<Icon icon="solar:heart-bold" width="20" className="text-primary flex-shrink-0 mt-0.5" />
 					<div>
 						<strong>{$_('settings.profile.included.favoritesStrong')}</strong>{$_('settings.profile.included.favoritesRest')}
 					</div>
@@ -518,8 +518,8 @@
 	</div>
 
 	<!-- WebDAV Sync -->
-	<div class="card bg-base-200 mb-6">
-		<div class="card-body">
+	<div class="mb-8 border-t border-base-300 pt-6">
+		<div class="space-y-1">
 			<h3 class="text-xl font-semibold mb-4">
 				<Icon icon="solar:cloud-bold" width="24" className="inline mr-2" />
 				{$_('settings.profile.webdavTitle')}
@@ -698,8 +698,8 @@
 	</div>
 
 	<!-- Offline Storage Information -->
-	<div class="card bg-base-200">
-		<div class="card-body">
+	<div class="border-t border-base-300 pt-6">
+		<div class="space-y-1">
 			<h3 class="text-xl font-semibold mb-4">
 				<Icon icon="solar:download-minimalistic-bold" width="24" className="inline mr-2" />
 				{$_('settings.profile.offlineTitle')}

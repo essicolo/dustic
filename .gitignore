@@ -153,3 +153,6 @@ src/lib/version.ts
 # Auto-generated icon bundle (created by scripts/generate-icon-bundle.js during build)
 src/lib/generated/
 .claude/settings.local.json
+
+# Local working notes (not for the repo)
+TODO.local.md

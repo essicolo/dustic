@@ -13,6 +13,14 @@
 		"playAllCount": "Tout lire ({count})",
 		"untitled": "Sans titre"
 	},
+	"errors": {
+		"itemUnavailable": "Cet enregistrement n'est plus disponible sur Internet Archive",
+		"itemRestricted": "Cet enregistrement a été restreint par Internet Archive et ne peut pas être lu",
+		"playFailed": "Impossible de démarrer la lecture",
+		"tracksFailed": "Impossible de charger les pistes de cet élément",
+		"trackWillNotPlay": "Cette piste n'a pas pu être lue, passage à la suivante",
+		"playbackStopped": "Plusieurs pistes de suite n’ont pas pu être lues, la lecture est arrêtée"
+	},
 	"viewMode": {
 		"label": "Mode d'affichage",
 		"tiles": "Tuiles",
@@ -58,6 +66,13 @@
 		"addToPlaylistHeader": "Ajouter à une playlist",
 		"newPlaylist": "+ Nouvelle playlist",
 		"shareTrack": "Partager la piste"
+	},
+	"share": {
+		"shared": "Partagé",
+		"copied": "Lien copié dans le presse-papiers",
+		"cancelled": "Partage annulé",
+		"copyFailed": "Impossible de copier le lien",
+		"unsupported": "Le partage n'est pas disponible dans ce navigateur"
 	},
 	"queue": {
 		"title": "File d'attente",
@@ -105,8 +120,7 @@
 		"viewAllPlaylists": "Voir les {count} playlists",
 		"welcome": "Bienvenue dans dustic",
 		"welcomeSubtitle": "Commencez à explorer la musique d'Internet Archive et de FunkWhale",
-		"searchMusic": "Rechercher de la musique",
-		"viewCurated": "Voir les sélections"
+		"searchMusic": "Rechercher de la musique"
 	},
 	"history": {
 		"title": "Écoutes récentes",
@@ -137,7 +151,8 @@
 			"introStrong": "Internet Archive et FunkWhale fonctionnent d'emblée",
 			"introRest": " — aucune configuration nécessaire. Connectez un dossier ici pour ajouter votre propre audio : musique, livres audio, cours, balados. Compatible avec Koofr, Nextcloud, pCloud ou tout service qui prend en charge WebDAV.",
 			"disabled": "désactivé"
-		}
+		},
+		"removeUnavailable": "Retirer de la bibliothèque"
 	},
 	"favorites": {
 		"title": "Favoris",
@@ -150,7 +165,8 @@
 		"filterTracks": "Pistes ({count})",
 		"filterAlbums": "Albums ({count})",
 		"albumsHeader": "Albums",
-		"tracksHeader": "Pistes"
+		"tracksHeader": "Pistes",
+		"unavailableHeader": "Plus disponibles ({count})"
 	},
 	"playlists": {
 		"title": "Vos playlists",
@@ -372,6 +388,16 @@
 		"empty": "Aucune piste",
 		"emptyHint": "Essayez une autre catégorie ou vérifiez que {host} est en ligne"
 	},
+	"themes": {
+		"light": {
+			"name": "Clair",
+			"description": "Noir sur blanc. Coins nets, sans couleur."
+		},
+		"dark": {
+			"name": "Sombre",
+			"description": "Blanc sur presque noir. La même palette, inversée."
+		}
+	},
 	"settings": {
 		"title": "Paramètres",
 		"tabs": {
@@ -390,7 +416,7 @@
 		},
 		"appearance": {
 			"title": "Apparence",
-			"description": "Choisissez un thème. « Minimal » conserve l'aspect monochrome pur ; les autres ajoutent des coins arrondis, des surfaces plus chaudes et une couleur d'accent utilisée pour les favoris, le bouton lecture et la barre de progression."
+			"description": "Clair ou sombre. Les deux utilisent la même palette monochrome ; seules les surfaces changent."
 		},
 		"audio": {
 			"title": "Qualité audio",
@@ -581,8 +607,8 @@
 			"noAccountHint": "Aucun compte, aucun suivi. Cliquez sur Continuer pour explorer.",
 			"continueWith": "Continuer avec {name}",
 			"useTheme": "Utiliser le thème {name}",
-			"playSwatch": "Lecture",
-			"artistSongSwatch": "Artiste · Titre"
+			"artistSongSwatch": "Artiste",
+			"trackSwatch": "Titre de la piste"
 		},
 		"audioCard": {
 			"untitled": "Sans titre",

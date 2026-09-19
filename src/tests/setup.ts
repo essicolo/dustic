@@ -14,6 +14,15 @@ vi.mock('$app/stores', () => ({
 	updated: { subscribe: vi.fn() }
 }));
 
+// `base` is '' whenever the app is mounted at the root of its domain, which
+// is how it is deployed. The real module reads a build-time constant that
+// does not exist outside a SvelteKit build.
+vi.mock('$app/paths', () => ({
+	base: '',
+	assets: '',
+	resolveRoute: (id: string) => id
+}));
+
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
 	invalidate: vi.fn(),
@@ -65,3 +74,9 @@ Object.defineProperty(global.navigator, 'mediaSession', {
 global.HTMLMediaElement.prototype.load = vi.fn();
 global.HTMLMediaElement.prototype.play = vi.fn(() => Promise.resolve());
 global.HTMLMediaElement.prototype.pause = vi.fn();
+
+// svelte-i18n refuses to format before a locale is registered, so any
+// component that renders a translated string needs this. Done once here
+// rather than in each test file.
+import { initI18n } from '$lib/i18n';
+initI18n('en');

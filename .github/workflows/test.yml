@@ -46,3 +46,21 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Separate job: this one talks to archive.org, so a network wobble must not
+  # fail a pull request that only changed CSS. It catches curated content
+  # rotting — items the archive darkens or removes after they were curated.
+  curated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate curated playlists against the archive
+        run: node scripts/validate-curated.mjs

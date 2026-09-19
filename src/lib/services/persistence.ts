@@ -136,18 +136,32 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 export function loadFromStorageSync(): UserProfile | null {
 	if (!browser) return null;
 
+	// Five stores call this at module scope, and every one of them used to
+	// re-read, re-parse and re-validate the same blob. The cache is the
+	// single source of truth: it is populated here, by loadFromStorage() and
+	// by every save, and dropped by invalidateProfileCache() whenever the
+	// stored profile is replaced from outside (import, profile switch, clear).
+	if (cachedProfile) return cachedProfile;
+
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) return cachedProfile;
+		if (!stored) return null;
 
 		const rawProfile = JSON.parse(stored) as any;
-		const profile = migrateAndValidateProfile(rawProfile);
-		cachedProfile = profile;
-		return profile;
+		cachedProfile = migrateAndValidateProfile(rawProfile);
+		return cachedProfile;
 	} catch (error) {
 		console.error('Failed to load profile from localStorage:', error);
-		return cachedProfile;
+		return null;
 	}
+}
+
+/**
+ * Forget the in-memory profile, so the next read comes from storage.
+ * Needed wherever the stored profile is replaced behind the stores' backs.
+ */
+export function invalidateProfileCache(): void {
+	cachedProfile = null;
 }
 
 /**
@@ -187,6 +201,7 @@ export async function clearStorage(): Promise<void> {
 	if (!browser) return;
 
 	localStorage.removeItem(STORAGE_KEY);
+	invalidateProfileCache();
 
 	// Also clear IndexedDB
 	const { clearIndexedDB } = await import('./indexedDbPersistence');

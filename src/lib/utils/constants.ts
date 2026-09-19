@@ -14,6 +14,20 @@ export interface ContentType {
 	name: string;
 	icon: string; // Iconify icon name
 	iaCollections: string[]; // IA collection IDs to search
+	/**
+	 * IA collections to exclude instead of listing what to include.
+	 *
+	 * Needed for Music, where a whitelist is the wrong shape: the archive has
+	 * no single "music" collection, and most recordings sit in collections
+	 * nobody would think to enumerate. Measured with the old
+	 * audio_music/etree/78rpm whitelist, the Music tab returned *zero*
+	 * results for Tori Amos, Explosions in the Sky, Godspeed You! Black
+	 * Emperor and Nick Drake — their recordings live in hifidelity,
+	 * opensource_audio, roiocollection and similar. Excluding the spoken-word
+	 * collections instead keeps 94-97% of matches while still separating
+	 * music from podcasts and audiobooks.
+	 */
+	iaExcludeCollections?: string[];
 	fwTags: string[]; // FW tag/keyword searches
 	tags: string[]; // Discovery tags for this content type
 }
@@ -23,7 +37,10 @@ export const CONTENT_TYPES: ContentType[] = [
 		id: 'music',
 		name: 'Music',
 		icon: 'solar:music-notes-bold',
-		iaCollections: ['audio_music', 'etree', '78rpm'],
+		// Music is "audio that is not spoken word", not a fixed set of
+		// collections — see iaExcludeCollections on the interface above.
+		iaCollections: [],
+		iaExcludeCollections: ['librivoxaudio', 'audio_podcast', 'radioprograms'],
 		fwTags: [], // FW is music by default, no filter needed
 		tags: ['rock', 'jazz', 'electronic', 'classical', 'hip-hop', 'folk',
 			'blues', 'ambient', 'punk', 'metal', 'soul', 'reggae',

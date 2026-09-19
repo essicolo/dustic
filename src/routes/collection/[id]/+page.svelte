@@ -34,7 +34,7 @@
 	import { _ } from '$lib/i18n';
 
 	let collectionId = '';
-	let collectionInfo: { name: string; icon: string } | null = null;
+	let collectionInfo: { name: string } | null = null;
 	let results: Track[] = [];
 	let isLoading = false;
 	let error = '';
@@ -52,7 +52,7 @@
 
 	$: collectionId = $page.params.id || '';
 	$: collectionInfo =
-		POPULAR_COLLECTIONS.find((c) => c.id === collectionId) || { name: collectionId, icon: '📁' };
+		POPULAR_COLLECTIONS.find((c) => c.id === collectionId) || { name: collectionId };
 
 	onMount(() => {
 		const savedView = localStorage.getItem(`collection-view-${collectionId}`);
@@ -260,7 +260,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="space-y-2 mb-6">
+			<div class="divide-y divide-base-300 border-y border-base-300 mb-6">
 				{#each results as item}
 					<AudioCard
 						item={{ ...(item as any), creator: item.artist }}

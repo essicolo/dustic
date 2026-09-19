@@ -10,6 +10,12 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import UnavailableRow from '$lib/components/UnavailableRow.svelte';
+	import {
+		unavailableItems,
+		isUnplayableItemError,
+		isRestrictedItemError
+	} from '$lib/stores/unavailable';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -42,16 +48,39 @@
 		loadHistory();
 	});
 
+	/** Plays whose item the archive will not serve any more. */
+	let unavailable: { identifier: string; restricted: boolean }[] = [];
+
+	function forget(identifier: string) {
+		history.remove(identifier);
+		unavailable = unavailable.filter((u) => u.identifier !== identifier);
+	}
+
 	async function loadHistory() {
 		isLoading = true;
 		const entries = $history.entries;
 
 		// Load track data for history
+		unavailable = [];
+
 		const loadedTracks = await Promise.all(
 			entries.slice(0, 50).map(async (entry) => {
 				try {
 					return await getTrack(entry.trackId);
-				} catch {
+				} catch (e) {
+					// History is a log rather than curated work, so a dead entry
+					// is noise rather than a loss — but it is still listed
+					// separately instead of simply not appearing, so the page
+					// never shows fewer plays than actually happened.
+					if (isUnplayableItemError(e)) {
+						unavailableItems.mark(entry.trackId);
+						if (!unavailable.some((u) => u.identifier === entry.trackId)) {
+							unavailable = [
+								...unavailable,
+								{ identifier: entry.trackId, restricted: isRestrictedItemError(e) }
+							];
+						}
+					}
 					return null;
 				}
 			})
@@ -188,7 +217,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="space-y-2">
+			<div class="divide-y divide-base-300 border-y border-base-300">
 				{#each Array(8) as _}
 					<SkeletonCard layout="list" />
 				{/each}
@@ -268,5 +297,28 @@
 				</AudioCard>
 			{/each}
 		</div>
+
+	{/if}
+
+
+	<!-- Saved entries the archive no longer serves. Outside the
+	     empty/non-empty branches on purpose: when every saved item has gone
+	     dark, the page would otherwise render "you have no favourites" and
+	     hide the very rows that explain where they went. -->
+	{#if !isLoading && unavailable.length > 0}
+		<section class="mt-10">
+			<h3 class="text-sm font-medium text-base-content/60 mb-2">
+				{$_('favorites.unavailableHeader', { values: { count: unavailable.length } })}
+			</h3>
+			<div class="divide-y divide-base-300 border-y border-base-300">
+				{#each unavailable as entry (entry.identifier)}
+					<UnavailableRow
+						identifier={entry.identifier}
+						restricted={entry.restricted}
+						onRemove={forget}
+					/>
+				{/each}
+			</div>
+		</section>
 	{/if}
 </div>

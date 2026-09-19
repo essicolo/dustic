@@ -1,9 +1,15 @@
 <script lang="ts">
+	import { notifications } from '$lib/stores/notifications';
 	import { page } from '$app/stores';
 	import { getAllTracks, getItemMetadata } from '$lib/services/internetArchive';
 	import { getTrack as fwGetTrack, getAlbumTracks as fwGetAlbumTracks, isFunkwhaleTrack } from '$lib/services/funkwhale';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import {
+		unavailableItems,
+		isUnplayableItemError,
+		isRestrictedItemError
+	} from '$lib/stores/unavailable';
 	import { library } from '$lib/stores/library';
 	import { offline } from '$lib/stores/offline';
 	import type { Track } from '$lib/types';
@@ -21,8 +27,6 @@
 	let itemMetadata: any = null;
 	let isLoading = false;
 	let error = '';
-	let shareMessage = '';
-	let showShareToast = false;
 	let isDownloadingAll = false;
 	let showPlaylistSelector = false;
 	let selectedPlaylistId: string | 'new' = 'new';
@@ -110,7 +114,15 @@
 			}
 		} catch (e) {
 			console.error('Failed to load item:', e);
-			error = $_('item.loadError');
+			// "Please try again" is wrong advice for an item the archive has
+			// removed or darkened — retrying can never help. Say what actually
+			// happened, and remember it so the item stops being offered.
+			if (isUnplayableItemError(e)) {
+				unavailableItems.mark(itemId);
+				error = $_(isRestrictedItemError(e) ? 'errors.itemRestricted' : 'errors.itemUnavailable');
+			} else {
+				error = $_('item.loadError');
+			}
 		} finally {
 			isLoading = false;
 		}
@@ -153,11 +165,7 @@
 		});
 
 		// Show success message
-		shareMessage = $_('item.addedToast', { values: { count: tracks.length } });
-		showShareToast = true;
-		setTimeout(() => {
-			showShareToast = false;
-		}, 3000);
+		notifications.info('item.addedToast', { count: tracks.length });
 
 		// Close selector
 		showPlaylistSelector = false;
@@ -168,11 +176,7 @@
 
 	async function handleShare(track: Track) {
 		const result = await shareTrack(track);
-		shareMessage = result.message;
-		showShareToast = true;
-		setTimeout(() => {
-			showShareToast = false;
-		}, 3000);
+		notifications[result.success ? 'info' : 'error'](result.messageKey);
 	}
 
 	function getTotalDuration(): string {
@@ -203,7 +207,7 @@
 	}
 </script>
 
-<div class="p-4 md:p-8 max-w-6xl mx-auto">
+<div class="p-4 md:p-8">
 	<!-- Back Button -->
 	<button on:click={goBack} class="btn btn-ghost btn-sm mb-6">
 		<Icon icon="solar:arrow-left-linear" width="20" />
@@ -316,7 +320,7 @@
 					>
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
-							class={isFavorite ? 'text-error' : ''}
+							class={isFavorite ? 'text-primary' : ''}
 							width="24"
 						/>
 					</button>
@@ -388,7 +392,7 @@
 		<!-- Track List -->
 		<div>
 			<h2 class="text-xl font-bold mb-4">{$_('item.tracksHeader')}</h2>
-			<div class="space-y-2">
+			<div class="divide-y divide-base-300 border-y border-base-300">
 				{#each tracks as track (track.identifier)}
 					<AudioCard
 						item={{ ...track, tracks: [track] }}
@@ -403,7 +407,7 @@
 	<!-- Playlist Selector Modal -->
 	{#if showPlaylistSelector}
 		<div
-			class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+			class="fixed inset-0 bg-black/50 z-modal flex items-center justify-center p-4"
 			on:click={() => showPlaylistSelector = false}
 			on:keydown={(e) => e.key === 'Escape' && (showPlaylistSelector = false)}
 			role="button"
@@ -493,13 +497,4 @@
 		</div>
 	{/if}
 
-	<!-- Share Toast -->
-	{#if showShareToast}
-		<div class="toast toast-top toast-center z-50">
-			<div class="alert alert-success">
-				<Icon icon="solar:check-circle-bold" width="20" />
-				<span>{shareMessage}</span>
-			</div>
-		</div>
-	{/if}
 </div>

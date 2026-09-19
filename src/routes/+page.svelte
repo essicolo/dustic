@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifications } from '$lib/stores/notifications';
 	import { search as searchAPI, getAllTracks } from '$lib/services/internetArchive';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 	import { player, currentTrack } from '$lib/stores/player';
@@ -10,6 +11,7 @@
 	import PlayingIndicator from '$lib/components/PlayingIndicator.svelte';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import PlaylistCover from '$lib/components/PlaylistCover.svelte';
 	import { onMount } from 'svelte';
 	import { shareTrack } from '$lib/utils/share';
 	import { batchExecute } from '$lib/utils/throttle';
@@ -19,8 +21,6 @@
 
 	let error = '';
 	let loadingTrack: string | null = null;
-	let shareMessage = '';
-	let showShareToast = false;
 	let continueListening: Track[] = [];
 	let isLoadingContinue = false;
 	let viewMode: 'tiles' | 'list' = 'tiles';
@@ -73,21 +73,31 @@
 
 	async function handleShare(item: Track) {
 		const result = await shareTrack(item);
-		shareMessage = result.message;
-		showShareToast = true;
-		setTimeout(() => {
-			showShareToast = false;
-		}, 3000);
+		notifications[result.success ? 'info' : 'error'](result.messageKey);
 	}
 
 	$: favorites = $library.favorites;
 	$: playlists = Object.values($library.playlists).sort((a, b) => b.updated - a.updated);
 	$: curatedPlaylists = curatedPlaylistsData.slice(0, 4); // Show first 4 curated playlists
+
+	// Anything the listener themselves has accumulated. The curated list does
+	// not count: it ships with the app, so it is on screen for everyone and
+	// says nothing about whether this person has started yet.
+	$: hasOwnContent =
+		continueListening.length > 0 || favorites.length > 0 || playlists.length > 0;
 </script>
 
 <div class="p-4 md:p-8">
-	<!-- Page Header / Controls -->
-	<div class="flex justify-end mb-4">
+	<!-- Page Header / Controls. The heading is not decoration: every other
+	     route names itself, and without one this page opened on a pair of
+	     unlabelled icon buttons floating in the corner. -->
+	<div class="flex items-center justify-between mb-4">
+		<!-- On a first visit the page is an introduction, so it says so.
+		     Once there is a listening history to come back to, it goes back
+		     to naming itself like every other route. -->
+		<h1 class="text-2xl md:text-3xl font-bold">
+			{hasOwnContent ? $_('nav.home') : $_('home.welcome')}
+		</h1>
 		<div class="btn-group" role="group" aria-label={$_('viewMode.label')}>
 			<button
 				on:click={() => (viewMode = 'tiles')}
@@ -105,6 +115,19 @@
 			</button>
 		</div>
 	</div>
+
+	{#if !hasOwnContent}
+		<!-- First-visit intro. It sits above the curated shelf rather than
+		     below it: this is the sentence that explains what the page under
+		     it is, and the "browse the selections" call to action it used to
+		     carry is redundant when those selections are the next thing on
+		     screen. -->
+		<p class="text-base-content/70 mb-5 max-w-2xl">{$_('home.welcomeSubtitle')}</p>
+		<a href="{base}/search" class="btn btn-primary mb-10">
+			<Icon icon="solar:magnifer-bold" width="20" />
+			{$_('home.searchMusic')}
+		</a>
+	{/if}
 
 	<!-- Continue Listening Section -->
 	{#if continueListening.length > 0}
@@ -134,7 +157,7 @@
 						{/each}
 					</div>
 				{:else}
-					<div class="space-y-2">
+					<div class="divide-y divide-base-300 border-y border-base-300">
 						{#each continueListening as track}
 							<AudioCard
 								item={{ ...(track as any), creator: track.artist, tracks: [track] }}
@@ -175,10 +198,12 @@
 								href="{base}/curated/{playlist.id}"
 								class="w-64 md:w-auto flex-shrink-0 card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 							>
-								<div class="card-body p-6">
-									<div class="bg-gradient-to-br from-primary to-secondary p-4 rounded-lg mb-3">
-										<Icon icon="solar:star-bold" width="32" class="text-primary-content mx-auto" />
-									</div>
+								<div class="card-body p-4">
+									<PlaylistCover
+										identifiers={playlist.tracks.map((t) => t.identifier)}
+										alt={playlist.name}
+										className="mb-3 rounded"
+									/>
 									<h3 class="card-title text-base">{playlist.name}</h3>
 									<p class="text-sm text-base-content/60 line-clamp-2">{playlist.description}</p>
 									<div class="text-xs text-base-content/50 mt-2">
@@ -196,9 +221,11 @@
 								class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 							>
 								<div class="card-body p-4 flex-row items-center gap-4">
-									<div class="bg-gradient-to-br from-primary to-secondary p-3 rounded-lg flex-shrink-0">
-										<Icon icon="solar:star-bold" width="24" class="text-primary-content" />
-									</div>
+									<PlaylistCover
+										identifiers={playlist.tracks.map((t) => t.identifier)}
+										alt={playlist.name}
+										className="w-16 flex-shrink-0 rounded"
+									/>
 									<div class="flex-1 min-w-0">
 										<h3 class="font-semibold">{playlist.name}</h3>
 										<p class="text-sm text-base-content/60 truncate">{playlist.description}</p>
@@ -231,7 +258,7 @@
 			{#if favorites.length > 0}
 				<div class="mb-6">
 					<h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
-						<Icon icon="solar:heart-bold" width="18" class="text-error" />
+						<Icon icon="solar:heart-bold" width="18" class="text-primary" />
 						<span>{$_('home.favorites')}</span>
 						<span class="text-sm text-base-content/50 font-normal">({favorites.length})</span>
 					</h3>
@@ -240,8 +267,8 @@
 						class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
 					>
 						<div class="card-body p-4 flex-row items-center gap-4">
-							<div class="bg-error/20 p-3 rounded-lg flex-shrink-0">
-								<Icon icon="solar:heart-bold" width="24" class="text-error" />
+							<div class="bg-primary/10 p-3 rounded-lg flex-shrink-0">
+								<Icon icon="solar:heart-bold" width="24" class="text-primary" />
 							</div>
 							<div class="flex-1">
 								<h4 class="font-semibold">{$_('home.favorites')}</h4>
@@ -290,22 +317,20 @@
 		</div>
 	{/if}
 
-	<!-- Empty State -->
-	{#if continueListening.length === 0 && favorites.length === 0 && playlists.length === 0}
+	<!-- Genuinely empty: no history of your own *and* no curated shelf to
+	     fall back on (the shipped list can be emptied). Previously this
+	     block keyed off personal content alone, so it announced "nothing
+	     here yet" underneath a populated shelf of selections. -->
+	{#if !hasOwnContent && curatedPlaylists.length === 0}
 		<div class="text-center py-20">
 			<div class="mb-6">
 				<Icon icon="solar:music-library-2-bold" width="64" class="text-base-content/20 mx-auto" />
 			</div>
-			<h3 class="text-2xl font-bold mb-2">{$_('home.welcome')}</h3>
 			<p class="text-base-content/60 mb-6">{$_('home.welcomeSubtitle')}</p>
 			<div class="flex gap-3 justify-center flex-wrap">
 				<a href="{base}/search" class="btn btn-primary">
 					<Icon icon="solar:magnifer-bold" width="20" />
 					{$_('home.searchMusic')}
-				</a>
-				<a href="{base}/curated" class="btn btn-outline">
-					<Icon icon="solar:star-bold" width="20" />
-					{$_('home.viewCurated')}
 				</a>
 			</div>
 		</div>
@@ -317,13 +342,4 @@
 		</div>
 	{/if}
 
-	<!-- Share Toast -->
-	{#if showShareToast}
-		<div class="toast toast-top toast-center z-50">
-			<div class="alert alert-success">
-				<Icon icon="solar:check-circle-bold" width="20" />
-				<span>{shareMessage}</span>
-			</div>
-		</div>
-	{/if}
 </div>

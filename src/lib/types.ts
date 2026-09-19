@@ -113,12 +113,15 @@ export interface UserProfile {
 export interface SearchParams {
 	query: string;
 	collection?: string[];
+	/** IA collections to exclude; used where a whitelist would be too narrow. */
+	excludeCollection?: string[];
 	format?: string[];
 	sort?: 'relevance' | 'date' | 'downloads';
 	page?: number;
 	pageSize?: number;
 	contentType?: string; // 'music' | 'podcasts' | 'audiobooks' | 'radio'
-	tag?: string; // genre/style tag filter
+	tag?: string; // genre/style tag chosen in the UI
+	subject?: string; // resolved from `tag`: filters IA's subject field
 	creator?: string; // Filter by creator/artist name (used for "search by artist")
 	sources?: {
 		ia?: boolean;

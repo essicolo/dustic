@@ -87,7 +87,7 @@
 </script>
 
 {#if showUpdatePrompt}
-	<div class="toast toast-top toast-center z-50 mt-16">
+	<div class="toast toast-top toast-center z-toast mt-16">
 		<div class="alert alert-info shadow-lg flex-col sm:flex-row">
 			<div class="flex items-center gap-2">
 				<Icon icon="solar:refresh-circle-bold" width="24" />

@@ -8,6 +8,7 @@ import { getNextTrack as getAutoplayTrack } from '$lib/services/autoplay';
 import { unifiedGetTrack as getTrack } from '$lib/services/sources';
 import { offlineStorage } from '$lib/services/offlineStorage';
 import { settings } from './settings';
+import { notifications } from './notifications';
 import { decodeIdentifier, fetchTrackBlob, findLibrary } from '$lib/services/webdavLibrary';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
@@ -149,11 +150,15 @@ function createPlayerStore() {
 					consecutiveErrors++;
 					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
 						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
+						// Otherwise the track simply does not play and something
+						// unrelated starts, with no way to tell why.
+						notifications.error('errors.trackWillNotPlay');
 						// Use autoplayNext with last successful track as basis,
 						// NOT the failed track (which would search for the wrong artist)
 						setTimeout(() => this.autoplayNext(), 500);
 					} else {
 						console.warn('[Player] Too many consecutive errors, stopping playback');
+						notifications.error('errors.playbackStopped');
 						consecutiveErrors = 0;
 					}
 				}
@@ -225,6 +230,22 @@ function createPlayerStore() {
 				audioElement.load();
 			} catch {
 				// element might not have a src yet — that's fine.
+			}
+
+			// Some screens build cards from listing data, which carries display
+			// metadata but no playable URL (a batched advancedsearch response,
+			// for instance, describes the item and not its files). Resolve the
+			// real track before touching the audio element: assigning src=''
+			// fires an immediate media error, which the error handler reads as
+			// "this track is broken" and skips past.
+			if (!track.streamUrl) {
+				const resolved = await getTrack(track.identifier);
+				if (!resolved?.streamUrl) {
+					console.warn('[Player] No playable URL for', track.identifier);
+					update((state) => ({ ...state, isLoading: false, isPlaying: false }));
+					return;
+				}
+				track = resolved;
 			}
 
 			// Check if track is available offline (use blob URL instead of remote URL)
@@ -397,10 +418,24 @@ function createPlayerStore() {
 			const nextTrack = queue.next();
 			if (nextTrack) {
 				this.play(nextTrack);
-			} else {
-				// Queue empty, try autoplay
-				await this.autoplayNext();
+				return;
 			}
+
+			// End of the queue. Under repeat 'all' that means wrap to the
+			// top, which nothing else does: queue.next() stops at the last
+			// index, so without this the mode fell through to autoplay and
+			// played something the user never queued.
+			const state = get({ subscribe });
+			if (state.repeat === 'all') {
+				const first = queue.playAt(0);
+				if (first) {
+					this.play(first);
+					return;
+				}
+			}
+
+			// Queue empty, try autoplay
+			await this.autoplayNext();
 		},
 
 		// Get next track via autoplay

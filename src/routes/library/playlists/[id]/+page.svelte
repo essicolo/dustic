@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { library } from '$lib/stores/library';
+	import {
+		unavailableItems,
+		isUnplayableItemError,
+		isRestrictedItemError
+	} from '$lib/stores/unavailable';
+	import UnavailableRow from '$lib/components/UnavailableRow.svelte';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { goto } from '$app/navigation';
@@ -43,18 +49,38 @@
 		loadTracks();
 	}
 
+	/** Playlist entries the archive will not serve; see loadTracks. */
+	let unavailable: { identifier: string; restricted: boolean }[] = [];
+
+	function forget(identifier: string) {
+		if (!playlist) return;
+		library.removeFromPlaylist(playlist.id, identifier);
+		unavailable = unavailable.filter((u) => u.identifier !== identifier);
+	}
+
 	async function loadTracks() {
 		if (!playlist) return;
 
 		isLoading = true;
 		const trackIds = playlist.tracks;
 
-		// Load track data in batches
+		unavailable = [];
+
+		// Load track data in batches. A track the archive no longer serves is
+		// kept rather than dropped: the listener put it in this playlist, and
+		// a row quietly going missing from their own work is the one outcome
+		// that explains nothing.
 		const trackTasks = trackIds.map((id) => async () => {
 			try {
 				const track = await getTrack(id);
 				return track ? { ...track, lazy: false } : null; // Explicitly set lazy to false here as well
-			} catch {
+			} catch (e) {
+				if (isUnplayableItemError(e)) {
+					unavailableItems.mark(id);
+					if (!unavailable.some((u) => u.identifier === id)) {
+						unavailable = [...unavailable, { identifier: id, restricted: isRestrictedItemError(e) }];
+					}
+				}
 				return null;
 			}
 		});
@@ -179,7 +205,7 @@
 				<p>{$_('playlists.detailEmpty')}</p>
 			</div>
 		{:else}
-			<div class="space-y-2">
+			<div class="divide-y divide-base-300 border-y border-base-300">
 				{#each tracks as track, index}
 					{#if track}
 						<div
@@ -207,5 +233,27 @@
 				{/each}
 			</div>
 		{/if}
+
+
+	<!-- Saved entries the archive no longer serves. Outside the
+	     empty/non-empty branches on purpose: when every saved item has gone
+	     dark, the page would otherwise render "you have no favourites" and
+	     hide the very rows that explain where they went. -->
+	{#if !isLoading && unavailable.length > 0}
+		<section class="mt-10">
+			<h3 class="text-sm font-medium text-base-content/60 mb-2">
+				{$_('favorites.unavailableHeader', { values: { count: unavailable.length } })}
+			</h3>
+			<div class="divide-y divide-base-300 border-y border-base-300">
+				{#each unavailable as entry (entry.identifier)}
+					<UnavailableRow
+						identifier={entry.identifier}
+						restricted={entry.restricted}
+						onRemove={forget}
+					/>
+				{/each}
+			</div>
+		</section>
+	{/if}
 	</div>
 {/if}

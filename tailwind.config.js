@@ -3,15 +3,54 @@ import daisyui from 'daisyui';
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
+	darkMode: ['selector', '[data-theme="dark"]'],
 	theme: {
-		extend: {}
+		extend: {
+			// Two faces, one job each. Inter carries the interface: it is
+			// built for small sizes, which is most of this app (track
+			// metadata, durations, source labels). Lora carries the display
+			// type, because dustic is an archive — the brand is "the weird,
+			// the wonderful and the forgotten", not a SaaS dashboard, and a
+			// serif says that in a way another grotesque cannot.
+			fontFamily: {
+				sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				display: ['Lora', 'Georgia', 'ui-serif', 'serif']
+			},
+			// Every corner in the app resolves to one token so the "sharp
+			// corners" the brand promises actually reach buttons, inputs and
+			// chips — not just cards. `rounded-full` is deliberately left
+			// alone: it is the circle (transport controls, status dots),
+			// which is a different shape, not a different radius.
+			borderRadius: {
+				DEFAULT: 'var(--radius)',
+				sm: 'var(--radius)',
+				md: 'var(--radius)',
+				lg: 'var(--radius)',
+				xl: 'var(--radius)',
+				'2xl': 'var(--radius)',
+				'3xl': 'var(--radius)'
+			},
+			// Named layers instead of ad-hoc z-50 / z-[99] / z-[100]. Anything
+			// that stacks names the layer it belongs to, so the order is
+			// readable in one place rather than inferred per component.
+			zIndex: {
+				overlay: '30',
+				nav: '40',
+				popover: '50',
+				modal: '60',
+				toast: '70'
+			}
+		}
 	},
 	plugins: [daisyui],
 	daisyui: {
+		// Two themes, one identity: the same monochrome palette, inverted.
+		// Both are declared here (rather than one theme plus `dark:`
+		// variants) so daisyUI recolors every component from `data-theme`
+		// alone and no component has to know which mode it is in.
 		themes: [
-			// Default — pure monochrome.
 			{
-				dustic: {
+				light: {
 					primary: '#000000',
 					'primary-content': '#ffffff',
 					secondary: '#404040',
@@ -27,91 +66,37 @@ export default {
 					info: '#525252',
 					success: '#404040',
 					warning: '#737373',
-					error: '#171717'
+					error: '#171717',
+					'--rounded-box': '0.25rem',
+					'--rounded-btn': '0.25rem',
+					'--rounded-badge': '0.25rem',
+					'--tab-radius': '0.25rem'
 				}
 			},
-			// Sunset — cream paper, warm dark text, terracotta accent.
 			{
-				sunset: {
-					primary: '#C75B39',
-					'primary-content': '#ffffff',
-					secondary: '#8B6F47',
-					'secondary-content': '#ffffff',
-					accent: '#C75B39',
-					'accent-content': '#ffffff',
-					neutral: '#3A2E22',
-					'neutral-content': '#F0EAE0',
-					'base-100': '#FAF6F0',
-					'base-200': '#F0EAE0',
-					'base-300': '#E0D6C5',
-					'base-content': '#1F1B16',
-					info: '#7B6B58',
-					success: '#6F8F5C',
-					warning: '#D89A4A',
-					error: '#B23A2F'
-				}
-			},
-			// Bubblegum — white canvas with hot-pink kick.
-			{
-				bubblegum: {
-					primary: '#FF4D8D',
-					'primary-content': '#ffffff',
-					secondary: '#FF8FB3',
-					'secondary-content': '#1A1A1F',
-					accent: '#FF4D8D',
-					'accent-content': '#ffffff',
-					neutral: '#1A1A1F',
-					'neutral-content': '#FAFAFB',
-					'base-100': '#FFFFFF',
-					'base-200': '#FAFAFB',
-					'base-300': '#EFEFF2',
-					'base-content': '#1A1A1F',
-					info: '#6B6B75',
-					success: '#4FAE7B',
-					warning: '#FFAF4D',
-					error: '#E5394A'
-				}
-			},
-			// Forest — deep green bed, cream type, sage accent.
-			{
-				forest: {
-					primary: '#8FB996',
-					'primary-content': '#1A2E1F',
-					secondary: '#4A6B52',
-					'secondary-content': '#F0EDE5',
-					accent: '#8FB996',
-					'accent-content': '#1A2E1F',
-					neutral: '#243B29',
-					'neutral-content': '#F0EDE5',
-					'base-100': '#1A2E1F',
-					'base-200': '#243B29',
-					'base-300': '#2E4733',
-					'base-content': '#F0EDE5',
-					info: '#A8B5A8',
-					success: '#A6C9A8',
-					warning: '#D9C77A',
-					error: '#D08A7A'
-				}
-			},
-			// Midnight — near-black backdrop, pale text, electric violet.
-			{
-				midnight: {
-					primary: '#9B6DFF',
-					'primary-content': '#ffffff',
-					secondary: '#6B5B95',
-					'secondary-content': '#E8E6F0',
-					accent: '#9B6DFF',
-					'accent-content': '#ffffff',
-					neutral: '#1A1A22',
-					'neutral-content': '#E8E6F0',
-					'base-100': '#0F0F14',
-					'base-200': '#1A1A22',
-					'base-300': '#262633',
-					'base-content': '#E8E6F0',
-					info: '#9B98B0',
-					success: '#7BC97B',
-					warning: '#E8B95B',
-					error: '#E56A78'
+				dark: {
+					primary: '#f5f5f5',
+					'primary-content': '#0f0f0f',
+					secondary: '#a3a3a3',
+					'secondary-content': '#0f0f0f',
+					accent: '#ededed',
+					'accent-content': '#0f0f0f',
+					// Cover-art placeholder surface: one step lighter than
+					// base-100 so an empty slot still reads as a slot.
+					neutral: '#262626',
+					'neutral-content': '#ededed',
+					'base-100': '#0f0f0f',
+					'base-200': '#1a1a1a',
+					'base-300': '#2b2b2b',
+					'base-content': '#ededed',
+					info: '#a3a3a3',
+					success: '#a3a3a3',
+					warning: '#8f8f8f',
+					error: '#ededed',
+					'--rounded-box': '0.25rem',
+					'--rounded-btn': '0.25rem',
+					'--rounded-badge': '0.25rem',
+					'--tab-radius': '0.25rem'
 				}
 			}
 		]

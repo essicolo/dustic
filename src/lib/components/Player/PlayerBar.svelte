@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifications } from '$lib/stores/notifications';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import { library } from '$lib/stores/library';
@@ -136,17 +137,11 @@
 		player.togglePlay();
 	}
 
-	let shareMessage = '';
-	let showShareToast = false;
 
 	async function handleShare() {
 		if ($player.currentTrack) {
 			const result = await shareTrack($player.currentTrack);
-			shareMessage = result.message;
-			showShareToast = true;
-			setTimeout(() => {
-				showShareToast = false;
-			}, 3000);
+			notifications[result.success ? 'info' : 'error'](result.messageKey);
 		}
 	}
 
@@ -165,7 +160,7 @@
 <div class="flex flex-col gap-1 px-2 md:px-6 py-2" class:opacity-40={!$player.currentTrack}>
 	<!-- Mobile: Progress bar at top with times -->
 	<div class="md:hidden w-full flex items-center gap-2">
-		<span class="text-xs text-base-content/70 w-10 text-right flex-shrink-0">
+		<span class="tabular text-xs text-base-content/70 w-10 text-right flex-shrink-0">
 			{formatTime($player.currentTime)}
 		</span>
 		<input
@@ -177,7 +172,7 @@
 			on:change={handleSeek}
 			class="range range-primary range-xs flex-1"
 		/>
-		<span class="text-xs text-base-content/70 w-10 flex-shrink-0">
+		<span class="tabular text-xs text-base-content/70 w-10 flex-shrink-0">
 			{formatTime($player.duration)}
 		</span>
 	</div>
@@ -256,41 +251,49 @@
 			<!-- Shuffle - Desktop only -->
 			<button
 				on:click={() => player.toggleShuffle()}
-				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
-				class:bg-base-200={$player.shuffle}
+				class="btn btn-ghost btn-xs btn-circle hidden md:flex text-base-content/50 hover:text-base-content"
+				class:text-primary={$player.shuffle}
+				class:bg-base-300={$player.shuffle}
 				title={$_('player.shuffle')}
 			>
-				<Icon icon="solar:shuffle-bold" width="16" />
+				<Icon icon="solar:shuffle-bold" width="15" />
 			</button>
 
-			<button on:click={() => player.previous()} class="btn btn-ghost btn-sm btn-circle" title={$_('player.previous')}>
-				<Icon icon="solar:skip-previous-bold" width="16" />
+			<button on:click={() => player.previous()} class="btn btn-ghost btn-circle btn-sm" title={$_('player.previous')}>
+				<Icon icon="solar:skip-previous-bold" width="20" />
 			</button>
 
+			<!-- The disabled state is spelled out rather than left to daisyUI:
+			     its default is a 20%-opacity neutral, which all but vanishes
+			     on the dark theme, and the glyph used to be pinned to
+			     primary-content (near-black there) regardless. Letting the
+			     icon inherit currentColor keeps the button one solid shape in
+			     both themes, present but clearly inactive. -->
 			<button
 				on:click={handlePlayButtonClick}
-				class="btn btn-circle btn-primary btn-md"
+				class="btn btn-circle btn-primary btn-md disabled:bg-base-300 disabled:border-base-300 disabled:text-base-content/40"
 				disabled={!$player.currentTrack}
 				aria-label={$player.isPlaying ? $_('player.pause') : $_('player.play')}
 			>
 				{#if $player.isLoading}
 					<span class="loading loading-spinner loading-sm"></span>
 				{:else if $player.isPlaying}
-					<Icon icon="solar:pause-bold" width="20" className="text-primary-content" />
+					<Icon icon="solar:pause-bold" width="20" />
 				{:else}
-					<Icon icon="solar:play-bold" width="20" className="text-primary-content" />
+					<Icon icon="solar:play-bold" width="20" />
 				{/if}
 			</button>
 
-			<button on:click={() => player.next()} class="btn btn-ghost btn-sm btn-circle" title={$_('player.next')}>
-				<Icon icon="solar:skip-next-bold" width="16" />
+			<button on:click={() => player.next()} class="btn btn-ghost btn-circle btn-sm" title={$_('player.next')}>
+				<Icon icon="solar:skip-next-bold" width="20" />
 			</button>
 
 			<!-- Repeat - Desktop only -->
 			<button
 				on:click={() => player.toggleRepeat()}
-				class="btn btn-ghost btn-sm btn-circle hidden md:flex"
-				class:bg-base-200={$player.repeat !== 'off'}
+				class="btn btn-ghost btn-xs btn-circle hidden md:flex text-base-content/50 hover:text-base-content"
+				class:text-primary={$player.repeat !== 'off'}
+				class:bg-base-300={$player.repeat !== 'off'}
 				title={$player.repeat === 'one' ? $_('player.repeatOne') : $player.repeat === 'all' ? $_('player.repeatAll') : $_('player.repeatOff')}
 			>
 				<Icon icon={$player.repeat === 'one' ? 'solar:repeat-one-bold' : 'solar:repeat-bold'} width="16" />
@@ -311,14 +314,19 @@
 						<Icon
 							icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
 							width="18"
-							className={isFavorite ? 'text-red-500' : ''}
+							className={isFavorite ? 'text-primary' : ''}
 						/>
 					</button>
 				{/if}
 			</div>
 
-			<!-- Desktop: Download/Favorite/Playlist/Share -->
-			<div class="hidden md:flex items-center gap-1">
+			<!-- Desktop: things you do to the current track. Held at reduced
+			     contrast so the eye lands on transport first — twelve buttons
+			     at equal weight is a row of controls with no hierarchy, and
+			     the only one anybody needs at a glance is play. -->
+			<div
+				class="hidden md:flex items-center gap-0.5 text-base-content/60 [&_button:hover]:text-base-content"
+			>
 				{#if $player.currentTrack}
 					<DownloadButton track={$player.currentTrack} size="sm" />
 				{/if}
@@ -330,7 +338,7 @@
 					<Icon
 						icon={isFavorite ? 'solar:heart-bold' : 'solar:heart-linear'}
 						width="18"
-						className={isFavorite ? 'text-red-500' : ''}
+						className={isFavorite ? 'text-primary' : ''}
 					/>
 				</button>
 
@@ -348,7 +356,7 @@
 					{#if showPlaylistSelector}
 						<div
 							id="desktop-player-playlist-selector"
-							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-50 border border-base-content/10 max-h-60 overflow-y-auto"
+							class="absolute bottom-full right-0 mb-2 w-48 bg-base-100 rounded-lg shadow-2xl z-popover border border-base-content/10 max-h-60 overflow-y-auto"
 						>
 							<h3 class="text-xs font-bold p-2 text-base-content/70">{$_('player.addToPlaylistHeader')}</h3>
 							{#each playlists as p}
@@ -379,8 +387,12 @@
 				</button>
 			</div>
 
-			<!-- Volume Control - Desktop only -->
-			<div class="hidden md:flex w-32 items-center gap-2">
+			<!-- Volume and queue: where the sound goes and what comes next,
+			     divided from the per-track actions so the three groups read
+			     as three groups. -->
+			<div class="hidden md:block w-px h-6 bg-base-300 mx-1" aria-hidden="true"></div>
+
+			<div class="hidden md:flex w-28 items-center gap-1 text-base-content/60 [&_button:hover]:text-base-content">
 				<button
 					on:click={() => player.setVolume($player.volume > 0 ? 0 : 0.7)}
 					class="btn btn-ghost btn-sm btn-circle"
@@ -411,7 +423,7 @@
 
 	<!-- Desktop: Progress bar with time stamps -->
 	<div class="hidden md:flex w-full items-center gap-2 justify-center">
-		<span class="text-xs text-base-content/70 w-12 text-right">
+		<span class="tabular text-xs text-base-content/70 w-12 text-right">
 			{formatTime($player.currentTime)}
 		</span>
 		<input
@@ -423,18 +435,9 @@
 			on:change={handleSeek}
 			class="range range-primary range-xs flex-1 max-w-2xl"
 		/>
-		<span class="text-xs text-base-content/70 w-12">
+		<span class="tabular text-xs text-base-content/70 w-12">
 			{formatTime($player.duration)}
 		</span>
 	</div>
 </div>
 
-<!-- Share Toast -->
-{#if showShareToast}
-	<div class="toast toast-top toast-center z-50">
-		<div class="alert alert-success">
-			<Icon icon="solar:check-circle-bold" width="20" />
-			<span>{shareMessage}</span>
-		</div>
-	</div>
-{/if}

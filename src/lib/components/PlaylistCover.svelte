@@ -16,7 +16,9 @@
 
 	// Internet Archive identifiers only: fw:/wd: tracks carry their artwork
 	// on the track object instead, and have no URL that can be derived.
-	$: usable = identifiers.filter((id) => id && !id.startsWith('fw:') && !id.startsWith('wd:'));
+	// Deduplicated: a curated playlist can list the same album several times,
+	// and the keyed each below requires unique keys.
+	$: usable = [...new Set(identifiers.filter((id) => id && !id.startsWith('fw:') && !id.startsWith('wd:')))];
 
 	// Four cells or one; two or three would leave a hole in the grid. The
 	// cells are chosen before any load is attempted, and a cell whose image
@@ -32,7 +34,7 @@
 		<CoverFallback seed={identifiers[0] ?? alt} className="h-full w-full" />
 	{:else}
 		<div class="grid h-full w-full gap-px {picks.length === 4 ? 'grid-cols-2 grid-rows-2' : ''}">
-			{#each picks as id (id)}
+			{#each picks as id, i (i)}
 				{#if failed[id]}
 					<CoverFallback seed={id} className="h-full w-full" />
 				{:else}

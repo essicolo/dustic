@@ -27,6 +27,7 @@
 	import { theme } from '$lib/stores/theme';
 	import ThemePicker from '$lib/components/ThemePicker.svelte';
 	import { initI18n, setAppLocale, resolveLocale, _ } from '$lib/i18n';
+	import { devLog } from '$lib/utils/logger';
 
 	// Kick off i18n init synchronously at module load so the first render has
 	// a registered locale; settings.init() may refine the choice after.
@@ -114,7 +115,7 @@
 			if (enableDebug) {
 				import('eruda').then((eruda) => {
 					eruda.default.init();
-					console.log('[Eruda] Mobile debugging console initialized');
+					devLog('[Eruda] Mobile debugging console initialized');
 				});
 			}
 		}
@@ -126,7 +127,7 @@
 				navigator.serviceWorker.getRegistrations().then((registrations) => {
 					for (const registration of registrations) {
 						registration.unregister();
-						console.log('Service Worker unregistered in dev mode');
+						devLog('Service Worker unregistered in dev mode');
 					}
 				});
 			} else {
@@ -134,7 +135,7 @@
 					type: 'classic',
 					scope: '/'
 				}).then((registration) => {
-					console.log('Service Worker registered with scope:', registration.scope);
+					devLog('Service Worker registered with scope:', registration.scope);
 				}).catch((error) => {
 					console.error('Service Worker registration failed:', error);
 				});

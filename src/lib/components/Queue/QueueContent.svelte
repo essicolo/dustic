@@ -171,7 +171,6 @@
 						placeholder={$_('queue.playlistNamePlaceholder')}
 						class="input input-sm input-bordered"
 						on:keydown={(e) => e.key === 'Enter' && saveAsPlaylist()}
-						autofocus
 					/>
 				</div>
 				<div class="form-control">

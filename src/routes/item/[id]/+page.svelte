@@ -454,7 +454,6 @@
 								placeholder={$_('item.playlistNamePlaceholder')}
 								class="input input-bordered"
 								on:keydown={(e) => e.key === 'Enter' && addAllToPlaylist()}
-								autofocus
 							/>
 						</div>
 						<div class="form-control">

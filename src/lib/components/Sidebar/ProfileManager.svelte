@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { devLog } from '$lib/utils/logger';
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
 	import { autoplayStore } from '$lib/stores/autoplay';
@@ -205,11 +206,11 @@
 	async function loadProfile(profile: UserProfile) {
 		// CRITICAL: Persist FIRST before loading into stores
 		// This ensures data is saved even if subsequent operations fail
-		console.log('[ProfileManager] Persisting imported profile to storage...');
+		devLog('[ProfileManager] Persisting imported profile to storage...');
 		try {
 			await saveToStorage(profile);
-			console.log('[ProfileManager] ✓ Profile saved to localStorage');
-			console.log('[ProfileManager] ✓ Profile saved to IndexedDB');
+			devLog('[ProfileManager] ✓ Profile saved to localStorage');
+			devLog('[ProfileManager] ✓ Profile saved to IndexedDB');
 		} catch (error) {
 			console.error('[ProfileManager] ✗ Failed to save profile:', error);
 			throw new Error($_('profileMgr.saveStoreFailed'));
@@ -251,7 +252,7 @@
 			player.restoreLastTrack(profile.lastPlayedTrack, profile.lastPlayedPosition || 0);
 		}
 
-		console.log('[ProfileManager] ✓ Profile loaded into all stores');
+		devLog('[ProfileManager] ✓ Profile loaded into all stores');
 
 		// Detect orphaned cached tracks not referenced by the new profile
 		findOrphanedCache(profile);

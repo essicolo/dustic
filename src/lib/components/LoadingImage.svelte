@@ -57,6 +57,7 @@
 			bind:this={imageElement}
 			{src}
 			{alt}
+			loading="lazy"
 			crossorigin={isProxied ? 'anonymous' : null}
 			on:load={handleLoad}
 			on:error={handleError}

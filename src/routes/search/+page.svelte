@@ -34,7 +34,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { shareTrack } from '$lib/utils/share';
-	import { debounce } from '$lib/utils/throttle';
+	import { debounce, batchExecute } from '$lib/utils/throttle';
 	import { browser } from '$app/environment';
 	import { _ } from '$lib/i18n';
 
@@ -301,10 +301,24 @@
 
 	async function playAll() {
 		if (results.length === 0) return;
-		const validTracks = results.slice(0, 20).filter((t) => t.streamUrl);
+		// Results from advancedsearch carry no streamUrl — resolve them, and
+		// don't start on the first row blindly: if that item has gone dark
+		// the user gets an error despite 19 playable tracks sitting behind
+		// it. Resolve a batch, then start on the first one that came back.
+		const tasks = results.slice(0, 20).map((item) => async () => {
+			try {
+				return await resolveTrack(item.identifier);
+			} catch {
+				return null;
+			}
+		});
+		const resolved = await batchExecute(tasks, 5, 300);
+		const validTracks = resolved.filter((t): t is Track => t !== null && !!t.streamUrl);
 		if (validTracks.length > 0) {
 			queue.setQueue(validTracks, 0);
 			player.play(validTracks[0]);
+		} else {
+			notifications.error('errors.tracksFailed');
 		}
 	}
 

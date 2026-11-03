@@ -8,6 +8,7 @@ import type { UserProfile } from '$lib/types';
 import { createDefaultProfile } from './storage';
 import { UserProfileSchema } from '$lib/schemas/archive';
 import { saveToIndexedDB, loadFromIndexedDB } from './indexedDbPersistence';
+import { devLog } from '$lib/utils/logger';
 
 const STORAGE_KEY = 'dustic-profile';
 // Storage schema version - only increment when data structure changes (breaking changes)
@@ -28,7 +29,7 @@ function migrateAndValidateProfile(rawProfile: any): UserProfile {
 
 	// Migrate data if schema changed
 	if (schemaVersion < STORAGE_SCHEMA_VERSION) {
-		console.log(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
+		devLog(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
 
 		// v1 → v2: favorites changed from string[] to FavoriteEntry[]
 		if (schemaVersion < 2 && Array.isArray(rawProfile.favorites)) {
@@ -102,12 +103,12 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 		// If localStorage is empty or invalid, try IndexedDB
 		// This is especially important for iOS PWAs where localStorage can be cleared
 		if (!rawProfile) {
-			console.log('localStorage empty, trying IndexedDB...');
+			devLog('localStorage empty, trying IndexedDB...');
 			const idbProfile = await loadFromIndexedDB();
 			if (idbProfile) {
 				rawProfile = idbProfile;
 				fromIndexedDB = true;
-				console.log('Profile recovered from IndexedDB');
+				devLog('Profile recovered from IndexedDB');
 			}
 		}
 
@@ -118,7 +119,7 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 
 		// If we loaded from IndexedDB, restore to localStorage
 		if (fromIndexedDB) {
-			console.log('Restoring profile to localStorage from IndexedDB');
+			devLog('Restoring profile to localStorage from IndexedDB');
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
 		}
 

@@ -18,6 +18,7 @@ import { IASearchResponseSchema, IAMetadataResponseSchema } from '$lib/schemas/a
 import type { IAMetadataResponse } from '$lib/schemas/archive';
 import { requestDeduplicator } from '$lib/utils/requestDeduplication';
 import { getQualityPreference, getStreamUrl, getThumbnailUrl } from './query';
+import { devLog } from '$lib/utils/logger';
 
 export async function getItemMetadata(identifier: string): Promise<IAMetadataResponse> {
 	const url = `${IA_METADATA_URL}/${identifier}`;
@@ -145,11 +146,11 @@ async function fetchEssentiaMetadata(identifier: string, filename: string): Prom
 	const url = `https://archive.org/download/${identifier}/${metadataFilename}`;
 
 	try {
-		console.log(`[IA] Fetching Essentia metadata: ${metadataFilename}`);
+		devLog(`[IA] Fetching Essentia metadata: ${metadataFilename}`);
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 1 });
 
 		if (!response.ok) {
-			console.log(`[IA] Essentia metadata not found for ${filename}`);
+			devLog(`[IA] Essentia metadata not found for ${filename}`);
 			return null;
 		}
 
@@ -161,7 +162,7 @@ async function fetchEssentiaMetadata(identifier: string, filename: string): Prom
 		// Extract tags from the Essentia metadata structure
 		const tags = json?.metadata?.tags;
 		if (!tags) {
-			console.log(`[IA] No tags in Essentia metadata for ${filename}`);
+			devLog(`[IA] No tags in Essentia metadata for ${filename}`);
 			return null;
 		}
 
@@ -171,12 +172,34 @@ async function fetchEssentiaMetadata(identifier: string, filename: string): Prom
 		const album = Array.isArray(tags.album) ? tags.album[0] : tags.album;
 		const tracknumber = Array.isArray(tags.tracknumber) ? tags.tracknumber[0] : tags.tracknumber;
 
-		console.log(`[IA] Extracted from Essentia: "${title}" by "${artist}" (track ${tracknumber})`);
+		devLog(`[IA] Extracted from Essentia: "${title}" by "${artist}" (track ${tracknumber})`);
 		return { title, artist, album, tracknumber };
 	} catch (error) {
 		console.warn(`[IA] Failed to fetch Essentia metadata for ${filename}:`, error);
 		return null;
 	}
+}
+
+/**
+ * Map over items with at most `limit` async operations in flight. Used for
+ * the per-file Essentia requests so an album page can't open dozens of
+ * connections to archive.org at once.
+ */
+async function mapWithConcurrency<T, R>(
+	items: T[],
+	limit: number,
+	fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+	const results: R[] = new Array(items.length);
+	let next = 0;
+	const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+		while (next < items.length) {
+			const i = next++;
+			results[i] = await fn(items[i], i);
+		}
+	});
+	await Promise.all(workers);
+	return results;
 }
 
 /**
@@ -269,7 +292,7 @@ export function getAllAudioFiles(
 
 	const deduplicatedFiles = Array.from(seenTracks.values());
 
-	console.log(`[IA] Found ${audioFiles.length} audio files, deduplicated to ${deduplicatedFiles.length} tracks`);
+	devLog(`[IA] Found ${audioFiles.length} audio files, deduplicated to ${deduplicatedFiles.length} tracks`);
 
 	return deduplicatedFiles.map(file => ({
 		filename: file.name,
@@ -371,10 +394,17 @@ export async function getTrack(identifier: string, quality?: AudioQuality): Prom
 }
 
 /**
- * Get all chapters/tracks from an item (uses current quality preference)
+ * Get all chapters/tracks from an item (uses current quality preference).
+ * Cached for 30 minutes: the album page revisits this on every mount, and
+ * the file list of an item changes rarely enough that a stale-but-complete
+ * list beats a fresh fetch on every visit.
  */
 export async function getAllTracks(identifier: string, quality?: AudioQuality): Promise<Track[]> {
 	const qualityToUse = quality || getQualityPreference();
+	return withCache(`alltracks:${identifier}:${qualityToUse}`, () => getAllTracksUncached(identifier, qualityToUse), 30 * 60 * 1000);
+}
+
+async function getAllTracksUncached(identifier: string, qualityToUse: AudioQuality): Promise<Track[]> {
 	try {
 		const metadata = await getItemMetadata(identifier);
 		const audioFiles = getAllAudioFiles(metadata.files, qualityToUse);
@@ -384,8 +414,11 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 			return [];
 		}
 
-		// Fetch Essentia metadata for all tracks in parallel
-		const trackPromises = audioFiles.map(async (audioFile, index) => {
+		// Fetch Essentia metadata for all tracks with bounded concurrency.
+		// Promise.all over N tracks meant N simultaneous requests to
+		// archive.org per album page — enough to trip rate limiting and slow
+		// the whole page down. Cap at 6 in flight.
+		const builtTracks = await mapWithConcurrency(audioFiles, 6, async (audioFile, index): Promise<Track> => {
 			// Try to get embedded metadata from Essentia JSON
 			const essentiaMetadata = await fetchEssentiaMetadata(identifier, audioFile.filename);
 
@@ -431,8 +464,7 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
 			};
 		});
 
-		const tracks = await Promise.all(trackPromises);
-		return tracks;
+		return builtTracks;
 	} catch (error) {
 		console.error(`Error fetching tracks for ${identifier}:`, error);
 		// Fallback: search offline storage for tracks belonging to this item
@@ -481,7 +513,7 @@ export async function getAllTracks(identifier: string, quality?: AudioQuality): 
  */
 function extractChapterTitle(filename: string, chapterNumber: number, albumTitle?: string): string {
 	// Log for debugging duplicate titles
-	console.log(`[extractChapterTitle] Processing: "${filename}" (index ${chapterNumber})`);
+	devLog(`[extractChapterTitle] Processing: "${filename}" (index ${chapterNumber})`);
 
 	// Remove file extension
 	const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
@@ -498,7 +530,7 @@ function extractChapterTitle(filename: string, chapterNumber: number, albumTitle
 		const match = nameWithoutExt.match(pattern);
 		if (match && match[2]) {
 			const title = match[2].trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
-			console.log(`[extractChapterTitle] Extracted: "${title}"`);
+			devLog(`[extractChapterTitle] Extracted: "${title}"`);
 			return title;
 		}
 	}
@@ -509,10 +541,10 @@ function extractChapterTitle(filename: string, chapterNumber: number, albumTitle
 	// If it's just a number or very short, prefix with "Chapter"
 	if (cleaned.length < 5 || /^\d+$/.test(cleaned)) {
 		const title = `Chapter ${chapterNumber}`;
-		console.log(`[extractChapterTitle] Using chapter number: "${title}"`);
+		devLog(`[extractChapterTitle] Using chapter number: "${title}"`);
 		return title;
 	}
 
-	console.log(`[extractChapterTitle] Using cleaned filename: "${cleaned}"`);
+	devLog(`[extractChapterTitle] Using cleaned filename: "${cleaned}"`);
 	return cleaned;
 }

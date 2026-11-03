@@ -173,7 +173,7 @@
 		? (item.thumbnailUrl || '')
 		: isWD
 			? parsedMeta?.pictureUrl || fetchedThumb || ''
-			: getThumbnailUrl(item.identifier);
+			: getThumbnailUrl(item.identifier, layout === 'list' ? 'small' : 'default');
 	$: sourceName = isFW
 		? (item.identifier.split(':')[1] || $_('components.audioCard.sourceFW'))
 		: isWD
@@ -578,7 +578,7 @@
 								class="menu p-2 shadow-2xl bg-base-300 rounded-box min-w-[14rem] w-max max-w-xs"
 							>
 								<li>
-									<div on:click|stopPropagation class="p-0">
+									<div class="p-0">
 										<DownloadButton
 											track={tracks?.[0] || item}
 											lazy={!tracks?.length}
@@ -589,29 +589,29 @@
 									</div>
 								</li>
 								<li>
-									<a role="button" tabindex="0" on:click={handleShare} on:keydown={handleShare} class="flex items-center">
+									<button type="button" on:click={handleShare} class="flex items-center w-full text-left">
 										<Icon icon="solar:share-linear" width="20" />
 										{$_('components.audioCard.share')}
-									</a>
-								</li>
-								<li on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)}>
-									<a role="button" tabindex="0" class="flex items-center">
-										<Icon icon="mdi:playlist-plus" width="20" />
-										{$_('components.audioCard.addToPlaylist')}
-									</a>
+									</button>
 								</li>
 								<li>
-									<a role="button" tabindex="0" on:click={handleAddToQueue} on:keydown={handleAddToQueue} class="flex items-center">
+									<button type="button" on:click|stopPropagation={() => (showPlaylistSelector = !showPlaylistSelector)} class="flex items-center w-full text-left">
+										<Icon icon="mdi:playlist-plus" width="20" />
+										{$_('components.audioCard.addToPlaylist')}
+									</button>
+								</li>
+								<li>
+									<button type="button" on:click={handleAddToQueue} class="flex items-center w-full text-left">
 										<Icon icon="mdi:playlist-music" width="20" />
 										{$_('components.audioCard.addToQueue')}
-									</a>
+									</button>
 								</li>
 								{#if showRemoveFromQueue}
 									<li class="border-t border-base-content/10 mt-1 pt-1">
-										<a role="button" tabindex="0" on:click={handleRemoveFromQueue} on:keydown={handleRemoveFromQueue} class="flex items-center">
+										<button type="button" on:click={handleRemoveFromQueue} class="flex items-center w-full text-left">
 											<Icon icon="solar:close-circle-bold" width="20" />
 											{$_('components.audioCard.removeFromQueue')}
-										</a>
+										</button>
 									</li>
 								{/if}
 							</ul>

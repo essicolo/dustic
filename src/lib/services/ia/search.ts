@@ -21,6 +21,7 @@ import { offlineStorage } from '../offlineStorage';
 import { IASearchResponseSchema, IAMetadataResponseSchema } from '$lib/schemas/archive';
 import type { IAMetadataResponse } from '$lib/schemas/archive';
 import { requestDeduplicator } from '$lib/utils/requestDeduplication';
+import { devLog } from '$lib/utils/logger';
 import {
 	cleanSearchInput,
 	docToTrack,
@@ -33,7 +34,7 @@ import {
 
 async function resolveIdentifier(identifier: string): Promise<SearchResult | null> {
 	const url = `${IA_METADATA_URL}/${identifier}`;
-	console.log(`[IA] Trying direct metadata lookup: ${identifier}`);
+	devLog(`[IA] Trying direct metadata lookup: ${identifier}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -53,7 +54,7 @@ async function resolveIdentifier(identifier: string): Promise<SearchResult | nul
 
 		// Empty metadata means item doesn't exist
 		if (!rawData.metadata || Object.keys(rawData.metadata).length === 0) {
-			console.log(`[IA] No metadata for "${identifier}"`);
+			devLog(`[IA] No metadata for "${identifier}"`);
 			return null;
 		}
 
@@ -84,11 +85,11 @@ async function resolveIdentifier(identifier: string): Promise<SearchResult | nul
 			metadata: metadata.metadata
 		};
 
-		console.log(`[IA] Direct lookup succeeded: "${item.title}"`);
+		devLog(`[IA] Direct lookup succeeded: "${item.title}"`);
 		return { items: [item], total: 1, page: 1, pageSize: 1 };
 	} catch (error: any) {
 		if (error?.status === 404 || error?.message?.includes('404')) {
-			console.log(`[IA] Item "${identifier}" not found via direct lookup`);
+			devLog(`[IA] Item "${identifier}" not found via direct lookup`);
 		} else {
 			console.warn(`[IA] Direct lookup failed for "${identifier}":`, error?.message || error);
 		}
@@ -115,7 +116,7 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 	});
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log(`[IA] Trying identifier field search${useWildcard ? ' (wildcard)' : ''}: ${q}`);
+	devLog(`[IA] Trying identifier field search${useWildcard ? ' (wildcard)' : ''}: ${q}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -125,10 +126,10 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 		if (data.response.docs.length === 0) {
 			// If exact match failed and we haven't tried wildcard yet, try it
 			if (!useWildcard) {
-				console.log(`[IA] No exact match, trying wildcard search`);
+				devLog(`[IA] No exact match, trying wildcard search`);
 				return searchByIdentifier(identifier, true);
 			}
-			console.log(`[IA] No results for identifier field search: ${identifier}`);
+			devLog(`[IA] No results for identifier field search: ${identifier}`);
 			return null;
 		}
 
@@ -152,7 +153,7 @@ async function searchByIdentifier(identifier: string, useWildcard = false): Prom
 			metadata: doc
 		}));
 
-		console.log(`[IA] Identifier field search found ${items.length} result(s)`);
+		devLog(`[IA] Identifier field search found ${items.length} result(s)`);
 		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
 	} catch (error) {
 		console.warn('[IA] Identifier field search failed:', error);
@@ -272,13 +273,13 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 			return idSearchResult;
 		}
 
-		console.log(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
+		devLog(`[IA] Identifier lookup failed for "${cleaned}", falling back to text search`);
 	}
 
 	// Strategy 3: Try to extract identifier from concert title pattern
 	const potentialId = extractPotentialIdentifier(cleaned);
 	if (potentialId) {
-		console.log(`[IA] Extracted potential identifier: ${potentialId}`);
+		devLog(`[IA] Extracted potential identifier: ${potentialId}`);
 		const idResult = await searchByIdentifier(potentialId);
 		if (idResult && idResult.items.length > 0) {
 			return idResult;
@@ -291,7 +292,7 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		return textResult;
 	}
 
-	console.log(`[IA] Text search returned no results, trying without format filters`);
+	devLog(`[IA] Text search returned no results, trying without format filters`);
 
 	// Strategy 5: Try without restrictive format filters (for edge cases).
 	//
@@ -307,7 +308,7 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 		return noFilterResult;
 	}
 
-	console.log(`[IA] Still no results, trying creator+date search`);
+	devLog(`[IA] Still no results, trying creator+date search`);
 
 	// Strategy 6: For concert titles, try searching by creator and date
 	const concertMatch = cleaned.match(/^(.+?)\s+(?:Live|@)\s+.+?\s+on\s+(\d{4}[-]\d{2}[-]\d{2})/i);
@@ -321,7 +322,7 @@ export async function smartSearch(params: SearchParams): Promise<SearchResult> {
 	}
 
 	// All strategies failed, return empty result
-	console.log(`[IA] All search strategies failed for "${cleaned}"`);
+	devLog(`[IA] All search strategies failed for "${cleaned}"`);
 	return { items: [], total: 0, page: params.page || 1, pageSize: params.pageSize || 50 };
 }
 
@@ -368,7 +369,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 	}
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log('[IA Search NoFilter] Query:', q);
+	devLog('[IA Search NoFilter] Query:', q);
 
 	try {
 		// smartSearch fires this speculatively alongside every text search,
@@ -406,7 +407,7 @@ async function searchWithoutFormatFilter(params: SearchParams): Promise<SearchRe
 			metadata: doc
 		}));
 
-		console.log(`[IA Search NoFilter] Found ${items.length} results`);
+		devLog(`[IA Search NoFilter] Found ${items.length} results`);
 		return { items, total: data.response.numFound, page, pageSize };
 	} catch (error) {
 		console.warn('[IA Search NoFilter] Failed:', error);
@@ -428,7 +429,7 @@ async function searchByCreatorAndDate(creator: string, date: string): Promise<Se
 	});
 
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
-	console.log(`[IA] Trying creator+date search: ${q}`);
+	devLog(`[IA] Trying creator+date search: ${q}`);
 
 	try {
 		const response = await fetchWithRetry(url, {}, { maxAttempts: 2 });
@@ -459,7 +460,7 @@ async function searchByCreatorAndDate(creator: string, date: string): Promise<Se
 			metadata: doc
 		}));
 
-		console.log(`[IA] Creator+date search found ${items.length} result(s)`);
+		devLog(`[IA] Creator+date search found ${items.length} result(s)`);
 		return { items, total: data.response.numFound, page: 1, pageSize: 10 };
 	} catch (error) {
 		console.warn('[IA] Creator+date search failed:', error);
@@ -600,8 +601,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 	const url = `${IA_SEARCH_URL}?${urlParams.toString()}`;
 
 	// Log search query for debugging
-	console.log('[IA Search] Query:', q);
-	console.log('[IA Search] URL:', url);
+	devLog('[IA Search] Query:', q);
+	devLog('[IA Search] URL:', url);
 
 	// The precision pass only makes sense for the first page of a relevance
 	// ranking: on later pages its handful of hits have already been shown,
@@ -630,7 +631,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 		const seen = new Set(exact.map((t) => t.identifier));
 		const items = [...exact, ...broad.filter((t) => !seen.has(t.identifier))].slice(0, pageSize);
 
-		console.log(
+		devLog(
 			`[IA Search] Found ${data.response.numFound} results, returning ${items.length} items` +
 				(exact.length ? ` (${exact.length} exact title/creator matches first)` : '')
 		);

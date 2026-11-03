@@ -3,6 +3,7 @@
 import type { UserProfile, WebDAVConfig } from '$lib/types';
 import { browser } from '$app/environment';
 import { decryptValue } from './crypto';
+import { devLog } from '$lib/utils/logger';
 
 const PROFILE_FILENAME = 'dustic-profile.json';
 
@@ -77,7 +78,7 @@ export async function uploadProfileToWebDAV(
 		throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
 	}
 
-	console.log('[WebDAV] Profile uploaded successfully');
+	devLog('[WebDAV] Profile uploaded successfully');
 }
 
 /**
@@ -94,7 +95,7 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 	}
 
 	const profileData = await response.json();
-	console.log('[WebDAV] Profile downloaded successfully');
+	devLog('[WebDAV] Profile downloaded successfully');
 	return profileData as UserProfile;
 }
 

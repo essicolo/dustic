@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { devLog } from '$lib/utils/logger';
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
 	import { autoplayStore } from '$lib/stores/autoplay';
@@ -234,9 +235,9 @@
 		// Persist the imported profile to both localStorage and IndexedDB immediately
 		// CRITICAL for iOS PWA: Wait for BOTH storages to complete before continuing
 		// This ensures the profile is fully persisted even if user closes app immediately
-		console.log('[Settings] Persisting imported profile...');
+		devLog('[Settings] Persisting imported profile...');
 		await saveToStorage(profile);
-		console.log('[Settings] Profile import complete and persisted');
+		devLog('[Settings] Profile import complete and persisted');
 	}
 
 	// WebDAV functions

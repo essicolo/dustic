@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { devLog } from '$lib/utils/logger';
 	import { notifications } from '$lib/stores/notifications';
 	import { search as searchAPI, getAllTracks } from '$lib/services/internetArchive';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
@@ -53,9 +54,11 @@
 			}
 		});
 
-		const tracks = await batchExecute(trackTasks, 3, 500);
+		// 10 recent tracks in batches of 5 with a short delay: fast enough to
+		// feel instant, gentle enough not to trip IA rate limiting.
+		const tracks = await batchExecute(trackTasks, 5, 200);
 		continueListening = tracks.filter((t): t is Track => t !== null);
-		console.log(`Loaded ${continueListening.length} / ${recentEntries.length} continue listening tracks`);
+		devLog(`Loaded ${continueListening.length} / ${recentEntries.length} continue listening tracks`);
 		isLoadingContinue = false;
 	}
 

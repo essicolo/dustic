@@ -24,6 +24,7 @@ import { CONTENT_TYPES, DEFAULT_FUNKWHALE_INSTANCES } from '$lib/utils/constants
 import { listFolder, buildTrack } from './webdavLibrary';
 import type { WebDAVLibrary } from '$lib/types';
 import { get } from 'svelte/store';
+import { devLog } from '$lib/utils/logger';
 
 /**
  * Map an IA-style track to one of the three autoplay content types based
@@ -502,7 +503,7 @@ export async function getNextTrack(currentTrack: Track | null): Promise<Track | 
 			const track = await strategy(currentTrack);
 			if (track && isAutoplayAllowed(track)) {
 				autoplayTriedIds.add(track.identifier);
-				console.log(
+				devLog(
 					`[Autoplay] Found next track using rule: ${rule.name} (source=${source})`
 				);
 				return track;

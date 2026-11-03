@@ -21,6 +21,7 @@ import { offlineStorage } from '../offlineStorage';
 import { IASearchResponseSchema, IAMetadataResponseSchema } from '$lib/schemas/archive';
 import type { IAMetadataResponse } from '$lib/schemas/archive';
 import { requestDeduplicator } from '$lib/utils/requestDeduplication';
+import { devLog } from '$lib/utils/logger';
 
 // Cached quality preference (Issue #9 - avoid repeated localStorage reads)
 let cachedQualityPreference: AudioQuality | null = null;
@@ -200,7 +201,7 @@ export function getStreamUrl(identifier: string, filename: string): string {
 
 	// Try direct streaming first (Archive.org supports CORS)
 	// The CORS proxy doesn't work on Cloudflare Pages
-	console.log('[IA] Stream URL:', streamUrl);
+	devLog('[IA] Stream URL:', streamUrl);
 	return streamUrl;
 
 	// Proxy version (disabled - doesn't work on Cloudflare Pages):
@@ -211,7 +212,7 @@ export function getStreamUrl(identifier: string, filename: string): string {
  * Get thumbnail URL for an item
  * Use higher quality version for better display on modern devices
  */
-export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 'default'): string {
+export function getThumbnailUrl(identifier: string, size: 'default' | 'large' | 'small' = 'default'): string {
 	// Point at the item's own thumbnail derivative rather than
 	// /services/img/<id>. Both serve the same picture when one exists, but
 	// they fail very differently: /services/img redirects to
@@ -225,7 +226,10 @@ export function getThumbnailUrl(identifier: string, size: 'default' | 'large' = 
 	// weserv proxies with CORS, resizes, and re-encodes. No `default=` here on
 	// purpose: a failure has to reach the <img> onerror handler rather than
 	// being papered over with a third-party placeholder image.
-	return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=512&h=512&fit=cover&output=jpg`;
+	// List rows render 56px thumbnails, so 512px is 4x the pixels actually
+	// shown; small asks weserv for 160px, enough for retina at that size.
+	const dim = size === 'small' ? 160 : 512;
+	return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=${dim}&h=${dim}&fit=cover&output=jpg`;
 }
 
 /**

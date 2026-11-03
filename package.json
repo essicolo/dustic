@@ -21,6 +21,7 @@
     "eruda": "^3.4.3",
     "music-metadata": "^11.13.0",
     "svelte-i18n": "^4.0.1",
+    "wrangler": "^4.157.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

@@ -156,3 +156,4 @@ src/lib/generated/
 
 # Local working notes (not for the repo)
 TODO.local.md
+.dyad/

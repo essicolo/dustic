@@ -19,7 +19,8 @@
 		"playFailed": "Impossible de démarrer la lecture",
 		"tracksFailed": "Impossible de charger les pistes de cet élément",
 		"trackWillNotPlay": "Cette piste n'a pas pu être lue, passage à la suivante",
-		"playbackStopped": "Plusieurs pistes de suite n’ont pas pu être lues, la lecture est arrêtée"
+		"playbackStopped": "Plusieurs pistes de suite n’ont pas pu être lues, la lecture est arrêtée",
+		"playBlocked": "La lecture a été bloquée par le navigateur — touchez lecture à nouveau"
 	},
 	"viewMode": {
 		"label": "Mode d'affichage",

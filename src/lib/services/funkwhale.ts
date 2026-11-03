@@ -15,6 +15,45 @@ type ApiVersion = 'v2' | 'v1';
 const apiVersionCache = new Map<string, ApiVersion>();
 
 /**
+ * Persisted copy of apiVersionCache. The probe costs 1.5-2s against a real
+ * instance and its result never changes, so losing it on every page reload
+ * made cold starts measurably slower for no benefit. In-memory cache first
+ * (fast path), localStorage as the cross-reload fallback.
+ */
+const VERSION_STORAGE_KEY = 'dustic-fw-api-versions';
+
+function loadPersistedVersions(): void {
+	if (!browser) return;
+	try {
+		const raw = localStorage.getItem(VERSION_STORAGE_KEY);
+		if (!raw) return;
+		const parsed = JSON.parse(raw);
+		if (parsed && typeof parsed === 'object') {
+			for (const [k, v] of Object.entries(parsed)) {
+				if (v === 'v1' || v === 'v2') apiVersionCache.set(k, v);
+			}
+		}
+	} catch {
+		// corrupt entry — ignore
+	}
+}
+
+function persistVersion(baseUrl: string, version: ApiVersion): void {
+	apiVersionCache.set(baseUrl, version);
+	if (!browser) return;
+	try {
+		const raw = localStorage.getItem(VERSION_STORAGE_KEY);
+		const parsed = raw && typeof raw === 'string' ? JSON.parse(raw) : {};
+		parsed[baseUrl] = version;
+		localStorage.setItem(VERSION_STORAGE_KEY, JSON.stringify(parsed));
+	} catch {
+		// storage full or blocked — in-memory cache still works this session
+	}
+}
+
+loadPersistedVersions();
+
+/**
  * Detect which API version a FunkWhale instance supports.
  * Tries v2 first (FunkWhale 2.0+), falls back to v1.
  */
@@ -29,7 +68,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 			signal: AbortSignal.timeout(5000)
 		});
 		if (response.ok) {
-			apiVersionCache.set(baseUrl, 'v2');
+			persistVersion(baseUrl, 'v2');
 			console.log(`[FW] ${baseUrl} uses API v2`);
 			return 'v2';
 		}
@@ -44,7 +83,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 			signal: AbortSignal.timeout(5000)
 		});
 		if (response.ok) {
-			apiVersionCache.set(baseUrl, 'v1');
+			persistVersion(baseUrl, 'v1');
 			console.log(`[FW] ${baseUrl} uses API v1`);
 			return 'v1';
 		}
@@ -53,7 +92,7 @@ async function detectApiVersion(baseUrl: string): Promise<ApiVersion> {
 	}
 
 	// Default to v2 (most likely for newer instances)
-	apiVersionCache.set(baseUrl, 'v2');
+	persistVersion(baseUrl, 'v2');
 	console.warn(`[FW] Could not detect API version for ${baseUrl}, defaulting to v2`);
 	return 'v2';
 }

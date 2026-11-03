@@ -11,6 +11,7 @@ import { settings } from './settings';
 import { notifications } from './notifications';
 import { decodeIdentifier, fetchTrackBlob, findLibrary } from '$lib/services/webdavLibrary';
 import { loadFromStorageSync, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
+import { alternateStreamUrls } from '$lib/services/streamFallback';
 
 export interface PlayerState {
 	currentTrack: Track | null;
@@ -53,6 +54,32 @@ function createPlayerStore() {
 	// Track the last track that actually played successfully, so autoplay
 	// can use it as basis instead of a failed track
 	let lastSuccessfulTrack: Track | null = null;
+	// Monotonic token for play() invocations; see play().
+	let latestPlayToken = 0;
+	// Detached element used to warm the HTTP cache for the upcoming track.
+	let preloadElement: HTMLAudioElement | null = null;
+
+	/**
+	 * Warm the browser cache for the next track in the queue. Uses a hidden
+	 * audio element with preload="auto"; the browser fetches metadata + the
+	 * start of the file, which usually removes the whole load stall when the
+	 * track actually starts. Best-effort: any failure is ignored.
+	 */
+	function preloadNextTrack(): void {
+		const next = queue.getNextTrack();
+		if (!next?.streamUrl || next.streamUrl.startsWith('blob:')) return;
+		try {
+			if (!preloadElement) {
+				preloadElement = new Audio();
+				preloadElement.preload = 'auto';
+			}
+			if (preloadElement.src !== next.streamUrl) {
+				preloadElement.src = next.streamUrl;
+			}
+		} catch {
+			// preloading is an optimisation, never a reason to fail playback
+		}
+	}
 
 	// Helper to save player state (last track and position)
 	function savePlayerState(state: PlayerState) {
@@ -145,6 +172,35 @@ function createPlayerStore() {
 				console.error('[Player] Audio error:', error?.code, error?.message);
 				update((state) => ({ ...state, isLoading: false, isPlaying: false }));
 
+				// Not every media error means the track is broken. MEDIA_ERR_ABORTED
+				// (1) is raised whenever load() is interrupted — which play()
+				// itself does at its start when switching tracks — and must never
+				// count toward the skip logic, or a fast double-click on two cards
+				// would skip the second track unplayed.
+				if (error?.code === 1) return;
+
+				// MEDIA_ERR_SRC_NOT_SUPPORTED (4): the chosen file's format is not
+				// decodable (or the URL 404s). IA items usually ship the same track
+				// in several formats; try the next candidate before declaring the
+				// track dead. No alternative left → fall through to the skip logic.
+				if (error?.code === 4) {
+					const state = get({ subscribe });
+					const failedSrc = element.currentSrc || '';
+					// The fallback list is small and the metadata fetch is cached,
+					// so fire-and-forget is fine; the handler itself stays sync.
+					alternateStreamUrls(state.currentTrack, failedSrc).then((alts) => {
+						if (alts.length === 0) return;
+						// The error may belong to a src that has since been replaced.
+						if (element.currentSrc && element.currentSrc !== failedSrc) return;
+						console.log(`[Player] Trying alternate format (${alts.length} candidates) for`, state.currentTrack?.identifier);
+						element.src = alts[0];
+						element.load();
+						const p = element.play();
+						if (p) p.catch(() => {});
+					});
+					return; // resolved async above; never fall through to skip logic for code 4
+				}
+
 				// Auto-skip on playback errors, but stop after MAX_CONSECUTIVE_ERRORS
 				if (error?.code === 4 || error?.code === 2) {
 					consecutiveErrors++;
@@ -218,6 +274,14 @@ function createPlayerStore() {
 			// User-initiated play always starts at 0.
 			allowPositionRestore = false;
 
+			// Every play() call supersedes the previous one. Remember which
+			// track this invocation is for: after each await (offline lookup,
+			// WebDAV blob fetch) a newer click may already have started, and
+			// applying this stale invocation's src afterwards would clobber the
+			// newer track — the click "does not play" because its src was
+			// replaced a moment later.
+			const playToken = ++latestPlayToken;
+
 			// Stop the previous track *before* any await. If we don't pause
 			// here, the timeupdate listener keeps firing on the old audio
 			// during the WebDAV blob fetch (which can take a second or two)
@@ -240,6 +304,7 @@ function createPlayerStore() {
 			// "this track is broken" and skips past.
 			if (!track.streamUrl) {
 				const resolved = await getTrack(track.identifier);
+				if (playToken !== latestPlayToken) return; // superseded by a newer click
 				if (!resolved?.streamUrl) {
 					console.warn('[Player] No playable URL for', track.identifier);
 					update((state) => ({ ...state, isLoading: false, isPlaying: false }));
@@ -251,6 +316,7 @@ function createPlayerStore() {
 			// Check if track is available offline (use blob URL instead of remote URL)
 			try {
 				const offlineTrack = await offlineStorage.getOfflineTrack(track.identifier);
+				if (playToken !== latestPlayToken) return;
 				if (offlineTrack && offlineTrack.streamUrl !== track.streamUrl) {
 					console.log('[Player] Using offline version:', track.title);
 					track = { ...track, streamUrl: offlineTrack.streamUrl };
@@ -282,6 +348,11 @@ function createPlayerStore() {
 				if (decoded && library) {
 					try {
 						const blob = await fetchTrackBlob(library, decoded.path);
+						if (playToken !== latestPlayToken) {
+							// A newer click won while we fetched; don't leak its blob.
+							URL.revokeObjectURL(URL.createObjectURL(blob));
+							return;
+						}
 						currentBlobUrl = URL.createObjectURL(blob);
 						playUrl = currentBlobUrl;
 					} catch (err) {
@@ -352,10 +423,22 @@ function createPlayerStore() {
 			const playPromise = audioElement.play();
 			if (playPromise !== undefined) {
 				playPromise.catch((error) => {
-					console.error('[Player] Play error:', error.message);
-					update((state) => ({ ...state, isLoading: false }));
+					console.error('[Player] Play error:', error.message, error.name);
+					// Browsers block play() outside a user gesture (NotAllowedError)
+					// or when the element has no user-activation yet. The 'play'
+					// event never fires, so isPlaying would stay true-less while
+					// the spinner keeps spinning. Surface a clear message instead.
+					if (error.name === 'NotAllowedError') {
+						notifications.error('errors.playBlocked');
+					}
+					update((state) => ({ ...state, isLoading: false, isPlaying: false }));
 				});
 			}
+
+			// Preload the next queue track in a detached element so the bytes
+			// are already in flight when this track ends — the gap between
+			// tracks drops from a network round trip to near zero.
+			preloadNextTrack();
 		},
 
 		// Resume playback

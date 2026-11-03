@@ -17,6 +17,7 @@
 		isRestrictedItemError
 	} from '$lib/stores/unavailable';
 	import { isOfflineAvailable } from '$lib/stores/offline';
+	import { notifications } from '$lib/stores/notifications';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -97,9 +98,12 @@
 			if (track) {
 				queue.setQueue([track], 0);
 				player.play(track);
+			} else {
+				notifications.error('errors.playFailed');
 			}
 		} catch (e) {
 			console.error('Failed to play track:', e);
+			notifications.error('errors.playFailed');
 		} finally {
 			loadingTrack = null;
 		}

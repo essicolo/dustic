@@ -9,6 +9,7 @@
 	import UnavailableRow from '$lib/components/UnavailableRow.svelte';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
+	import { notifications } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { unifiedGetTrack as getTrack } from '$lib/services/sources';
@@ -97,9 +98,12 @@
 			const track = await getTrack(identifier);
 			if (track) {
 				player.play(track);
+			} else {
+				notifications.error('errors.playFailed');
 			}
 		} catch (e) {
 			console.error('Failed to play track:', e);
+			notifications.error('errors.playFailed');
 		} finally {
 			loadingTrack = null;
 		}

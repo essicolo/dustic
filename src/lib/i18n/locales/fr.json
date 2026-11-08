@@ -167,7 +167,9 @@
 		"filterAlbums": "Albums ({count})",
 		"albumsHeader": "Albums",
 		"tracksHeader": "Pistes",
-		"unavailableHeader": "Plus disponibles ({count})"
+		"unavailableHeader": "Plus disponibles ({count})",
+		"foldersHeader": "Dossiers",
+		"folderLibraryMissing": "Bibliothèque WebDAV introuvable"
 	},
 	"playlists": {
 		"title": "Vos playlists",
@@ -198,6 +200,13 @@
 			"doneWithErrors": "{failed, plural, one {# fichier en échec} other {# fichiers en échec}} — synchronisez pour réessayer",
 			"error": "Échec de la synchronisation hors ligne",
 			"showingDownloaded": "Serveur injoignable — seuls les fichiers téléchargés sont affichés."
+		},
+		"folderCard": {
+			"play": "Lire le dossier",
+			"shuffle": "Lecture aléatoire du dossier",
+			"queued": "{count, plural, one {# piste ajoutée à la file} other {# pistes ajoutées à la file}}",
+			"noAudio": "Aucun fichier audio dans ce dossier",
+			"offlineCount": "{count, plural, one {# fichier hors ligne} other {# fichiers hors ligne}}"
 		}
 	},
 	"about": {

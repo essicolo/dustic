@@ -17,6 +17,7 @@
 	import { queue } from '$lib/stores/queue';
 	import Icon from '$lib/components/Icon.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import FolderCard from '$lib/components/FolderCard.svelte';
 	import { _ } from '$lib/i18n';
 
 	let libraryId = '';
@@ -85,7 +86,6 @@
 			(f.path === '/' || currentAbs.startsWith(f.path + '/'))
 	);
 
-	$: pinnedIds = new Set($offline.folders.map((f) => f.id));
 
 	function keepOffline(absPath: string, name: string) {
 		if (!library) return;
@@ -269,7 +269,7 @@
 				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-6">
 					{#if path !== '/' && path !== ''}
 						<button
-							class="card bg-base-200 hover:bg-base-300 aspect-square flex flex-col items-center justify-center gap-2 p-3 transition-colors"
+							class="card bg-base-200 hover:bg-base-300 h-full min-h-32 flex flex-col items-center justify-center gap-2 p-3 transition-colors"
 							on:click={navigateUp}
 						>
 							<Icon icon="mdi:folder-arrow-up" width="40" class="opacity-60" />
@@ -277,20 +277,9 @@
 						</button>
 					{/if}
 					{#each folders as folder (folder.path)}
-						<button
-							class="card bg-base-200 hover:bg-base-300 aspect-square flex flex-col items-center justify-center gap-2 p-3 transition-colors text-center"
-							on:click={() => navigateInto(folder)}
-						>
-							<span class="relative">
-								<Icon icon="mdi:folder" width="40" />
-								{#if pinnedIds.has(folderId(libraryId, folder.path))}
-									<Icon icon="solar:check-circle-bold" width="16" className="text-success absolute -bottom-1 -right-1" />
-								{/if}
-							</span>
-							<div class="text-sm font-medium line-clamp-2 leading-tight w-full">
-								{folder.name}
-							</div>
-						</button>
+						{#if library}
+							<FolderCard {library} {folder} layout="tile" on:open={() => navigateInto(folder)} />
+						{/if}
 					{/each}
 				</div>
 			{/if}
@@ -323,16 +312,11 @@
 					</li>
 				{/if}
 				{#each folders as folder (folder.path)}
-					<li>
-						<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={() => navigateInto(folder)}>
-							<Icon icon="mdi:folder" width="22" />
-							<span class="flex-1 truncate">{folder.name}</span>
-							{#if pinnedIds.has(folderId(libraryId, folder.path))}
-								<Icon icon="solar:check-circle-bold" width="16" className="text-success" />
-							{/if}
-							<Icon icon="mdi:chevron-right" width="18" />
-						</button>
-					</li>
+					{#if library}
+						<li class="p-1">
+							<FolderCard {library} {folder} layout="list" on:open={() => navigateInto(folder)} />
+						</li>
+					{/if}
 				{/each}
 				{#each tracks as track, i (track.identifier)}
 					<li class="p-1">

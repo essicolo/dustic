@@ -43,6 +43,18 @@ export const FavoriteEntrySchema = z.object({
 	addedAt: z.number()
 });
 
+// WebDAV folders marked as favorites. Kept in their own optional field
+// rather than as a new FavoriteEntry type: older app versions validate
+// favorites against a closed enum and would reject the whole profile, while
+// an unknown top-level field is simply ignored by them.
+export const FavoriteFolderSchema = z.object({
+	id: z.string(),
+	libraryId: z.string(),
+	path: z.string(),
+	name: z.string(),
+	addedAt: z.number()
+});
+
 export const UserProfileSchema = z.object({
 	schemaVersion: z.number(),
 	exported: z.number(),
@@ -57,6 +69,7 @@ export const UserProfileSchema = z.object({
 		})).optional()
 	}).passthrough(),
 	favorites: z.array(FavoriteEntrySchema),
+	favoriteFolders: z.array(FavoriteFolderSchema).optional(),
 	playlists: z.record(z.any()),
 	history: z.array(z.any()),
 	autoplayRules: z.array(z.any()),

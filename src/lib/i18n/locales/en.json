@@ -167,7 +167,9 @@
 		"filterAlbums": "Albums ({count})",
 		"albumsHeader": "Albums",
 		"tracksHeader": "Tracks",
-		"unavailableHeader": "No longer available ({count})"
+		"unavailableHeader": "No longer available ({count})",
+		"foldersHeader": "Folders",
+		"folderLibraryMissing": "WebDAV library no longer configured"
 	},
 	"playlists": {
 		"title": "Your Playlists",
@@ -198,6 +200,13 @@
 			"doneWithErrors": "{failed, plural, one {# file failed} other {# files failed}} — sync to retry",
 			"error": "Offline sync failed",
 			"showingDownloaded": "Server unreachable — showing downloaded files only."
+		},
+		"folderCard": {
+			"play": "Play folder",
+			"shuffle": "Shuffle folder",
+			"queued": "{count, plural, one {# track added to the queue} other {# tracks added to the queue}}",
+			"noAudio": "No audio files in this folder",
+			"offlineCount": "{count, plural, one {# file offline} other {# files offline}}"
 		}
 	},
 	"about": {

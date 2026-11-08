@@ -1,7 +1,7 @@
 // Library store - favorites and playlists
 
 import { writable, get } from 'svelte/store';
-import type { Playlist, FavoriteEntry, FavoriteType } from '$lib/types';
+import type { Playlist, FavoriteEntry, FavoriteType, FavoriteFolder } from '$lib/types';
 import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
 
 // Simple UUID generator
@@ -11,6 +11,7 @@ function generateId(): string {
 
 export interface LibraryState {
 	favorites: FavoriteEntry[];
+	favoriteFolders: FavoriteFolder[];
 	playlists: Record<string, Playlist>;
 	isDirty: boolean; // Has unsaved changes
 }
@@ -19,6 +20,7 @@ export interface LibraryState {
 const storedProfile = loadFromStorageSync();
 const initialState: LibraryState = {
 	favorites: storedProfile?.favorites || [],
+	favoriteFolders: storedProfile?.favoriteFolders || [],
 	playlists: storedProfile?.playlists || {},
 	isDirty: false
 };
@@ -41,6 +43,7 @@ function createLibraryStore() {
 		scheduleAutoSave({
 			...profile,
 			favorites: state.favorites,
+			favoriteFolders: state.favoriteFolders,
 			playlists: state.playlists
 		});
 	}
@@ -56,6 +59,7 @@ function createLibraryStore() {
 				update((state) => ({
 					...state,
 					favorites: profile.favorites,
+					favoriteFolders: profile.favoriteFolders || [],
 					playlists: profile.playlists
 				}));
 			}
@@ -104,6 +108,26 @@ function createLibraryStore() {
 		isFavorite(id: string): boolean {
 			const state = get({ subscribe });
 			return state.favorites.some((f) => f.id === id);
+		},
+
+		// Favorite WebDAV folders
+		isFolderFavorite(id: string): boolean {
+			return get({ subscribe }).favoriteFolders.some((f) => f.id === id);
+		},
+
+		toggleFavoriteFolder(folder: Omit<FavoriteFolder, 'addedAt'>) {
+			update((state) => {
+				const exists = state.favoriteFolders.some((f) => f.id === folder.id);
+				const newState = {
+					...state,
+					favoriteFolders: exists
+						? state.favoriteFolders.filter((f) => f.id !== folder.id)
+						: [...state.favoriteFolders, { ...folder, addedAt: Date.now() }],
+					isDirty: true
+				};
+				triggerAutoSave(newState);
+				return newState;
+			});
 		},
 
 		getFavoritesByType(type: FavoriteType): FavoriteEntry[] {
@@ -252,10 +276,15 @@ function createLibraryStore() {
 		},
 
 		// Load from imported profile
-		loadFromProfile(data: { favorites: FavoriteEntry[]; playlists: Record<string, Playlist> }) {
+		loadFromProfile(data: {
+			favorites: FavoriteEntry[];
+			favoriteFolders?: FavoriteFolder[];
+			playlists: Record<string, Playlist>;
+		}) {
 			update((state) => ({
 				...state,
 				favorites: data.favorites,
+				favoriteFolders: data.favoriteFolders || [],
 				playlists: data.playlists,
 				isDirty: false
 			}));

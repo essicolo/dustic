@@ -14,6 +14,10 @@
 	import { onMount } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import AudioCard from '$lib/components/AudioCard.svelte';
+	import FolderCard from '$lib/components/FolderCard.svelte';
+	import { settings } from '$lib/stores/settings';
+	import type { WebDAVEntry } from '$lib/services/webdavLibrary';
+	import type { FavoriteFolder } from '$lib/types';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { browser } from '$app/environment';
@@ -190,6 +194,22 @@
 	$: filteredTracks = showOfflineOnly
 		? validTracks.filter((t) => $isOfflineAvailable(t.identifier))
 		: validTracks;
+	// Favorite WebDAV folders: rendered straight from the profile, no fetch.
+	$: webdavLibraries = $settings.webdavLibraries || [];
+	$: favoriteFolders = $library.favoriteFolders.map((f) => ({
+		fav: f,
+		lib: webdavLibraries.find((l) => l.id === f.libraryId),
+		entry: { type: 'folder', name: f.name, path: f.path } as WebDAVEntry
+	}));
+	$: hasFolders = favoriteFolders.length > 0;
+
+	function openFolder(f: FavoriteFolder) {
+		const lib = webdavLibraries.find((l) => l.id === f.libraryId);
+		const root = (lib?.rootPath || '/').replace(/\/+$/, '');
+		const rel = root && f.path.startsWith(root + '/') ? f.path.slice(root.length) : f.path;
+		goto(`${base}/library/webdav/${f.libraryId}?p=${encodeURIComponent(rel || '/')}`);
+	}
+
 	$: trackCount = $library.favorites.filter((f) => f.type === 'track').length;
 	$: albumCount = $library.favorites.filter((f) => f.type === 'album').length;
 </script>
@@ -202,7 +222,7 @@
 				<Icon icon="solar:arrow-left-linear" width="18" />
 				{$_('common.back')}
 			</button>
-			{#if validTracks.length > 0 || validAlbums.length > 0}
+			{#if validTracks.length > 0 || validAlbums.length > 0 || hasFolders}
 				<!-- View Mode Toggle -->
 				<div class="btn-group">
 					<button
@@ -266,6 +286,43 @@
 		</div>
 	{/if}
 
+	<!-- Folders Section (WebDAV) -->
+	{#if hasFolders && filterType === 'all'}
+		<h3 class="text-lg font-semibold mb-3">{$_('favorites.foldersHeader')}</h3>
+		{#if viewMode === 'grid'}
+			<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-8" data-testid="favorite-folders">
+				{#each favoriteFolders as { fav, lib, entry } (fav.id)}
+					{#if lib}
+						<FolderCard library={lib} folder={entry} layout="tile" on:open={() => openFolder(fav)} />
+					{:else}
+						<div class="card bg-base-200 p-3 text-sm opacity-60">
+							<div class="font-medium truncate">{fav.name}</div>
+							<div class="text-xs">{$_('favorites.folderLibraryMissing')}</div>
+							<button class="btn btn-ghost btn-xs mt-2" on:click={() => library.toggleFavoriteFolder(fav)}>
+								{$_('player.removeFavorite')}
+							</button>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{:else}
+			<div class="divide-y divide-base-300 border-y border-base-300 mb-8" data-testid="favorite-folders">
+				{#each favoriteFolders as { fav, lib, entry } (fav.id)}
+					{#if lib}
+						<FolderCard library={lib} folder={entry} layout="list" on:open={() => openFolder(fav)} />
+					{:else}
+						<div class="flex items-center gap-3 p-3 text-sm opacity-60">
+							<span class="flex-1 truncate">{fav.name} — {$_('favorites.folderLibraryMissing')}</span>
+							<button class="btn btn-ghost btn-xs" on:click={() => library.toggleFavoriteFolder(fav)}>
+								{$_('player.removeFavorite')}
+							</button>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+	{/if}
+
 	{#if isLoading && validTracks.length === 0 && validAlbums.length === 0}
 		<!-- Skeleton loaders only shown until first results arrive -->
 		{#if viewMode === 'grid'}
@@ -281,6 +338,8 @@
 				{/each}
 			</div>
 		{/if}
+	{:else if !isLoading && validTracks.length === 0 && validAlbums.length === 0 && hasFolders}
+		<!-- only folders are favorited: nothing more to show -->
 	{:else if !isLoading && validTracks.length === 0 && validAlbums.length === 0}
 		<div class="text-center py-20 text-base-content/50">
 			<p class="text-lg">{$_('favorites.empty')}</p>
@@ -309,7 +368,7 @@
 
 		<!-- Tracks Section -->
 		{#if (filterType === 'all' || filterType === 'tracks')}
-			{#if filterType === 'all' && validTracks.length > 0 && validAlbums.length > 0}
+			{#if filterType === 'all' && validTracks.length > 0 && (validAlbums.length > 0 || hasFolders)}
 				<h3 class="text-lg font-semibold mb-3">{$_('favorites.tracksHeader')}</h3>
 			{/if}
 			{#if filteredTracks.length === 0 && showOfflineOnly}

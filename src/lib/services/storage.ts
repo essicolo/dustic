@@ -146,6 +146,12 @@ export function importProfileFromText(text: string): UserProfile {
 /**
  * Merge imported profile with current data
  */
+function mergeById<T extends { id: string }>(a: T[] = [], b: T[] = []): T[] {
+	const map = new Map(a.map((x) => [x.id, x]));
+	for (const x of b) if (!map.has(x.id)) map.set(x.id, x);
+	return [...map.values()];
+}
+
 export function mergeProfiles(current: UserProfile, imported: UserProfile): UserProfile {
 	// Merge favorites: union by id, keep the one with earlier addedAt
 	const favMap = new Map(current.favorites.map((f) => [f.id, f]));
@@ -160,6 +166,7 @@ export function mergeProfiles(current: UserProfile, imported: UserProfile): User
 		schemaVersion: 2,
 		exported: Date.now(),
 		favorites: [...favMap.values()],
+		favoriteFolders: mergeById(current.favoriteFolders, imported.favoriteFolders),
 		// Keep newer history entries
 		history: [
 			...imported.history,

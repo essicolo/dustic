@@ -219,6 +219,7 @@
 		// Now load into stores (these won't trigger auto-saves)
 		library.loadFromProfile({
 			favorites: profile.favorites,
+			favoriteFolders: profile.favoriteFolders,
 			playlists: profile.playlists
 		});
 

@@ -63,9 +63,23 @@ test('a WebDAV folder can be kept offline and browsed without the server', async
 	// Settings are saved on a debounce; wait until the library is persisted.
 	await page.waitForFunction(() => (localStorage.getItem('dustic-profile') || '').includes('lib1'));
 
-	await page.goto('/library/webdav/lib1?p=%2FRock');
-	await page.getByTestId('webdav-keep-offline').click();
-	await expect(page.getByText(/Available offline|Disponible hors ligne/)).toBeVisible({ timeout: 15000 });
+	// Keep the "Rock" folder offline straight from its tile.
+	await page.goto('/library/webdav/lib1?p=%2F');
+	const rock = page.getByTestId('folder-card').filter({ hasText: 'Rock' });
+	await expect(rock).toBeVisible();
+	await page.screenshot({ path: 'test-results/folder-tiles.png' });
+	await rock.getByTestId('folder-keep-offline').click();
+	await expect(rock.getByText(/3 files offline|3 fichiers hors ligne/)).toBeVisible({ timeout: 15000 });
+	await rock.getByTestId('folder-menu').click();
+	await page.screenshot({ path: 'test-results/folder-menu.png' });
+	await page.keyboard.press('Escape');
+
+	// Favorite the folder from its tile; it shows up under Favorites.
+	await rock.getByTestId('folder-favorite').click();
+	await page.waitForFunction(() => (localStorage.getItem('dustic-profile') || '').includes('favoriteFolders'));
+	await page.goto('/library/favorites');
+	await expect(page.getByTestId('favorite-folders')).toContainText('Rock');
+	await page.screenshot({ path: 'test-results/favorite-folders.png' });
 
 	// Settings → Offline shows the files and their volume.
 	await page.goto('/settings/offline');

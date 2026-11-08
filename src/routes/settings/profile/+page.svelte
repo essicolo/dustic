@@ -141,6 +141,7 @@
 	async function loadProfile(profile: UserProfile) {
 		library.loadFromProfile({
 			favorites: profile.favorites,
+			favoriteFolders: profile.favoriteFolders,
 			playlists: profile.playlists
 		});
 

@@ -4,6 +4,15 @@ export type TrackSource = 'internetarchive' | 'funkwhale' | 'webdav';
 
 export type FavoriteType = 'track' | 'album';
 
+/** A WebDAV folder marked as favorite (path is server-absolute). */
+export interface FavoriteFolder {
+	id: string; // `wd:<libraryId>:<base64url(path)>`
+	libraryId: string;
+	path: string;
+	name: string;
+	addedAt: number;
+}
+
 export interface FavoriteEntry {
 	id: string; // Track identifier or album identifier
 	type: FavoriteType;
@@ -91,6 +100,8 @@ export interface UserProfile {
 	schemaVersion: number; // Storage schema version (only changes on breaking data structure changes)
 	exported: number; // Timestamp
 	favorites: FavoriteEntry[];
+	/** WebDAV folders marked as favorites (absent in older profiles). */
+	favoriteFolders?: FavoriteFolder[];
 	playlists: Record<string, Playlist>;
 	history: HistoryEntry[]; // Last 100
 	autoplayRules: AutoplayRule[]; // Custom rule configuration

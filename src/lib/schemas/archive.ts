@@ -61,8 +61,9 @@ export const FavoriteEntrySchema = z
 	})
 	.passthrough();
 
-// WebDAV folders marked as favorites (separate field until the favorites
-// list is unified in a future schema version).
+// Schema v2 stored favorite WebDAV folders in a separate `favoriteFolders`
+// field; v3 folds them into `favorites` (type 'folder'). Only used by the
+// migration in profileNormalize.
 export const FavoriteFolderSchema = z
 	.object({
 		id: z.string(),
@@ -108,7 +109,6 @@ export const UserProfileSchema = z
 			.passthrough()
 			.catch(DEFAULT_SETTINGS),
 		favorites: lenientArray(FavoriteEntrySchema),
-		favoriteFolders: lenientArray(FavoriteFolderSchema).optional(),
 		playlists: z.record(z.any()).catch({}),
 		history: z.array(z.any()).catch([]),
 		autoplayRules: z.array(z.any()).catch([]),

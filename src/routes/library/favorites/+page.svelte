@@ -17,7 +17,7 @@
 	import FolderCard from '$lib/components/FolderCard.svelte';
 	import { settings } from '$lib/stores/settings';
 	import type { WebDAVEntry } from '$lib/services/webdavLibrary';
-	import type { FavoriteFolder } from '$lib/types';
+	import type { FavoriteEntry, FolderRef } from '$lib/types';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { isOfflineAvailable } from '$lib/stores/offline';
 	import { browser } from '$app/environment';
@@ -196,18 +196,21 @@
 		: validTracks;
 	// Favorite WebDAV folders: rendered straight from the profile, no fetch.
 	$: webdavLibraries = $settings.webdavLibraries || [];
-	$: favoriteFolders = $library.favoriteFolders.map((f) => ({
-		fav: f,
-		lib: webdavLibraries.find((l) => l.id === f.libraryId),
-		entry: { type: 'folder', name: f.name, path: f.path } as WebDAVEntry
-	}));
+	$: favoriteFolders = $library.favorites
+		.filter((f): f is FavoriteEntry & { ref: FolderRef } => f.type === 'folder' && !!f.ref)
+		.map((f) => ({
+			fav: f,
+			lib: webdavLibraries.find((l) => l.id === f.ref.libraryId),
+			entry: { type: 'folder', name: f.ref.name, path: f.ref.path } as WebDAVEntry
+		}));
 	$: hasFolders = favoriteFolders.length > 0;
 
-	function openFolder(f: FavoriteFolder) {
-		const lib = webdavLibraries.find((l) => l.id === f.libraryId);
+	function openFolder(f: FavoriteEntry & { ref: FolderRef }) {
+		const { libraryId, path } = f.ref;
+		const lib = webdavLibraries.find((l) => l.id === libraryId);
 		const root = (lib?.rootPath || '/').replace(/\/+$/, '');
-		const rel = root && f.path.startsWith(root + '/') ? f.path.slice(root.length) : f.path;
-		goto(`${base}/library/webdav/${f.libraryId}?p=${encodeURIComponent(rel || '/')}`);
+		const rel = root && path.startsWith(root + '/') ? path.slice(root.length) : path;
+		goto(`${base}/library/webdav/${libraryId}?p=${encodeURIComponent(rel || '/')}`);
 	}
 
 	$: trackCount = $library.favorites.filter((f) => f.type === 'track').length;
@@ -296,9 +299,9 @@
 						<FolderCard library={lib} folder={entry} layout="tile" on:open={() => openFolder(fav)} />
 					{:else}
 						<div class="card bg-base-200 p-3 text-sm opacity-60">
-							<div class="font-medium truncate">{fav.name}</div>
+							<div class="font-medium truncate">{fav.ref.name}</div>
 							<div class="text-xs">{$_('favorites.folderLibraryMissing')}</div>
-							<button class="btn btn-ghost btn-xs mt-2" on:click={() => library.toggleFavoriteFolder(fav)}>
+							<button class="btn btn-ghost btn-xs mt-2" on:click={() => library.toggleFavoriteFolder(fav.id, fav.ref)}>
 								{$_('player.removeFavorite')}
 							</button>
 						</div>
@@ -312,8 +315,8 @@
 						<FolderCard library={lib} folder={entry} layout="list" on:open={() => openFolder(fav)} />
 					{:else}
 						<div class="flex items-center gap-3 p-3 text-sm opacity-60">
-							<span class="flex-1 truncate">{fav.name} — {$_('favorites.folderLibraryMissing')}</span>
-							<button class="btn btn-ghost btn-xs" on:click={() => library.toggleFavoriteFolder(fav)}>
+							<span class="flex-1 truncate">{fav.ref.name} — {$_('favorites.folderLibraryMissing')}</span>
+							<button class="btn btn-ghost btn-xs" on:click={() => library.toggleFavoriteFolder(fav.id, fav.ref)}>
 								{$_('player.removeFavorite')}
 							</button>
 						</div>

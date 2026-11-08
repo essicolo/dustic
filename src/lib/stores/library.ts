@@ -1,8 +1,9 @@
 // Library store - favorites and playlists
 
 import { writable, get } from 'svelte/store';
-import type { Playlist, FavoriteEntry, FavoriteType, FavoriteFolder } from '$lib/types';
+import type { Playlist, FavoriteEntry, FavoriteType, FolderRef } from '$lib/types';
 import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
+import { STORAGE_SCHEMA_VERSION } from '$lib/services/profileNormalize';
 
 // Simple UUID generator
 function generateId(): string {
@@ -11,7 +12,6 @@ function generateId(): string {
 
 export interface LibraryState {
 	favorites: FavoriteEntry[];
-	favoriteFolders: FavoriteFolder[];
 	playlists: Record<string, Playlist>;
 	isDirty: boolean; // Has unsaved changes
 }
@@ -20,7 +20,6 @@ export interface LibraryState {
 const storedProfile = loadFromStorageSync();
 const initialState: LibraryState = {
 	favorites: storedProfile?.favorites || [],
-	favoriteFolders: storedProfile?.favoriteFolders || [],
 	playlists: storedProfile?.playlists || {},
 	isDirty: false
 };
@@ -31,7 +30,7 @@ function createLibraryStore() {
 	// Helper to trigger auto-save
 	function triggerAutoSave(state: LibraryState) {
 		const profile = getCachedProfile() || loadFromStorageSync() || {
-			schemaVersion: 2,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now(),
 			favorites: [],
 			playlists: {},
@@ -43,7 +42,6 @@ function createLibraryStore() {
 		scheduleAutoSave({
 			...profile,
 			favorites: state.favorites,
-			favoriteFolders: state.favoriteFolders,
 			playlists: state.playlists
 		});
 	}
@@ -59,7 +57,6 @@ function createLibraryStore() {
 				update((state) => ({
 					...state,
 					favorites: profile.favorites,
-					favoriteFolders: profile.favoriteFolders || [],
 					playlists: profile.playlists
 				}));
 			}
@@ -110,19 +107,19 @@ function createLibraryStore() {
 			return state.favorites.some((f) => f.id === id);
 		},
 
-		// Favorite WebDAV folders
+		// Favorite WebDAV folders (type 'folder', identified like a WebDAV track)
 		isFolderFavorite(id: string): boolean {
-			return get({ subscribe }).favoriteFolders.some((f) => f.id === id);
+			return get({ subscribe }).favorites.some((f) => f.id === id && f.type === 'folder');
 		},
 
-		toggleFavoriteFolder(folder: Omit<FavoriteFolder, 'addedAt'>) {
+		toggleFavoriteFolder(id: string, ref: FolderRef) {
 			update((state) => {
-				const exists = state.favoriteFolders.some((f) => f.id === folder.id);
+				const exists = state.favorites.some((f) => f.id === id);
 				const newState = {
 					...state,
-					favoriteFolders: exists
-						? state.favoriteFolders.filter((f) => f.id !== folder.id)
-						: [...state.favoriteFolders, { ...folder, addedAt: Date.now() }],
+					favorites: exists
+						? state.favorites.filter((f) => f.id !== id)
+						: [...state.favorites, { id, type: 'folder' as const, addedAt: Date.now(), ref }],
 					isDirty: true
 				};
 				triggerAutoSave(newState);
@@ -278,13 +275,11 @@ function createLibraryStore() {
 		// Load from imported profile
 		loadFromProfile(data: {
 			favorites: FavoriteEntry[];
-			favoriteFolders?: FavoriteFolder[];
 			playlists: Record<string, Playlist>;
 		}) {
 			update((state) => ({
 				...state,
 				favorites: data.favorites,
-				favoriteFolders: data.favoriteFolders || [],
 				playlists: data.playlists,
 				isDirty: false
 			}));

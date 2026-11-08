@@ -5,14 +5,14 @@
 // webdav.ts can all use it without import cycles.
 
 import type { UserProfile } from '$lib/types';
-import { UserProfileSchema } from '$lib/schemas/archive';
+import { UserProfileSchema, FavoriteFolderSchema } from '$lib/schemas/archive';
 import { devLog } from '$lib/utils/logger';
 
 /**
  * Storage schema version. Only increment on breaking data-structure changes;
  * this is separate from the app version and should rarely change.
  */
-export const STORAGE_SCHEMA_VERSION = 2;
+export const STORAGE_SCHEMA_VERSION = 3;
 
 /** Raised when a profile was written by a newer schema than this build knows. */
 export class ProfileTooNewError extends Error {
@@ -46,6 +46,27 @@ export function normalizeProfile(input: unknown): UserProfile {
 		raw.favorites = raw.favorites.map((f: unknown) =>
 			typeof f === 'string' ? { id: f, type: 'track', addedAt: Date.now() } : f
 		);
+	}
+
+	// v2 → v3: favorite WebDAV folders move from `favoriteFolders` into
+	// `favorites` as type 'folder'. Done whenever the old field is present,
+	// not only by version, so importing a v2 profile into v3 also folds it.
+	if ('favoriteFolders' in raw) {
+		const favorites: any[] = Array.isArray(raw.favorites) ? [...raw.favorites] : [];
+		const known = new Set(favorites.map((f) => f?.id));
+		for (const entry of Array.isArray(raw.favoriteFolders) ? raw.favoriteFolders : []) {
+			const r = FavoriteFolderSchema.safeParse(entry);
+			if (!r.success || known.has(r.data.id)) continue;
+			known.add(r.data.id);
+			favorites.push({
+				id: r.data.id,
+				type: 'folder',
+				addedAt: r.data.addedAt,
+				ref: { libraryId: r.data.libraryId, path: r.data.path, name: r.data.name }
+			});
+		}
+		raw.favorites = favorites;
+		delete raw.favoriteFolders;
 	}
 
 	// Old WebDAV sync setting: autoSync boolean → autoSyncMinutes number

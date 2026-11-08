@@ -29,6 +29,8 @@ const SIZES: Record<string, number> = {
 };
 
 test('a WebDAV folder can be kept offline and browsed without the server', async ({ page }) => {
+	// Many navigations on a cold dev server: give it room under parallel load.
+	test.setTimeout(90_000);
 	let serverUp = true;
 	await page.route('**/api/webdav-proxy', async (route) => {
 		if (!serverUp) return route.abort('internetdisconnected');
@@ -76,7 +78,7 @@ test('a WebDAV folder can be kept offline and browsed without the server', async
 
 	// Favorite the folder from its tile; it shows up under Favorites.
 	await rock.getByTestId('folder-favorite').click();
-	await page.waitForFunction(() => (localStorage.getItem('dustic-profile') || '').includes('favoriteFolders'));
+	await page.waitForFunction(() => (localStorage.getItem('dustic-profile') || '').includes('"type":"folder"'));
 	await page.goto('/library/favorites');
 	await expect(page.getByTestId('favorite-folders')).toContainText('Rock');
 	await page.screenshot({ path: 'test-results/favorite-folders.png' });

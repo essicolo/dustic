@@ -34,13 +34,12 @@
 
 	$: id = folderId(library.id, folder.path);
 	$: favId = encodeIdentifier(library.id, folder.path);
-	$: isFavorite = $libraryStore.favoriteFolders.some((f) => f.id === favId);
+	$: isFavorite = $libraryStore.favorites.some((f) => f.id === favId && f.type === 'folder');
 
 	function toggleFavorite(event?: Event) {
 		event?.stopPropagation();
 		showMenu = false;
-		libraryStore.toggleFavoriteFolder({
-			id: favId,
+		libraryStore.toggleFavoriteFolder(favId, {
 			libraryId: library.id,
 			path: folder.path,
 			name: folder.name

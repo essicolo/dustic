@@ -4,6 +4,7 @@ import { writable, get } from 'svelte/store';
 import type { HistoryEntry } from '$lib/types';
 import { CONFIG } from '$lib/utils/constants';
 import { loadFromStorageSync, loadFromStorage, getCachedProfile, scheduleAutoSave } from '$lib/services/persistence';
+import { STORAGE_SCHEMA_VERSION } from '$lib/services/profileNormalize';
 
 export interface HistoryState {
 	entries: HistoryEntry[];
@@ -24,7 +25,7 @@ function createHistoryStore() {
 	function triggerAutoSave() {
 		const state = get({ subscribe });
 		const profile = getCachedProfile() || loadFromStorageSync() || {
-			schemaVersion: 2,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now(),
 			favorites: [],
 			playlists: {},

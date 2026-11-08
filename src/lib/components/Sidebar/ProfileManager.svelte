@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { STORAGE_SCHEMA_VERSION } from '$lib/services/profileNormalize';
 	import { devLog } from '$lib/utils/logger';
 	import { library } from '$lib/stores/library';
 	import { history } from '$lib/stores/history';
@@ -101,7 +102,7 @@
 
 	function buildCurrentProfile(): UserProfile {
 		return {
-			schemaVersion: 2,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now(),
 			favorites: $library.favorites,
 			playlists: $library.playlists,
@@ -220,7 +221,6 @@
 		// Now load into stores (these won't trigger auto-saves)
 		library.loadFromProfile({
 			favorites: profile.favorites,
-			favoriteFolders: profile.favoriteFolders,
 			playlists: profile.playlists
 		});
 

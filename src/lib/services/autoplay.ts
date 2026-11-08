@@ -384,7 +384,9 @@ async function findFromFavorites(): Promise<Track | null> {
 	// setting "From Favorites" to weight 0 (or disabling the rule)
 	// already short-circuits this strategy through `enabledRules`.
 	const libraryState = get(library);
-	const favorites = libraryState.favorites;
+	// Only playable kinds: a 'folder' favorite (or a kind added by a newer
+	// version) is not a track identifier.
+	const favorites = libraryState.favorites.filter((f) => f.type === 'track' || f.type === 'album');
 	if (favorites.length === 0) return null;
 
 	// Pick favorites not yet tried, then keep trying until we find one

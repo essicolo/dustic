@@ -2,7 +2,7 @@
 
 import type { UserProfile, AutoplayRule } from '$lib/types';
 import { DEFAULT_AUTOPLAY_RULES, CONFIG } from '$lib/utils/constants';
-import { normalizeProfile } from './profileNormalize';
+import { normalizeProfile, STORAGE_SCHEMA_VERSION } from './profileNormalize';
 
 /**
  * Strip device-bound secrets (encrypted passwords) from a profile before
@@ -108,7 +108,7 @@ function validateProfile(profile: any): profile is UserProfile {
  */
 export function createDefaultProfile(): UserProfile {
 	return {
-		schemaVersion: 2,
+		schemaVersion: STORAGE_SCHEMA_VERSION,
 		exported: Date.now(),
 		favorites: [],
 		playlists: {},
@@ -147,12 +147,6 @@ export function importProfileFromText(text: string): UserProfile {
 /**
  * Merge imported profile with current data
  */
-function mergeById<T extends { id: string }>(a: T[] = [], b: T[] = []): T[] {
-	const map = new Map(a.map((x) => [x.id, x]));
-	for (const x of b) if (!map.has(x.id)) map.set(x.id, x);
-	return [...map.values()];
-}
-
 export function mergeProfiles(current: UserProfile, imported: UserProfile): UserProfile {
 	// Merge favorites: union by id, keep the one with earlier addedAt
 	const favMap = new Map(current.favorites.map((f) => [f.id, f]));
@@ -166,10 +160,9 @@ export function mergeProfiles(current: UserProfile, imported: UserProfile): User
 		...imported,
 		// Never downgrade: a newer imported profile keeps its version, so the
 		// save path can refuse it instead of silently stripping its data.
-		schemaVersion: Math.max(2, imported.schemaVersion || 2),
+		schemaVersion: Math.max(STORAGE_SCHEMA_VERSION, imported.schemaVersion || 0),
 		exported: Date.now(),
 		favorites: [...favMap.values()],
-		favoriteFolders: mergeById(current.favoriteFolders, imported.favoriteFolders),
 		// Keep newer history entries
 		history: [
 			...imported.history,

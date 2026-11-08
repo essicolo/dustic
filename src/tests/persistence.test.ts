@@ -76,11 +76,11 @@ describe('UserProfileSchema', () => {
 	});
 });
 
-describe('favoriteFolders', () => {
+describe('favorite folders (schema v3)', () => {
 	const base = {
 		schemaVersion: 2,
 		exported: 1,
-		favorites: [],
+		favorites: [{ id: 'item1', type: 'track', addedAt: 1 }],
 		playlists: {},
 		history: [],
 		autoplayRules: [],
@@ -88,22 +88,29 @@ describe('favoriteFolders', () => {
 	};
 	const folder = { id: 'wd:L:abc', libraryId: 'L', path: '/Music/Rock', name: 'Rock', addedAt: 5 };
 
-	it('survives schema validation', () => {
-		const parsed = UserProfileSchema.parse({ ...base, favoriteFolders: [folder] });
-		expect(parsed.favoriteFolders).toEqual([folder]);
+	it('migrates v2 favoriteFolders into favorites as type folder', async () => {
+		const { normalizeProfile } = await import('$lib/services/profileNormalize');
+		const p = normalizeProfile({ ...base, favoriteFolders: [folder, folder, { bogus: true }] }) as any;
+		expect(p.favoriteFolders).toBeUndefined();
+		expect(p.schemaVersion).toBe(3);
+		expect(p.favorites).toEqual([
+			{ id: 'item1', type: 'track', addedAt: 1 },
+			{ id: 'wd:L:abc', type: 'folder', addedAt: 5, ref: { libraryId: 'L', path: '/Music/Rock', name: 'Rock' } }
+		]);
 	});
 
-	it('is optional, so profiles from older versions still validate', () => {
-		expect(() => UserProfileSchema.parse(base)).not.toThrow();
+	it('round-trips folder favorites through the schema', () => {
+		const fav = { id: 'wd:L:abc', type: 'folder', addedAt: 5, ref: { libraryId: 'L', path: '/R', name: 'R' } };
+		const parsed = UserProfileSchema.parse({ ...base, schemaVersion: 3, favorites: [fav] });
+		expect(parsed.favorites).toEqual([fav]);
 	});
 
-	it('is merged by id when importing a profile', async () => {
+	it('merges folder favorites by id on import', async () => {
 		const { mergeProfiles } = await import('$lib/services/storage');
-		const other = { ...folder, id: 'wd:L:def', name: 'Jazz' };
-		const merged = mergeProfiles(
-			{ ...base, favoriteFolders: [folder] } as any,
-			{ ...base, favoriteFolders: [folder, other] } as any
-		);
-		expect(merged.favoriteFolders?.map((f) => f.name)).toEqual(['Rock', 'Jazz']);
+		const a = { id: 'wd:L:a', type: 'folder', addedAt: 1, ref: { libraryId: 'L', path: '/A', name: 'A' } };
+		const b = { ...a, id: 'wd:L:b', ref: { ...a.ref, path: '/B', name: 'B' } };
+		const merged = mergeProfiles({ ...base, favorites: [a] } as any, { ...base, favorites: [a, b] } as any);
+		expect(merged.favorites.map((f) => f.id)).toEqual(['wd:L:a', 'wd:L:b']);
+		expect(merged.schemaVersion).toBe(3);
 	});
 });

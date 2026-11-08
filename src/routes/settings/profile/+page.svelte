@@ -7,7 +7,7 @@
 	import { settings } from '$lib/stores/settings';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import { saveToStorage } from '$lib/services/persistence';
-	import { isNewerSchema, ProfileTooNewError } from '$lib/services/profileNormalize';
+	import { isNewerSchema, ProfileTooNewError, STORAGE_SCHEMA_VERSION } from '$lib/services/profileNormalize';
 	import type { UserProfile, WebDAVConfig } from '$lib/types';
 	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
 	import { encryptValue, decryptValue } from '$lib/services/crypto';
@@ -60,7 +60,7 @@
 
 	function handleExport() {
 		const profile: UserProfile = {
-			schemaVersion: 2,
+			schemaVersion: STORAGE_SCHEMA_VERSION,
 			exported: Date.now(),
 			favorites: $library.favorites,
 			playlists: $library.playlists,
@@ -145,7 +145,6 @@
 		if (isNewerSchema(profile)) throw new ProfileTooNewError(profile.schemaVersion);
 		library.loadFromProfile({
 			favorites: profile.favorites,
-			favoriteFolders: profile.favoriteFolders,
 			playlists: profile.playlists
 		});
 
@@ -236,7 +235,7 @@
 
 		try {
 			const profile: UserProfile = {
-				schemaVersion: 2,
+				schemaVersion: STORAGE_SCHEMA_VERSION,
 				exported: Date.now(),
 				favorites: $library.favorites,
 				playlists: $library.playlists,

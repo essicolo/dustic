@@ -27,7 +27,7 @@
 	     twenty characters. A ruled list says the same thing in a third of
 	     the height and reads as the index it is. -->
 	<nav class="mb-10 border-y border-base-300 divide-y divide-base-300">
-		{#each [ { href: `${base}/library/favorites`, icon: 'solar:heart-bold', label: $_('home.favorites'), detail: $_('library.favoritesItems', { values: { count: $library.favorites.length + $library.favoriteFolders.length } }) }, { href: `${base}/history`, icon: 'solar:history-bold', label: $_('history.title'), detail: $_('library.historySubtitle') }, { href: `${base}/library/playlists`, icon: 'solar:list-heart-bold', label: $_('home.playlists'), detail: $_('library.playlistCount', { values: { count: playlistCount } }) } ] as entry (entry.href)}
+		{#each [ { href: `${base}/library/favorites`, icon: 'solar:heart-bold', label: $_('home.favorites'), detail: $_('library.favoritesItems', { values: { count: $library.favorites.length } }) }, { href: `${base}/history`, icon: 'solar:history-bold', label: $_('history.title'), detail: $_('library.historySubtitle') }, { href: `${base}/library/playlists`, icon: 'solar:list-heart-bold', label: $_('home.playlists'), detail: $_('library.playlistCount', { values: { count: playlistCount } }) } ] as entry (entry.href)}
 			<a
 				href={entry.href}
 				class="group flex items-center gap-4 px-2 py-4 transition-colors hover:bg-base-200"

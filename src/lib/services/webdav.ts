@@ -4,6 +4,8 @@ import type { UserProfile, WebDAVConfig } from '$lib/types';
 import { browser } from '$app/environment';
 import { decryptValue } from './crypto';
 import { devLog } from '$lib/utils/logger';
+import { normalizeProfile, ProfileTooNewError } from './profileNormalize';
+import { isProfileReadOnly } from './persistence';
 
 const PROFILE_FILENAME = 'dustic-profile.json';
 
@@ -62,6 +64,9 @@ export async function uploadProfileToWebDAV(
 	config: WebDAVConfig
 ): Promise<void> {
 	if (!browser) throw new Error('WebDAV upload only available in browser');
+	// This build could not fully understand the local profile (written by a
+	// newer version): uploading it would overwrite the newer copy on the server.
+	if (isProfileReadOnly()) throw new ProfileTooNewError(0);
 
 	const targetUrl = buildTargetUrl(config.url, PROFILE_FILENAME);
 	const profileJson = JSON.stringify(profile, null, 2);
@@ -96,7 +101,7 @@ export async function downloadProfileFromWebDAV(config: WebDAVConfig): Promise<U
 
 	const profileData = await response.json();
 	devLog('[WebDAV] Profile downloaded successfully');
-	return profileData as UserProfile;
+	return normalizeProfile(profileData);
 }
 
 /**

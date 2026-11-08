@@ -7,6 +7,7 @@
 	import { settings } from '$lib/stores/settings';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
 	import { saveToStorage } from '$lib/services/persistence';
+	import { isNewerSchema, ProfileTooNewError } from '$lib/services/profileNormalize';
 	import type { UserProfile, WebDAVConfig } from '$lib/types';
 	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
 	import { encryptValue, decryptValue } from '$lib/services/crypto';
@@ -97,7 +98,7 @@
 			const imported = await importProfile(file);
 			pendingImport = imported;
 		} catch (error) {
-			importError = error instanceof Error ? error.message : $_('settings.profile.importFailedFile');
+			importError = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('settings.profile.importFailedFile');
 		} finally {
 			input.value = '';
 		}
@@ -129,7 +130,7 @@
 			setTimeout(() => { importSuccess = false; }, 3000);
 		} catch (error) {
 			console.error('[Settings] Import failed:', error);
-			importError = $_('settings.profile.importFailedSave');
+			importError = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : $_('settings.profile.importFailedSave');
 		}
 	}
 
@@ -139,6 +140,9 @@
 
 
 	async function loadProfile(profile: UserProfile) {
+		// Refuse before touching the stores: loading a newer profile and then
+		// failing to save it would let auto-save write a downgraded copy.
+		if (isNewerSchema(profile)) throw new ProfileTooNewError(profile.schemaVersion);
 		library.loadFromProfile({
 			favorites: profile.favorites,
 			favoriteFolders: profile.favoriteFolders,
@@ -194,7 +198,7 @@
 			}
 		} catch (error) {
 			webdavTestStatus = 'error';
-			webdavTestMessage = error instanceof Error ? error.message : $_('settings.profile.connError');
+			webdavTestMessage = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('settings.profile.connError');
 		}
 
 		setTimeout(() => {
@@ -258,7 +262,7 @@
 			history.markClean();
 		} catch (error) {
 			webdavSyncStatus = 'error';
-			webdavSyncMessage = error instanceof Error ? error.message : $_('settings.profile.uploadFailed');
+			webdavSyncMessage = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('settings.profile.uploadFailed');
 		}
 
 		setTimeout(() => {
@@ -288,7 +292,7 @@
 			webdavSyncMessage = $_('settings.profile.downloadOk');
 		} catch (error) {
 			webdavSyncStatus = 'error';
-			webdavSyncMessage = error instanceof Error ? error.message : $_('settings.profile.downloadFailed');
+			webdavSyncMessage = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('settings.profile.downloadFailed');
 		}
 
 		setTimeout(() => {

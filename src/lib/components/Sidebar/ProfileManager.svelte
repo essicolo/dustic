@@ -93,7 +93,7 @@
 			const imported = await importProfile(file);
 			pendingImport = imported;
 		} catch (error) {
-			importError = error instanceof Error ? error.message : $_('profileMgr.importFailed');
+			importError = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('profileMgr.importFailed');
 		} finally {
 			input.value = '';
 		}
@@ -195,7 +195,7 @@
 			setTimeout(() => (importSuccess = false), 3000);
 		} catch (error) {
 			console.error('[ProfileManager] Import failed:', error);
-			importError = $_('settings.profile.importFailedSave');
+			importError = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : $_('settings.profile.importFailedSave');
 		}
 	}
 
@@ -213,6 +213,7 @@
 			devLog('[ProfileManager] ✓ Profile saved to IndexedDB');
 		} catch (error) {
 			console.error('[ProfileManager] ✗ Failed to save profile:', error);
+			if (error instanceof Error && error.name === 'ProfileTooNewError') throw error;
 			throw new Error($_('profileMgr.saveStoreFailed'));
 		}
 
@@ -332,7 +333,7 @@
 			syncSuccess = true;
 			setTimeout(() => (syncSuccess = false), 3000);
 		} catch (error) {
-			syncError = error instanceof Error ? error.message : $_('profileMgr.syncFailed');
+			syncError = error instanceof Error && error.name === 'ProfileTooNewError' ? $_('errors.profileTooNew') : error instanceof Error ? error.message : $_('profileMgr.syncFailed');
 			setTimeout(() => (syncError = ''), 5000);
 		} finally {
 			isSyncing = false;

@@ -2,6 +2,7 @@
 
 import type { UserProfile, AutoplayRule } from '$lib/types';
 import { DEFAULT_AUTOPLAY_RULES, CONFIG } from '$lib/utils/constants';
+import { normalizeProfile } from './profileNormalize';
 
 /**
  * Strip device-bound secrets (encrypted passwords) from a profile before
@@ -58,7 +59,7 @@ export function importProfile(file: File): Promise<UserProfile> {
 				// Migrate old string[] favorites to FavoriteEntry[] before using as UserProfile
 				migrateFavorites(raw);
 
-				resolve(raw as UserProfile);
+				resolve(normalizeProfile(raw));
 			} catch (error) {
 				reject(new Error('Failed to parse profile file'));
 			}
@@ -140,7 +141,7 @@ export function importProfileFromText(text: string): UserProfile {
 	}
 
 	migrateFavorites(raw);
-	return raw as UserProfile;
+	return normalizeProfile(raw);
 }
 
 /**
@@ -163,7 +164,9 @@ export function mergeProfiles(current: UserProfile, imported: UserProfile): User
 
 	return {
 		...imported,
-		schemaVersion: 2,
+		// Never downgrade: a newer imported profile keeps its version, so the
+		// save path can refuse it instead of silently stripping its data.
+		schemaVersion: Math.max(2, imported.schemaVersion || 2),
 		exported: Date.now(),
 		favorites: [...favMap.values()],
 		favoriteFolders: mergeById(current.favoriteFolders, imported.favoriteFolders),

@@ -5,15 +5,19 @@
 
 import { browser } from '$app/environment';
 import type { UserProfile } from '$lib/types';
-import { createDefaultProfile } from './storage';
-import { UserProfileSchema } from '$lib/schemas/archive';
 import { saveToIndexedDB, loadFromIndexedDB } from './indexedDbPersistence';
 import { devLog } from '$lib/utils/logger';
+import {
+	normalizeProfile,
+	isNewerSchema,
+	ProfileTooNewError,
+	STORAGE_SCHEMA_VERSION
+} from './profileNormalize';
+
+export { ProfileTooNewError, STORAGE_SCHEMA_VERSION };
 
 const STORAGE_KEY = 'dustic-profile';
-// Storage schema version - only increment when data structure changes (breaking changes)
-// This is SEPARATE from app version and should rarely change
-const STORAGE_SCHEMA_VERSION = 2;
+const BACKUP_KEY = 'dustic-profile-backup';
 
 // In-memory cache of the last known good profile.
 // This prevents data loss when iOS Safari clears localStorage in PWA mode:
@@ -21,62 +25,70 @@ const STORAGE_SCHEMA_VERSION = 2;
 let cachedProfile: UserProfile | null = null;
 
 /**
- * Migrate and validate profile data
+ * Set when the stored profile was written by a newer app version. The
+ * profile is still read, but automatic saves are suspended so this older
+ * build never overwrites data it doesn't understand. An explicit import
+ * (saveToStorage) lifts it, as does reloading into an up-to-date build.
  */
-function migrateAndValidateProfile(rawProfile: any): UserProfile {
-	// Get schema version (default to 1 for old data)
-	const schemaVersion = rawProfile.schemaVersion || 1;
+let readOnlyVersion: number | null = null;
+let readOnlyNotified = false;
 
-	// Migrate data if schema changed
-	if (schemaVersion < STORAGE_SCHEMA_VERSION) {
-		devLog(`Migrating profile schema from v${schemaVersion} to v${STORAGE_SCHEMA_VERSION}`);
+export function isProfileReadOnly(): boolean {
+	return readOnlyVersion !== null;
+}
 
-		// v1 → v2: favorites changed from string[] to FavoriteEntry[]
-		if (schemaVersion < 2 && Array.isArray(rawProfile.favorites)) {
-			const oldFavorites = rawProfile.favorites;
-			if (oldFavorites.length > 0 && typeof oldFavorites[0] === 'string') {
-				rawProfile.favorites = oldFavorites.map((id: string) => ({
-					id,
-					type: 'track',
-					addedAt: Date.now()
-				}));
-			}
+function notify(kind: 'info' | 'error', key: string) {
+	// Lazy import: persistence is loaded at module scope by several stores.
+	import('$lib/stores/notifications')
+		.then(({ notifications }) => notifications[kind](key))
+		.catch(() => {});
+}
+
+function markReadOnlyIfNewer(profile: UserProfile): void {
+	if (!isNewerSchema(profile)) return;
+	readOnlyVersion = profile.schemaVersion;
+	console.warn(
+		`[Persistence] Profile schema v${profile.schemaVersion} is newer than v${STORAGE_SCHEMA_VERSION}; auto-save suspended`
+	);
+	if (!readOnlyNotified) {
+		readOnlyNotified = true;
+		notify('error', 'errors.profileNewer');
+	}
+}
+
+/**
+ * Keep a verbatim copy of a stored profile that could not be read at all,
+ * before anything gets a chance to save over it.
+ */
+function backupUnreadable(raw: string): void {
+	try {
+		if (!localStorage.getItem(BACKUP_KEY)) {
+			localStorage.setItem(BACKUP_KEY, raw);
 		}
+		console.error('[Persistence] Stored profile unreadable; raw copy kept under', BACKUP_KEY);
+		notify('error', 'errors.profileUnreadable');
+	} catch {
+		// storage full — nothing more we can do
 	}
+}
 
-	rawProfile.schemaVersion = STORAGE_SCHEMA_VERSION;
-
-	// Backward compatibility: add missing fields with defaults
-	if (!rawProfile.settings) {
-		rawProfile.settings = {
-			volume: 0.7,
-			repeat: 'off',
-			audioQuality: 'medium'
-		};
+/** Read + normalize a stored profile; null when absent or not salvageable. */
+function readStored(stored: string): UserProfile | null {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(stored);
+	} catch {
+		backupUnreadable(stored);
+		return null;
 	}
-	if (!rawProfile.settings.audioQuality) {
-		rawProfile.settings.audioQuality = 'medium';
+	try {
+		const profile = normalizeProfile(parsed);
+		markReadOnlyIfNewer(profile);
+		return profile;
+	} catch {
+		backupUnreadable(stored);
+		return null;
 	}
-	if (!rawProfile.playlists) {
-		rawProfile.playlists = {};
-	}
-	if (!rawProfile.favorites) {
-		rawProfile.favorites = [];
-	}
-	if (!rawProfile.history) {
-		rawProfile.history = [];
-	}
-	if (!rawProfile.autoplayRules) {
-		rawProfile.autoplayRules = [];
-	}
-	// Migrate webdav: old autoSync boolean → autoSyncMinutes number
-	if (rawProfile.settings?.webdav && !('autoSyncMinutes' in rawProfile.settings.webdav)) {
-		rawProfile.settings.webdav.autoSyncMinutes = 0;
-		delete rawProfile.settings.webdav.autoSync;
-	}
-
-	// Validate with Zod before returning
-	return UserProfileSchema.parse(rawProfile);
 }
 
 /**
@@ -93,11 +105,8 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 		let fromIndexedDB = false;
 
 		if (stored) {
-			try {
-				rawProfile = JSON.parse(stored);
-			} catch (e) {
-				console.warn('Failed to parse localStorage profile:', e);
-			}
+			const fromLocal = readStored(stored);
+			if (fromLocal) rawProfile = fromLocal;
 		}
 
 		// If localStorage is empty or invalid, try IndexedDB
@@ -114,7 +123,8 @@ export async function loadFromStorage(): Promise<UserProfile | null> {
 
 		if (!rawProfile) return null;
 
-		const profile = migrateAndValidateProfile(rawProfile);
+		const profile = fromIndexedDB ? normalizeProfile(rawProfile) : (rawProfile as UserProfile);
+		if (fromIndexedDB) markReadOnlyIfNewer(profile);
 		cachedProfile = profile;
 
 		// If we loaded from IndexedDB, restore to localStorage
@@ -148,8 +158,7 @@ export function loadFromStorageSync(): UserProfile | null {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) return null;
 
-		const rawProfile = JSON.parse(stored) as any;
-		cachedProfile = migrateAndValidateProfile(rawProfile);
+		cachedProfile = readStored(stored);
 		return cachedProfile;
 	} catch (error) {
 		console.error('Failed to load profile from localStorage:', error);
@@ -172,6 +181,9 @@ export function invalidateProfileCache(): void {
 export async function saveToStorage(profile: UserProfile): Promise<void> {
 	if (!browser) return;
 
+	// Importing a profile from a newer version would downgrade it.
+	if (isNewerSchema(profile)) throw new ProfileTooNewError(profile.schemaVersion);
+
 	try {
 		const toSave = {
 			...profile,
@@ -184,6 +196,8 @@ export async function saveToStorage(profile: UserProfile): Promise<void> {
 
 		// Save to localStorage (fast, synchronous)
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+		// An explicit save replaced the newer profile: writing is safe again.
+		readOnlyVersion = null;
 
 		// Also save to IndexedDB for iOS PWA reliability
 		// CRITICAL: Wait for IndexedDB write to complete before resolving
@@ -226,6 +240,12 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 export function scheduleAutoSave(profile: UserProfile, immediate: boolean = false): void {
 	if (!browser) return;
 
+	// Never auto-save over a profile written by a newer app version.
+	if (readOnlyVersion !== null) {
+		devLog('[Persistence] Auto-save skipped: profile is read-only (newer schema)');
+		return;
+	}
+
 	// Immediate save for critical operations (profile import, app close)
 	if (immediate) {
 		if (saveTimeout) {
@@ -244,7 +264,12 @@ export function scheduleAutoSave(profile: UserProfile, immediate: boolean = fals
 
 	// Debounce by 5 seconds — avoids frequent JSON.stringify + localStorage + IndexedDB writes
 	saveTimeout = setTimeout(async () => {
-		await saveToStorage(profile);
 		saveTimeout = null;
+		if (readOnlyVersion !== null) return;
+		try {
+			await saveToStorage(profile);
+		} catch (error) {
+			console.error('[Persistence] Auto-save failed:', error);
+		}
 	}, 5000);
 }

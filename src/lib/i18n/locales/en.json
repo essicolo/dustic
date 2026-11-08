@@ -20,7 +20,10 @@
 		"tracksFailed": "Could not load the tracks for this item",
 		"trackWillNotPlay": "This track would not play, skipping to the next one",
 		"playbackStopped": "Several tracks in a row would not play, so playback has stopped",
-		"playBlocked": "Playback was blocked by the browser — tap play again"
+		"playBlocked": "Playback was blocked by the browser — tap play again",
+		"profileNewer": "Your profile was saved by a newer version of dustic. Changes are not saved until you reload to update.",
+		"profileTooNew": "This profile comes from a newer version of dustic. Reload the app to update, then try again.",
+		"profileUnreadable": "Your saved profile could not be read. A copy was kept (dustic-profile-backup)."
 	},
 	"viewMode": {
 		"label": "View mode",

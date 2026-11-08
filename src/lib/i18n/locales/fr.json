@@ -20,7 +20,10 @@
 		"tracksFailed": "Impossible de charger les pistes de cet élément",
 		"trackWillNotPlay": "Cette piste n'a pas pu être lue, passage à la suivante",
 		"playbackStopped": "Plusieurs pistes de suite n’ont pas pu être lues, la lecture est arrêtée",
-		"playBlocked": "La lecture a été bloquée par le navigateur — touchez lecture à nouveau"
+		"playBlocked": "La lecture a été bloquée par le navigateur — touchez lecture à nouveau",
+		"profileNewer": "Votre profil a été enregistré par une version plus récente de dustic. Les modifications ne sont pas sauvegardées tant que vous ne rechargez pas l’app pour la mettre à jour.",
+		"profileTooNew": "Ce profil provient d’une version plus récente de dustic. Rechargez l’app pour la mettre à jour, puis réessayez.",
+		"profileUnreadable": "Votre profil enregistré n’a pas pu être lu. Une copie a été conservée (dustic-profile-backup)."
 	},
 	"viewMode": {
 		"label": "Mode d'affichage",

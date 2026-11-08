@@ -188,7 +188,17 @@
 		"backToLibrary": "Back to Library",
 		"upOneFolder": "Up one folder",
 		"emptyFolder": "Empty folder",
-		"libraryFallback": "Library"
+		"libraryFallback": "Library",
+		"offline": {
+			"keepFolder": "Keep offline",
+			"pinned": "Available offline",
+			"coveredByParent": "Offline (parent folder)",
+			"listing": "Scanning folders…",
+			"progress": "Downloading {done}/{total}…",
+			"doneWithErrors": "{failed, plural, one {# file failed} other {# files failed}} — sync to retry",
+			"error": "Offline sync failed",
+			"showingDownloaded": "Server unreachable — showing downloaded files only."
+		}
 	},
 	"about": {
 		"title": "About dustic",
@@ -405,6 +415,7 @@
 			"preferences": "Preferences",
 			"profile": "Profile",
 			"libraries": "Audio sources",
+			"offline": "Offline",
 			"about": "About"
 		},
 		"language": {
@@ -551,11 +562,37 @@
 			"downloadOk": "Profile downloaded and applied successfully!",
 			"uploadFailed": "Upload failed",
 			"downloadFailed": "Download failed",
-			"configFirst": "Please configure and enable WebDAV first",
-			"offlineTitle": "Offline Storage",
-			"statDownloaded": "Downloaded Tracks",
-			"statStorageUsed": "Storage Used",
-			"statStorageQuota": "Storage Quota",
+			"configFirst": "Please configure and enable WebDAV first"
+		},
+		"offline": {
+			"title": "Offline storage",
+			"manageLink": "Manage offline storage",
+			"statFiles": "Downloaded files",
+			"statSize": "Downloaded volume",
+			"statAppUsage": "Total app storage",
+			"ofQuota": "of {quota} available to the app",
+			"colSource": "Source",
+			"colFiles": "Files",
+			"colSize": "Size",
+			"source": {
+				"ia": "Internet Archive",
+				"funkwhale": "FunkWhale",
+				"webdav": "WebDAV"
+			},
+			"persisted": "Protected from automatic deletion",
+			"notPersisted": "The browser may delete downloads when space runs low",
+			"requestPersist": "Protect downloads",
+			"foldersTitle": "Offline folders",
+			"foldersHelp": "WebDAV folders kept available offline, including their subfolders. Use “Keep offline” while browsing a WebDAV library to add one; sync to fetch files added since.",
+			"foldersEmpty": "No folder kept offline yet.",
+			"folderStats": "{count, plural, one {# file} other {# files}} · {size}",
+			"lastSynced": "synced {date}",
+			"truncated": "Too many files: only the first 5000 were downloaded.",
+			"sync": "Sync",
+			"removeFolder": "Remove offline copy",
+			"removeFolderConfirm": "Stop keeping “{name}” offline and delete its downloaded files? Favorites and playlist tracks are kept.",
+			"clearConfirm": "Delete every downloaded file from this device?",
+			"clearAll": "Delete all downloads ({size})",
 			"findOrphans": "Find unreferenced cached tracks",
 			"allReferenced": "All cached tracks are referenced by your favorites or playlists.",
 			"orphansFound": "{count, plural, one {# unreferenced track found} other {# unreferenced tracks found}}",
@@ -600,7 +637,8 @@
 			"failedTitle": "Download failed",
 			"errorLabel": "Error",
 			"forOffline": "Download for offline",
-			"downloadLabel": "Download"
+			"downloadLabel": "Download",
+			"quotaTitle": "Not enough storage space"
 		},
 		"themePicker": {
 			"welcome": "Welcome to dustic",

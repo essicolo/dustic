@@ -5,10 +5,7 @@
 	import { autoplayStore } from '$lib/stores/autoplay';
 	import { player } from '$lib/stores/player';
 	import { settings } from '$lib/stores/settings';
-	import { offline } from '$lib/stores/offline';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles } from '$lib/services/storage';
-	import { formatBytes as formatBytesShared, type OfflineTrack } from '$lib/services/offlineStorage';
-	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import { saveToStorage } from '$lib/services/persistence';
 	import type { UserProfile, WebDAVConfig } from '$lib/types';
 	import { testWebDAVConnection, uploadProfileToWebDAV, downloadProfileFromWebDAV, checkProfileExists } from '$lib/services/webdav';
@@ -24,10 +21,6 @@
 	let importSuccess = false;
 	let pendingImport: UserProfile | null = null;
 
-	// Orphan detection state
-	let orphanedTracks: OfflineTrack[] = [];
-	let selectedOrphans: Set<string> = new Set();
-	let orphanScanDone = false;
 
 	// WebDAV sync state
 	let webdavConfig: WebDAVConfig = $settings.webdav || {
@@ -54,24 +47,8 @@
 		historyEntries: $history.entries.length
 	};
 
-	// Offline storage stats
-	$: offlineStats = {
-		tracks: $offline.offlineTracks.length,
-		storageUsed: $offline.storageUsed,
-		storageQuota: $offline.storageQuota
-	};
-
-	// Format bytes to human readable
-	function formatBytes(bytes: number): string {
-		if (bytes === 0) return '0 B';
-		const k = 1024;
-		const sizes = ['B', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-	}
 
 	onMount(async () => {
-		offline.loadOfflineTracks();
 		// Decrypt the stored password for display in the settings form
 		if (webdavConfig.password) {
 			webdavConfig.password = await decryptValue(webdavConfig.password);
@@ -160,46 +137,6 @@
 		pendingImport = null;
 	}
 
-	function handleScanOrphans() {
-		const orphans = findOrphanedTracks(
-			$offline.offlineTracks,
-			$library.favorites,
-			$library.playlists
-		);
-		orphanedTracks = orphans;
-		selectedOrphans = new Set(orphans.map((ot) => ot.track.identifier));
-		orphanScanDone = true;
-	}
-
-	$: allOrphansSelected = orphanedTracks.length > 0 && selectedOrphans.size === orphanedTracks.length;
-	$: selectedOrphanSize = orphanedTracks
-		.filter((ot) => selectedOrphans.has(ot.track.identifier))
-		.reduce((sum, ot) => sum + (ot.fileSize || 0), 0);
-
-	function toggleOrphan(id: string) {
-		selectedOrphans = new Set(selectedOrphans);
-		if (selectedOrphans.has(id)) {
-			selectedOrphans.delete(id);
-		} else {
-			selectedOrphans.add(id);
-		}
-	}
-
-	function toggleAllOrphans() {
-		if (allOrphansSelected) {
-			selectedOrphans = new Set();
-		} else {
-			selectedOrphans = new Set(orphanedTracks.map((ot) => ot.track.identifier));
-		}
-	}
-
-	async function removeSelectedOrphans() {
-		for (const id of selectedOrphans) {
-			await offline.deleteTrack(id);
-		}
-		orphanedTracks = orphanedTracks.filter((ot) => !selectedOrphans.has(ot.track.identifier));
-		selectedOrphans = new Set();
-	}
 
 	async function loadProfile(profile: UserProfile) {
 		library.loadFromProfile({
@@ -698,117 +635,10 @@
 		</div>
 	</div>
 
-	<!-- Offline Storage Information -->
+	<!-- Offline storage moved to its own settings tab -->
 	<div class="border-t border-base-300 pt-6">
-		<div class="space-y-1">
-			<h3 class="text-xl font-semibold mb-4">
-				<Icon icon="solar:download-minimalistic-bold" width="24" className="inline mr-2" />
-				{$_('settings.profile.offlineTitle')}
-			</h3>
-
-			<!-- Storage stats -->
-			<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">{$_('settings.profile.statDownloaded')}</div>
-					<div class="stat-value text-2xl">{offlineStats.tracks}</div>
-				</div>
-				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">{$_('settings.profile.statStorageUsed')}</div>
-					<div class="stat-value text-xl">{formatBytes(offlineStats.storageUsed)}</div>
-				</div>
-				<div class="stat bg-base-300 rounded-lg p-4">
-					<div class="stat-title text-xs">{$_('settings.profile.statStorageQuota')}</div>
-					<div class="stat-value text-xl">{formatBytes(offlineStats.storageQuota)}</div>
-				</div>
-			</div>
-
-			<!-- Orphan Detection -->
-			<div class="mb-4">
-				<button
-					on:click={handleScanOrphans}
-					class="btn btn-outline btn-sm gap-2"
-				>
-					<Icon icon="solar:magnifer-bold" width="16" />
-					{$_('settings.profile.findOrphans')}
-				</button>
-
-				{#if orphanScanDone && orphanedTracks.length === 0}
-					<div class="alert alert-success mt-3 text-sm">
-						<Icon icon="solar:check-circle-bold" width="18" />
-						<span>{$_('settings.profile.allReferenced')}</span>
-					</div>
-				{/if}
-
-				{#if orphanedTracks.length > 0}
-					<div class="border border-warning/30 rounded-lg p-3 mt-3">
-						<div class="flex items-center justify-between mb-2">
-							<span class="text-sm font-medium text-warning">
-								{$_('settings.profile.orphansFound', { values: { count: orphanedTracks.length } })}
-							</span>
-						</div>
-
-						<!-- Select all -->
-						<label class="flex items-center gap-2 text-sm cursor-pointer mb-2 opacity-70">
-							<input
-								type="checkbox"
-								class="checkbox checkbox-sm"
-								checked={allOrphansSelected}
-								on:change={toggleAllOrphans}
-							/>
-							{$_('settings.profile.selectAll')}
-						</label>
-
-						<!-- Track list -->
-						<div class="max-h-48 overflow-y-auto space-y-1">
-							{#each orphanedTracks as ot (ot.track.identifier)}
-								<label class="flex items-center gap-2 text-sm cursor-pointer py-1 px-1 rounded hover:bg-base-300">
-									<input
-										type="checkbox"
-										class="checkbox checkbox-sm"
-										checked={selectedOrphans.has(ot.track.identifier)}
-										on:change={() => toggleOrphan(ot.track.identifier)}
-									/>
-									<span class="truncate flex-1">{ot.track.title || ot.track.identifier}</span>
-									{#if ot.fileSize}
-										<span class="text-base-content/40 shrink-0 text-xs">{formatBytesShared(ot.fileSize)}</span>
-									{/if}
-								</label>
-							{/each}
-						</div>
-
-						<!-- Remove button -->
-						{#if selectedOrphans.size > 0}
-							<button
-								on:click={removeSelectedOrphans}
-								class="btn btn-warning btn-sm w-full mt-3"
-							>
-								{$_('settings.profile.removeOrphans', { values: { count: selectedOrphans.size, size: formatBytesShared(selectedOrphanSize) } })}
-							</button>
-						{/if}
-					</div>
-				{/if}
-			</div>
-
-			<div class="space-y-3 text-sm text-base-content/70">
-				<div class="alert alert-info">
-					<Icon icon="solar:info-circle-bold" width="20" />
-					<div class="space-y-2">
-						<p>
-							<strong>{$_('settings.profile.storageInfoStrong')}</strong>{$_('settings.profile.storageInfoRest')}
-						</p>
-						<ul class="list-disc list-inside ml-4 space-y-1">
-							<li>{@html $_('settings.profile.storageInfoAudio')}</li>
-							<li>{@html $_('settings.profile.storageInfoMeta')}</li>
-						</ul>
-					</div>
-				</div>
-
-				<div class="alert alert-warning">
-					<Icon icon="solar:danger-triangle-bold" width="20" />
-					<div>
-						<p><strong>{$_('settings.profile.importantStrong')}</strong>{$_('settings.profile.importantRest')}</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		<a href="{base}/settings/offline" class="btn btn-outline btn-sm gap-2">
+			<Icon icon="solar:download-minimalistic-bold" width="16" />
+			{$_('settings.offline.manageLink')}
+		</a>
 	</div>

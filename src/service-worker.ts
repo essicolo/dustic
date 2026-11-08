@@ -5,7 +5,11 @@ import { build, files, version } from '$service-worker';
 
 // Create unique cache names for this deployment (Issue #10 - aggressive caching)
 const CACHE = `cache-${version}`;
+// Explicit offline downloads (written by offlineStorage.ts). The SW never
+// writes here: streamed audio goes to STREAM_CACHE so playback caching can't
+// overwrite or be confused with a user's downloads.
 const AUDIO_CACHE = 'dustic-audio-cache';
+const STREAM_CACHE = 'dustic-stream-cache';
 const IMAGE_CACHE = 'dustic-image-cache';
 const METADATA_CACHE = 'dustic-metadata-cache';
 
@@ -21,8 +25,11 @@ async function staleWhileRevalidate(request: Request, cacheName: string, maxAge:
 	const cachedResponse = await cache.match(request);
 
 	const fetchPromise = fetch(request).then(async (response) => {
-		if (response.ok) {
-			await cache.put(request, response.clone());
+		// Only full 200 responses are cacheable: Cache.put() rejects 206
+		// partial content (audio Range requests), and a rejection here would
+		// turn a perfectly good network response into a 503.
+		if (response.status === 200) {
+			await cache.put(request, response.clone()).catch(() => {});
 		}
 		return response;
 	}).catch(() => {
@@ -57,7 +64,13 @@ self.addEventListener('activate', (event) => {
 	async function deleteOldCaches() {
 		for (const key of await caches.keys()) {
 			// Delete old version caches, but keep the content caches
-			if (key !== CACHE && key !== AUDIO_CACHE && key !== IMAGE_CACHE && key !== METADATA_CACHE) {
+			if (
+				key !== CACHE &&
+				key !== AUDIO_CACHE &&
+				key !== STREAM_CACHE &&
+				key !== IMAGE_CACHE &&
+				key !== METADATA_CACHE
+			) {
 				await caches.delete(key);
 			}
 		}
@@ -106,7 +119,11 @@ self.addEventListener('fetch', (event) => {
 			url.pathname.includes('/serve/') ||
 			(targetUrl && (targetUrl.endsWith('.mp3') || targetUrl.includes('/serve/')))
 		) {
-			return staleWhileRevalidate(event.request, AUDIO_CACHE, 60 * 60 * 1000);
+			// Downloaded for offline: serve the stored copy, no network.
+			const downloads = await caches.open(AUDIO_CACHE);
+			const downloaded = await downloads.match(event.request);
+			if (downloaded) return downloaded;
+			return staleWhileRevalidate(event.request, STREAM_CACHE, 60 * 60 * 1000);
 		}
 
 		// Metadata: 1 hour caching (Issue #10)

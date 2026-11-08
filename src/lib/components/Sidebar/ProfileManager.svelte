@@ -6,7 +6,7 @@
 	import { player } from '$lib/stores/player';
 	import { settings } from '$lib/stores/settings';
 	import { exportProfile, importProfile, createDefaultProfile, mergeProfiles, profileToJson, importProfileFromText } from '$lib/services/storage';
-	import { offline } from '$lib/stores/offline';
+	import { offline, isInOfflineFolder } from '$lib/stores/offline';
 	import { formatBytes, type OfflineTrack } from '$lib/services/offlineStorage';
 	import { findOrphanedTracks } from '$lib/services/orphanDetection';
 	import { saveToStorage } from '$lib/services/persistence';
@@ -262,7 +262,8 @@
 		const orphans = findOrphanedTracks(
 			$offline.offlineTracks,
 			profile.favorites,
-			profile.playlists
+			profile.playlists,
+			$isInOfflineFolder
 		);
 
 		if (orphans.length === 0) return;

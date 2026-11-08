@@ -487,3 +487,127 @@ function isPlaceholderFolder(name: string): boolean {
 	if (!trimmed) return true;
 	return PLACEHOLDER_FOLDER_PATTERNS.some((re) => re.test(trimmed));
 }
+
+// ---------------------------------------------------------------------------
+// Offline folders
+// ---------------------------------------------------------------------------
+
+/** Absolute server path (as found in entry.path) for a library-relative path. */
+export function toAbsolutePath(library: WebDAVLibrary, relativePath: string): string {
+	return normalizePath(joinPath(library.rootPath || '/', relativePath || '/'));
+}
+
+/** Inverse of {@link toAbsolutePath}: strip the library's rootPath. */
+export function toRelativePath(library: WebDAVLibrary, absolutePath: string): string {
+	const root = normalizePath(library.rootPath || '/');
+	const abs = normalizePath(absolutePath);
+	if (root === '/') return abs;
+	if (abs === root) return '/';
+	if (abs.startsWith(root + '/')) return abs.slice(root.length);
+	return abs;
+}
+
+/** True when `path` is `folder` itself or lives anywhere below it. */
+export function isPathInside(path: string, folder: string): boolean {
+	const p = normalizePath(path);
+	const f = normalizePath(folder);
+	if (f === '/') return true;
+	return p === f || p.startsWith(f + '/');
+}
+
+export interface RecursiveListOptions {
+	/** Stop collecting once this many audio files were found. */
+	maxFiles?: number;
+	/** How deep to descend below the starting folder. */
+	maxDepth?: number;
+	onFolder?: (absolutePath: string) => void;
+	signal?: AbortSignal;
+}
+
+/**
+ * Walk a folder tree breadth-first and return every audio file in it.
+ * `relativePath` is relative to the library's rootPath, like listFolder.
+ */
+export async function listAudioFilesRecursive(
+	library: WebDAVLibrary,
+	relativePath: string,
+	options: RecursiveListOptions = {}
+): Promise<{ files: WebDAVEntry[]; truncated: boolean }> {
+	const { maxFiles = 5000, maxDepth = 12, onFolder, signal } = options;
+	const files: WebDAVEntry[] = [];
+	const seen = new Set<string>();
+	const queue: { rel: string; depth: number }[] = [{ rel: relativePath || '/', depth: 0 }];
+	let truncated = false;
+
+	while (queue.length > 0) {
+		if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+		const { rel, depth } = queue.shift()!;
+		const abs = toAbsolutePath(library, rel);
+		if (seen.has(abs)) continue;
+		seen.add(abs);
+		onFolder?.(abs);
+
+		const entries = await listFolder(library, rel);
+		for (const entry of entries) {
+			if (entry.type === 'file') {
+				if (files.length >= maxFiles) {
+					truncated = true;
+					break;
+				}
+				files.push(entry);
+			} else if (depth < maxDepth) {
+				queue.push({ rel: toRelativePath(library, entry.path), depth: depth + 1 });
+			} else {
+				truncated = true;
+			}
+		}
+		if (files.length >= maxFiles) {
+			if (queue.length > 0) truncated = true;
+			break;
+		}
+	}
+
+	return { files, truncated };
+}
+
+/**
+ * Rebuild a folder listing from downloaded tracks, so a WebDAV library can
+ * still be browsed when the server is unreachable (no network, plane mode).
+ * `absoluteFolder` is the server-absolute folder being displayed.
+ */
+export function entriesFromOffline(
+	offlineTracks: { track: Track; fileSize?: number }[],
+	libraryId: string,
+	absoluteFolder: string
+): WebDAVEntry[] {
+	const folder = normalizePath(absoluteFolder);
+	const prefix = folder === '/' ? '/' : folder + '/';
+	const folders = new Map<string, WebDAVEntry>();
+	const files: WebDAVEntry[] = [];
+
+	for (const { track, fileSize } of offlineTracks) {
+		const decoded = decodeIdentifier(track.identifier);
+		if (!decoded || decoded.libraryId !== libraryId) continue;
+		const path = normalizePath(decoded.path);
+		if (!path.startsWith(prefix)) continue;
+		const rest = path.slice(prefix.length);
+		const slash = rest.indexOf('/');
+		if (slash === -1) {
+			files.push({
+				type: 'file',
+				name: rest,
+				path,
+				size: fileSize ?? (track.metadata?.size as number | undefined)
+			});
+		} else {
+			const name = rest.slice(0, slash);
+			if (!folders.has(name)) {
+				folders.set(name, { type: 'folder', name, path: prefix + name });
+			}
+		}
+	}
+
+	const sort = (a: WebDAVEntry, b: WebDAVEntry) =>
+		a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+	return [...[...folders.values()].sort(sort), ...files.sort(sort)];
+}

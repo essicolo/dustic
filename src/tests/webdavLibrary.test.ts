@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
 	encodeIdentifier,
 	decodeIdentifier,
@@ -189,5 +189,61 @@ describe('parsePropfind', () => {
 		const file = entries.find((e) => e.type === 'file');
 		expect(file?.name).toBe('track 01.mp3');
 		expect(file?.path).toBe('/Musique/track 01.mp3');
+	});
+});
+
+describe('offline folder helpers', async () => {
+	const { toAbsolutePath, toRelativePath, isPathInside, entriesFromOffline, listAudioFilesRecursive } =
+		await import('$lib/services/webdavLibrary');
+	const lib = { id: 'L', name: 'Lib', url: 'https://dav.example/dav', username: 'u', password: '', rootPath: '/Music', enabled: true };
+
+	it('converts between library-relative and absolute paths', () => {
+		expect(toAbsolutePath(lib, '/')).toBe('/Music');
+		expect(toAbsolutePath(lib, '/Rock/AC')).toBe('/Music/Rock/AC');
+		expect(toRelativePath(lib, '/Music/Rock')).toBe('/Rock');
+		expect(toRelativePath(lib, '/Music')).toBe('/');
+		expect(toRelativePath({ ...lib, rootPath: '/' }, '/A/B')).toBe('/A/B');
+	});
+
+	it('isPathInside matches whole segments only', () => {
+		expect(isPathInside('/Music/Rock/a.mp3', '/Music/Rock')).toBe(true);
+		expect(isPathInside('/Music/Rock', '/Music/Rock')).toBe(true);
+		expect(isPathInside('/Music/Rockabilly/a.mp3', '/Music/Rock')).toBe(false);
+		expect(isPathInside('/anything', '/')).toBe(true);
+	});
+
+	it('entriesFromOffline rebuilds one folder level from downloads', () => {
+		const mk = (p: string) => ({ track: { identifier: encodeIdentifier('L', p) } as any, fileSize: 10 });
+		const entries = entriesFromOffline(
+			[mk('/Music/Rock/AC/1.mp3'), mk('/Music/Rock/b.mp3'), mk('/Music/Jazz/c.mp3'), mk('/Music/Rock/AC/2.mp3')],
+			'L',
+			'/Music/Rock'
+		);
+		expect(entries.map((e) => [e.type, e.name, e.path])).toEqual([
+			['folder', 'AC', '/Music/Rock/AC'],
+			['file', 'b.mp3', '/Music/Rock/b.mp3']
+		]);
+		expect(entriesFromOffline([mk('/Music/x.mp3')], 'OTHER', '/Music')).toEqual([]);
+	});
+
+	it('listAudioFilesRecursive walks subfolders', async () => {
+		const xml = (items: string) =>
+			`<?xml version="1.0"?><d:multistatus xmlns:d="DAV:">${items}</d:multistatus>`;
+		const folder = (href: string) =>
+			`<d:response><d:href>${href}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat></d:response>`;
+		const file = (href: string) =>
+			`<d:response><d:href>${href}</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>5</d:getcontentlength></d:prop></d:propstat></d:response>`;
+		const listings: Record<string, string> = {
+			'https://dav.example/dav/Music/Rock/': xml(folder('/dav/Music/Rock/') + folder('/dav/Music/Rock/AC/') + file('/dav/Music/Rock/a.mp3') + file('/dav/Music/Rock/cover.jpg')),
+			'https://dav.example/dav/Music/Rock/AC/': xml(folder('/dav/Music/Rock/AC/') + file('/dav/Music/Rock/AC/b.flac'))
+		};
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_u, init) => {
+			const { url } = JSON.parse(String(init?.body));
+			return new Response(listings[url] ?? xml(''), { status: 207 });
+		});
+		const { files, truncated } = await listAudioFilesRecursive(lib, '/Rock');
+		expect(files.map((f) => f.path).sort()).toEqual(['/Music/Rock/AC/b.flac', '/Music/Rock/a.mp3']);
+		expect(truncated).toBe(false);
+		fetchMock.mockRestore();
 	});
 });

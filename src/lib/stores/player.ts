@@ -82,6 +82,32 @@ function createPlayerStore() {
 		}
 	}
 
+	/**
+	 * Point the audio element at a track restored from a previous session,
+	 * without playing it. Downloaded tracks use their local copy (so the
+	 * restored track works offline); others use their remote URL. WebDAV
+	 * tracks that aren't downloaded need an authenticated fetch, which is
+	 * deferred until the user presses play (see resume()).
+	 */
+	async function loadRestoredTrack(element: HTMLAudioElement, track: Track): Promise<void> {
+		const token = latestPlayToken;
+		let src = '';
+		try {
+			const playable = await offlineStorage.getOfflineTrack(track.identifier);
+			if (playable?.streamUrl.startsWith('blob:')) src = playable.streamUrl;
+		} catch {
+			// offline storage unavailable
+		}
+		if (!src && track.source !== 'webdav' && track.streamUrl && !track.streamUrl.startsWith('blob:')) {
+			src = track.streamUrl;
+		}
+		// A play() started while we looked things up wins.
+		if (!src || token !== latestPlayToken || element.getAttribute('src')) return;
+		devLog('[Player] Restoring track on audio element mount:', track.title);
+		element.src = src;
+		element.load();
+	}
+
 	// Helper to save player state (last track and position)
 	function savePlayerState(state: PlayerState) {
 		const profile = getCachedProfile() || loadFromStorageSync();
@@ -253,16 +279,9 @@ function createPlayerStore() {
 			element.volume = initialState.volume;
 
 			// If there's a current track from restored state, load it into audio element.
-			// WebDAV tracks need a fresh fetch on user gesture; skip auto-restore.
 			const currentState = get({ subscribe });
-			if (
-				currentState.currentTrack &&
-				currentState.currentTrack.streamUrl &&
-				currentState.currentTrack.source !== 'webdav'
-			) {
-				devLog('[Player] Restoring track on audio element mount:', currentState.currentTrack.title);
-				element.src = currentState.currentTrack.streamUrl;
-				element.load();
+			if (currentState.currentTrack) {
+				void loadRestoredTrack(element, currentState.currentTrack);
 			}
 		},
 
@@ -297,13 +316,41 @@ function createPlayerStore() {
 				// element might not have a src yet — that's fine.
 			}
 
+			// Downloaded tracks play from local storage, and are checked first so
+			// they play without network even when the card carries no URL.
+			// Only the *playback* URL is the session blob: URL: currentTrack
+			// keeps its original streamUrl, because it is persisted
+			// (lastPlayedTrack) and reused by the download button, and a blob:
+			// URL is dead after a reload.
+			let offlineUrl: string | null = null;
+			try {
+				const playable = await offlineStorage.getOfflineTrack(track.identifier);
+				if (playToken !== latestPlayToken) return;
+				if (playable?.streamUrl.startsWith('blob:')) {
+					devLog('[Player] Using offline version:', track.title);
+					offlineUrl = playable.streamUrl;
+					if (!track.streamUrl || track.streamUrl.startsWith('blob:')) {
+						const record = await offlineStorage.getTrack(track.identifier);
+						if (playToken !== latestPlayToken) return;
+						if (record) track = record.track;
+					}
+				}
+			} catch {
+				// Offline storage not available, continue with original URL
+			}
+			// A track restored from an older session may still carry a dead
+			// blob: URL; treat it as having no URL so it gets resolved again.
+			if (!offlineUrl && track.streamUrl?.startsWith('blob:')) {
+				track = { ...track, streamUrl: '' };
+			}
+
 			// Some screens build cards from listing data, which carries display
 			// metadata but no playable URL (a batched advancedsearch response,
 			// for instance, describes the item and not its files). Resolve the
 			// real track before touching the audio element: assigning src=''
 			// fires an immediate media error, which the error handler reads as
 			// "this track is broken" and skips past.
-			if (!track.streamUrl) {
+			if (!track.streamUrl && !offlineUrl) {
 				// One retry on failure: transient network errors (timeout, 503)
 				// are common enough that a single retry fixes most "sometimes
 				// doesn't play" cases that aren't actually dead items. The
@@ -335,18 +382,6 @@ function createPlayerStore() {
 				track = resolved;
 			}
 
-			// Check if track is available offline (use blob URL instead of remote URL)
-			try {
-				const offlineTrack = await offlineStorage.getOfflineTrack(track.identifier);
-				if (playToken !== latestPlayToken) return;
-				if (offlineTrack && offlineTrack.streamUrl !== track.streamUrl) {
-					devLog('[Player] Using offline version:', track.title);
-					track = { ...track, streamUrl: offlineTrack.streamUrl };
-				}
-			} catch {
-				// Offline storage not available, continue with original URL
-			}
-
 			devLog('[Player] Playing:', track.title, track.source || 'ia');
 
 			// Revoke previous blob URL to prevent memory leaks
@@ -361,7 +396,7 @@ function createPlayerStore() {
 			// currentTrack, so a failed fetch (e.g. 401) doesn't leave the
 			// player pinned to a phantom track that subsequent actions
 			// (download, share, favorite) act on.
-			let playUrl = track.streamUrl;
+			let playUrl = offlineUrl || track.streamUrl;
 			if (track.source === 'webdav' && !playUrl.startsWith('blob:')) {
 				const decoded = decodeIdentifier(track.identifier);
 				const library = decoded
@@ -466,6 +501,16 @@ function createPlayerStore() {
 		// Resume playback
 		resume() {
 			if (!audioElement) return;
+
+			// A restored track whose source could not be set up front (WebDAV
+			// needing an authenticated fetch, or a remote URL that failed while
+			// offline) has nothing to resume: start it properly instead.
+			const state = get({ subscribe });
+			const src = audioElement.getAttribute('src');
+			if (state.currentTrack && (!src || audioElement.error)) {
+				this.play(state.currentTrack);
+				return;
+			}
 
 			audioElement.play().catch((error) => {
 				console.error('Resume error:', error);
@@ -614,11 +659,17 @@ function createPlayerStore() {
 				isPlaying: false
 			}));
 
-			// If audio element is available, set the source and seek
+			// If audio element is available, set the source; the saved
+			// position is applied on loadedmetadata.
 			if (audioElement) {
-				audioElement.src = track.streamUrl;
-				audioElement.load();
-				audioElement.currentTime = position;
+				allowPositionRestore = true;
+				try {
+					audioElement.pause();
+					audioElement.removeAttribute('src');
+				} catch {
+					// no previous source
+				}
+				void loadRestoredTrack(audioElement, track);
 			}
 		}
 	};

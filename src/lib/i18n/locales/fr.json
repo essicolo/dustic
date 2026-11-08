@@ -188,7 +188,17 @@
 		"backToLibrary": "Retour à la bibliothèque",
 		"upOneFolder": "Dossier parent",
 		"emptyFolder": "Dossier vide",
-		"libraryFallback": "Bibliothèque"
+		"libraryFallback": "Bibliothèque",
+		"offline": {
+			"keepFolder": "Garder hors ligne",
+			"pinned": "Disponible hors ligne",
+			"coveredByParent": "Hors ligne (dossier parent)",
+			"listing": "Analyse des dossiers…",
+			"progress": "Téléchargement {done}/{total}…",
+			"doneWithErrors": "{failed, plural, one {# fichier en échec} other {# fichiers en échec}} — synchronisez pour réessayer",
+			"error": "Échec de la synchronisation hors ligne",
+			"showingDownloaded": "Serveur injoignable — seuls les fichiers téléchargés sont affichés."
+		}
 	},
 	"about": {
 		"title": "À propos de dustic",
@@ -405,6 +415,7 @@
 			"preferences": "Préférences",
 			"profile": "Profil",
 			"libraries": "Sources audio",
+			"offline": "Hors ligne",
 			"about": "À propos"
 		},
 		"language": {
@@ -551,11 +562,37 @@
 			"downloadOk": "Profil téléchargé et appliqué avec succès !",
 			"uploadFailed": "Échec du téléversement",
 			"downloadFailed": "Échec du téléchargement",
-			"configFirst": "Veuillez configurer et activer WebDAV d'abord",
-			"offlineTitle": "Stockage hors ligne",
-			"statDownloaded": "Pistes téléchargées",
-			"statStorageUsed": "Espace utilisé",
-			"statStorageQuota": "Espace alloué",
+			"configFirst": "Veuillez configurer et activer WebDAV d'abord"
+		},
+		"offline": {
+			"title": "Stockage hors ligne",
+			"manageLink": "Gérer le stockage hors ligne",
+			"statFiles": "Fichiers téléchargés",
+			"statSize": "Volume téléchargé",
+			"statAppUsage": "Stockage total de l’app",
+			"ofQuota": "sur {quota} disponibles pour l’app",
+			"colSource": "Source",
+			"colFiles": "Fichiers",
+			"colSize": "Taille",
+			"source": {
+				"ia": "Internet Archive",
+				"funkwhale": "FunkWhale",
+				"webdav": "WebDAV"
+			},
+			"persisted": "Protégé contre la suppression automatique",
+			"notPersisted": "Le navigateur peut supprimer les téléchargements si l’espace manque",
+			"requestPersist": "Protéger les téléchargements",
+			"foldersTitle": "Dossiers hors ligne",
+			"foldersHelp": "Dossiers WebDAV gardés disponibles hors ligne, sous-dossiers compris. Utilisez « Garder hors ligne » en parcourant une bibliothèque WebDAV pour en ajouter un ; synchronisez pour récupérer les fichiers ajoutés depuis.",
+			"foldersEmpty": "Aucun dossier gardé hors ligne pour l’instant.",
+			"folderStats": "{count, plural, one {# fichier} other {# fichiers}} · {size}",
+			"lastSynced": "synchronisé le {date}",
+			"truncated": "Trop de fichiers : seuls les 5000 premiers ont été téléchargés.",
+			"sync": "Synchroniser",
+			"removeFolder": "Retirer la copie hors ligne",
+			"removeFolderConfirm": "Ne plus garder « {name} » hors ligne et supprimer ses fichiers téléchargés ? Les favoris et les pistes de playlists sont conservés.",
+			"clearConfirm": "Supprimer tous les fichiers téléchargés de cet appareil ?",
+			"clearAll": "Supprimer tous les téléchargements ({size})",
 			"findOrphans": "Trouver les pistes en cache non référencées",
 			"allReferenced": "Toutes les pistes en cache sont référencées dans vos favoris ou playlists.",
 			"orphansFound": "{count, plural, one {# piste non référencée trouvée} other {# pistes non référencées trouvées}}",
@@ -600,7 +637,8 @@
 			"failedTitle": "Échec du téléchargement",
 			"errorLabel": "Erreur",
 			"forOffline": "Télécharger pour écoute hors ligne",
-			"downloadLabel": "Télécharger"
+			"downloadLabel": "Télécharger",
+			"quotaTitle": "Espace de stockage insuffisant"
 		},
 		"themePicker": {
 			"welcome": "Bienvenue dans dustic",

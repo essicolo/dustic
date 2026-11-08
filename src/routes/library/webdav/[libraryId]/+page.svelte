@@ -8,8 +8,11 @@
 		listFolder,
 		buildTrack,
 		findLibrary,
+		toAbsolutePath,
+		entriesFromOffline,
 		type WebDAVEntry
 	} from '$lib/services/webdavLibrary';
+	import { offline, folderId } from '$lib/stores/offline';
 	import { player } from '$lib/stores/player';
 	import { queue } from '$lib/stores/queue';
 	import Icon from '$lib/components/Icon.svelte';
@@ -23,6 +26,8 @@
 	let loading = true;
 	let error = '';
 	let viewMode: 'tiles' | 'list' = 'tiles';
+	/** True when the listing was rebuilt from downloads (server unreachable). */
+	let showingOffline = false;
 
 	$: libraryId = $page.params.libraryId ?? '';
 	$: path = (($page.url.searchParams.get('p') || '/')).replace(/\/+$/, '') || '/';
@@ -39,6 +44,7 @@
 		loading = true;
 		error = '';
 		entries = [];
+		showingOffline = false;
 		library = findLibrary(settings.getWebDAVLibraries(), id);
 		if (!library) {
 			error = $_('webdav.libraryNotFound');
@@ -48,10 +54,53 @@
 		try {
 			entries = await listFolder(library, currentPath);
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('webdav.loadError');
+			// Server unreachable (offline, plane mode…): fall back to what has
+			// been downloaded so offline folders stay browsable and playable.
+			if ($offline.offlineTracks.length === 0) await offline.loadOfflineTracks();
+			const local = entriesFromOffline(
+				$offline.offlineTracks,
+				id,
+				toAbsolutePath(library, currentPath)
+			);
+			if (local.length > 0) {
+				entries = local;
+				showingOffline = true;
+			} else {
+				error = err instanceof Error ? err.message : $_('webdav.loadError');
+			}
 		} finally {
 			loading = false;
 		}
+	}
+
+	// Offline-folder state for the folder being displayed.
+	$: currentAbs = library ? toAbsolutePath(library, path) : '';
+	$: currentFolderId = library ? folderId(library.id, currentAbs) : '';
+	$: currentPinned = $offline.folders.some((f) => f.id === currentFolderId);
+	$: currentJob = currentFolderId ? $offline.folderJobs.get(currentFolderId) : undefined;
+	$: currentBusy = currentJob?.phase === 'listing' || currentJob?.phase === 'downloading';
+	// A parent folder pinned offline already covers this one.
+	$: coveredByParent = !!library && $offline.folders.some(
+		(f) => f.libraryId === library!.id && f.id !== currentFolderId &&
+			(f.path === '/' || currentAbs.startsWith(f.path + '/'))
+	);
+
+	$: pinnedIds = new Set($offline.folders.map((f) => f.id));
+
+	function keepOffline(absPath: string, name: string) {
+		if (!library) return;
+		void offline.syncFolder(library.id, absPath, name);
+	}
+
+	function keepCurrentOffline() {
+		if (!library) return;
+		const name = path === '/' || !path ? library.name : path.split('/').filter(Boolean).pop() || library.name;
+		keepOffline(currentAbs, name);
+	}
+
+	async function removeCurrentOffline() {
+		if (!confirm($_('settings.offline.removeFolderConfirm', { values: { name: path.split('/').filter(Boolean).pop() || library?.name || '' } }))) return;
+		await offline.removeFolder(currentFolderId, true);
 	}
 
 	function navigateInto(folder: WebDAVEntry) {
@@ -157,14 +206,62 @@
 	{:else if error}
 		<div class="alert alert-error">{error}</div>
 	{:else}
-		{#if files.length > 0}
-			<div class="mb-4">
+		{#if showingOffline}
+			<div class="alert alert-warning mb-4 text-sm">
+				<Icon icon="mdi:cloud-off-outline" width="20" />
+				<span>{$_('webdav.offline.showingDownloaded')}</span>
+			</div>
+		{/if}
+
+		<div class="mb-4 flex flex-wrap items-center gap-2">
+			{#if files.length > 0}
 				<button class="btn btn-primary btn-sm" on:click={playAll}>
 					<Icon icon="mdi:play" width="18" />
 					{$_('common.playAllCount', { values: { count: files.length } })}
 				</button>
-			</div>
-		{/if}
+			{/if}
+
+			{#if !showingOffline && (files.length > 0 || folders.length > 0)}
+				{#if currentBusy && currentJob}
+					<button class="btn btn-sm btn-ghost gap-2" disabled>
+						<span class="loading loading-spinner loading-xs"></span>
+						{#if currentJob.phase === 'listing'}
+							{$_('webdav.offline.listing')}
+						{:else}
+							{$_('webdav.offline.progress', { values: { done: currentJob.done, total: currentJob.total } })}
+						{/if}
+					</button>
+				{:else if currentPinned}
+					<span class="badge badge-success gap-1 h-8 px-3">
+						<Icon icon="solar:check-circle-bold" width="14" />
+						{$_('webdav.offline.pinned')}
+					</span>
+					<button class="btn btn-sm btn-ghost gap-1" on:click={keepCurrentOffline} title={$_('settings.offline.sync')}>
+						<Icon icon="mdi:sync" width="16" />
+						{$_('settings.offline.sync')}
+					</button>
+					<button class="btn btn-sm btn-ghost gap-1 text-error" on:click={removeCurrentOffline}>
+						<Icon icon="solar:trash-bin-trash-linear" width="16" />
+						{$_('settings.offline.removeFolder')}
+					</button>
+				{:else if coveredByParent}
+					<span class="badge badge-ghost gap-1 h-8 px-3">
+						<Icon icon="solar:check-circle-linear" width="14" />
+						{$_('webdav.offline.coveredByParent')}
+					</span>
+				{:else}
+					<button class="btn btn-sm btn-outline gap-2" on:click={keepCurrentOffline} data-testid="webdav-keep-offline">
+						<Icon icon="mdi:folder-download" width="18" />
+						{$_('webdav.offline.keepFolder')}
+					</button>
+				{/if}
+				{#if currentJob?.phase === 'done' && currentJob.failed > 0}
+					<span class="text-xs text-warning">{$_('webdav.offline.doneWithErrors', { values: { failed: currentJob.failed } })}</span>
+				{:else if currentJob?.phase === 'error'}
+					<span class="text-xs text-error">{$_('webdav.offline.error')}</span>
+				{/if}
+			{/if}
+		</div>
 
 		{#if viewMode === 'tiles'}
 			<!-- Folders row (always list-style) -->
@@ -184,7 +281,12 @@
 							class="card bg-base-200 hover:bg-base-300 aspect-square flex flex-col items-center justify-center gap-2 p-3 transition-colors text-center"
 							on:click={() => navigateInto(folder)}
 						>
-							<Icon icon="mdi:folder" width="40" />
+							<span class="relative">
+								<Icon icon="mdi:folder" width="40" />
+								{#if pinnedIds.has(folderId(libraryId, folder.path))}
+									<Icon icon="solar:check-circle-bold" width="16" className="text-success absolute -bottom-1 -right-1" />
+								{/if}
+							</span>
 							<div class="text-sm font-medium line-clamp-2 leading-tight w-full">
 								{folder.name}
 							</div>
@@ -225,6 +327,9 @@
 						<button class="w-full text-left p-3 hover:bg-base-200 flex items-center gap-3" on:click={() => navigateInto(folder)}>
 							<Icon icon="mdi:folder" width="22" />
 							<span class="flex-1 truncate">{folder.name}</span>
+							{#if pinnedIds.has(folderId(libraryId, folder.path))}
+								<Icon icon="solar:check-circle-bold" width="16" className="text-success" />
+							{/if}
 							<Icon icon="mdi:chevron-right" width="18" />
 						</button>
 					</li>

@@ -79,9 +79,10 @@ function createLibraryStore() {
 			// If removing a track from favorites, also remove download
 			if (isFav && favoriteType === 'track') {
 				// Import offline store dynamically to avoid circular dependency
-				const { offline } = await import('./offline');
+				const { offline, isInOfflineFolder } = await import('./offline');
 				try {
-					await offline.deleteTrack(id);
+					// Tracks inside a WebDAV folder kept offline stay downloaded.
+					if (!get(isInOfflineFolder)(id)) await offline.deleteTrack(id);
 				} catch (e) {
 					// Ignore if not downloaded
 				}

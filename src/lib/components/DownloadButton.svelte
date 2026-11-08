@@ -28,7 +28,7 @@
 	$: {
 		if (downloadProgress) {
 			progress = downloadProgress.progress;
-			status = downloadProgress.status;
+			status = downloadProgress.status === 'queued' ? 'downloading' : downloadProgress.status;
 		} else {
 			status = isOffline ? 'completed' : 'idle';
 		}
@@ -80,7 +80,7 @@
 		{#if showLabel}<span>{$_('components.download.downloadedLabel')}</span>{/if}
 	</button>
 {:else if status === 'error'}
-	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title={$_('components.download.failedTitle')}>
+	<button class="btn btn-{size} btn-ghost {showLabel ? '' : 'btn-circle'} {className}" disabled title={downloadProgress?.error === 'quota' ? $_('components.download.quotaTitle') : $_('components.download.failedTitle')}>
 		<Icon icon="solar:danger-triangle-linear" width={size === 'xs' ? 14 : 16} class="text-error" />
 		{#if showLabel}<span>{$_('components.download.errorLabel')}</span>{/if}
 	</button>
